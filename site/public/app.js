@@ -27,7 +27,6 @@
 		spec_contents_v: "ZH Commander لأندرويد",
 		spec_platform: "المنصّة",
 		spec_platform_v: "أندرويد 9 أو أحدث، 64 بت (arm64)",
-		spec_size: "الحجم",
 		spec_version: "الإصدار",
 		spec_requires: "المتطلبات",
 		spec_requires_v: "نسختك الخاصة من Zero Hour، ومفتاح تفعيل",
@@ -240,7 +239,6 @@
 		.then(function (info) {
 			if (!info) return;
 			document.getElementById("apk-version").textContent = info.version;
-			document.getElementById("apk-size").textContent = Math.round(info.size / 1048576) + " MB";
 		})
 		.catch(function () { /* keep the built-in values */ });
 })();
