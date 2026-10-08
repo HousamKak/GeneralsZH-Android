@@ -11,18 +11,29 @@
 #      provisioning profile from step 1, preserving entitlements.
 #   5. Optional: install to the first connected device via devicectl.
 #
-# Usage: ./scripts/build/ios/package-ios-zh.sh [--dev] [--install]
-#   --dev      skip bundling the 2.7 GB of game assets (code-only iteration)
-#   --install  install the packaged app to the first connected device
+# Usage: ./scripts/build/ios/package-ios-zh.sh [--dev] [--install] [--runtime-only] [--unsigned] [--ipa]
+#   --dev           skip bundling the 2.7 GB of game assets (code-only iteration)
+#   --install       install the packaged app to the first connected device
+#   --runtime-only  no game assets: ship only fonts/dxvk.conf/DefaultOptions.ini in <app>/Runtime,
+#                   which SDL3Main copies into Documents, where downloaded game data goes
+#   --unsigned      no Apple signing at all (CI): AltStore/SideStore sign it on the device
+#   --ipa           also write build/ios-package/<APP_NAME>.ipa (Payload/<app>, zipped)
+# GX_VERSION_NAME / GX_VERSION_CODE set the app's version (CFBundleShortVersionString / CFBundleVersion).
 set -euo pipefail
 
 DEV_MODE=0
 DO_INSTALL=0
+RUNTIME_ONLY=0
+UNSIGNED=0
+MAKE_IPA=0
 for arg in "$@"; do
     case "$arg" in
         --dev)     DEV_MODE=1 ;;
         --install) DO_INSTALL=1 ;;
-        *) echo "ERROR: unknown argument '$arg' (usage: $0 [--dev] [--install])"; exit 1 ;;
+        --runtime-only) RUNTIME_ONLY=1; DEV_MODE=1 ;;
+        --unsigned) UNSIGNED=1 ;;
+        --ipa)     MAKE_IPA=1 ;;
+        *) echo "ERROR: unknown argument '$arg' (usage: $0 [--dev] [--install] [--runtime-only] [--unsigned] [--ipa])"; exit 1 ;;
     esac
 done
 
@@ -52,13 +63,27 @@ echo "==> Generating Xcode project (xcodegen)"
 (cd "${IOS_DIR}" && xcodegen generate --quiet)
 
 echo "==> Building provisioning shell app"
-xcodebuild -project "${IOS_DIR}/${APP_NAME}.xcodeproj" \
-    -scheme "${APP_NAME}" -configuration Release \
-    -destination 'generic/platform=iOS' \
-    -derivedDataPath "${DERIVED}" \
-    DEVELOPMENT_TEAM="${TEAM_ID}" \
-    PRODUCT_BUNDLE_IDENTIFIER="${BUNDLE_ID}" \
-    -allowProvisioningUpdates build | tail -3
+VERSION_ARGS=()
+[[ -n "${GX_VERSION_NAME:-}" ]] && VERSION_ARGS+=(MARKETING_VERSION="${GX_VERSION_NAME}")
+[[ -n "${GX_VERSION_CODE:-}" ]] && VERSION_ARGS+=(CURRENT_PROJECT_VERSION="${GX_VERSION_CODE}")
+if [[ "${UNSIGNED}" == "1" ]]; then
+    xcodebuild -project "${IOS_DIR}/${APP_NAME}.xcodeproj" \
+        -scheme "${APP_NAME}" -configuration Release \
+        -destination 'generic/platform=iOS' \
+        -derivedDataPath "${DERIVED}" \
+        PRODUCT_BUNDLE_IDENTIFIER="${BUNDLE_ID}" \
+        CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" DEVELOPMENT_TEAM="" \
+        ${VERSION_ARGS[@]+"${VERSION_ARGS[@]}"} build | tail -3
+else
+    xcodebuild -project "${IOS_DIR}/${APP_NAME}.xcodeproj" \
+        -scheme "${APP_NAME}" -configuration Release \
+        -destination 'generic/platform=iOS' \
+        -derivedDataPath "${DERIVED}" \
+        DEVELOPMENT_TEAM="${TEAM_ID}" \
+        PRODUCT_BUNDLE_IDENTIFIER="${BUNDLE_ID}" \
+        ${VERSION_ARGS[@]+"${VERSION_ARGS[@]}"} \
+        -allowProvisioningUpdates build | tail -3
+fi
 
 SHELL_APP="${DERIVED}/Build/Products/Release-iphoneos/${APP_NAME}.app"
 if [[ ! -d "${SHELL_APP}" ]]; then
@@ -124,6 +149,17 @@ fi
 GAME_DATA_SRC="${GX_GAME_DATA:-${HOME}/GeneralsX/GeneralsZH}"
 FONTS_SRC="${GX_FONTS:-${HOME}/GeneralsX/ios-staging/fonts}"
 CONFIG_SRC="${GX_CONFIG:-${IOS_DIR}/config}"
+if [[ "${RUNTIME_ONLY}" == "1" ]]; then
+    echo "==> Runtime files only (no game assets)"
+    if ! ls "${FONTS_SRC}"/*.ttf >/dev/null 2>&1; then
+        echo "ERROR: fonts not staged at ${FONTS_SRC} (run scripts/build/ios/stage-fonts.sh)"
+        exit 1
+    fi
+    mkdir -p "${APP}/Runtime/fonts"
+    cp "${FONTS_SRC}"/*.ttf "${APP}/Runtime/fonts/"
+    cp "${CONFIG_SRC}/dxvk.conf" "${APP}/Runtime/dxvk.conf"
+    cp "${CONFIG_SRC}/Options.ini" "${APP}/Runtime/DefaultOptions.ini"
+fi
 if [[ "${DEV_MODE}" != "1" ]]; then
     echo "==> Bundling game assets into the app"
     mkdir -p "${APP}/GameData"
@@ -171,6 +207,9 @@ fi
 # Point the executable's rpath at the embedded frameworks
 install_name_tool -add_rpath "@executable_path/Frameworks" "${APP}/${APP_NAME}" 2>/dev/null || true
 
+if [[ "${UNSIGNED}" == "1" ]]; then
+    echo "==> Unsigned (AltStore/SideStore sign it on the device)"
+else
 echo "==> Re-signing"
 ENTITLEMENTS="${OUT_DIR}/entitlements.plist"
 codesign -d --entitlements - --xml "${SHELL_APP}" > "${ENTITLEMENTS}" 2>/dev/null
@@ -185,8 +224,19 @@ codesign --force --sign "${IDENTITY}" --timestamp=none \
     --entitlements "${ENTITLEMENTS}" "${APP}"
 
 codesign --verify --deep "${APP}" && echo "    signature OK"
+fi
 
 echo "==> App ready: ${APP}"
+
+if [[ "${MAKE_IPA}" == "1" ]]; then
+    IPA="${OUT_DIR}/${APP_NAME}.ipa"
+    rm -rf "${OUT_DIR}/Payload" "${IPA}"
+    mkdir -p "${OUT_DIR}/Payload"
+    cp -R "${APP}" "${OUT_DIR}/Payload/"
+    (cd "${OUT_DIR}" && zip -qry "${IPA}" Payload)
+    rm -rf "${OUT_DIR}/Payload"
+    echo "==> IPA: ${IPA} ($(du -h "${IPA}" | cut -f1))"
+fi
 
 if [[ "${DO_INSTALL}" == "1" ]]; then
     echo "==> Installing to connected device"

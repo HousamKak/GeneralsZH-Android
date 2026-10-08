@@ -1,0 +1,132 @@
+name: Build iOS
+
+# ZH Commander for iPhone/iPad: an unsigned .ipa (no game data; the app downloads it after
+# activation), which AltStore/SideStore sign on the player's device. Like the Android build, the
+# IPA never goes to GitHub: it is uploaded to the site's R2 bucket privately, and a release
+# (input below) also publishes it to the site's AltStore source.
+
+permissions:
+  contents: read
+
+on:
+  workflow_dispatch:
+    inputs:
+      release:
+        type: boolean
+        description: "Release this build: add it to the site's AltStore source (bump the version in android/app/build.gradle first; iOS follows it)."
+        default: false
+
+jobs:
+  build-ios:
+    runs-on: macos-15
+    timeout-minutes: 180
+    env:
+      # Same pin as the Android build: its version database holds the ffmpeg override vcpkg.json asks for.
+      VCPKG_COMMIT: "42e4e33e1505c9f47b58c21e0f557c1571b751ee"
+      VCPKG_ROOT: ${{ github.workspace }}/../vcpkg
+      VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/../vcpkg-cache
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          submodules: false
+
+      - name: Checkout DXVK fork submodule
+        run: |
+          set -euo pipefail
+          git submodule update --init --depth 1 references/fbraz3-dxvk
+          git -C references/fbraz3-dxvk submodule update --init --depth 1
+
+      - name: Install build tools
+        run: |
+          brew install cmake ninja meson pkg-config xcodegen glslang nasm \
+            autoconf autoconf-archive automake libtool
+          xcodebuild -version
+
+      # MoltenVK's pinned release carries the iOS static library the engine links and the
+      # dynamic framework the app embeds; VULKAN_SDK is laid out the way the ios-vulkan preset
+      # expects (include/, lib/MoltenVK.xcframework) without installing the whole LunarG SDK.
+      - name: Stage MoltenVK and fonts
+        run: |
+          set -euo pipefail
+          ./scripts/build/ios/fetch-moltenvk.sh
+          ./scripts/build/ios/stage-fonts.sh
+          MVK="${HOME}/GeneralsX/MoltenVK/MoltenVK/MoltenVK"
+          SDK="${RUNNER_TEMP}/vulkan-sdk"
+          mkdir -p "${SDK}/lib"
+          ln -s "${MVK}/static/MoltenVK.xcframework" "${SDK}/lib/MoltenVK.xcframework"
+          if [ -f "${MVK}/include/vulkan/vulkan.h" ]; then
+            ln -s "${MVK}/include" "${SDK}/include"
+          else
+            git clone --depth 1 https://github.com/KhronosGroup/Vulkan-Headers.git "${RUNNER_TEMP}/vulkan-headers"
+            ln -s "${RUNNER_TEMP}/vulkan-headers/include" "${SDK}/include"
+          fi
+          ls -la "${SDK}" "${SDK}/lib/MoltenVK.xcframework/ios-arm64/"
+          echo "VULKAN_SDK=${SDK}" >> "$GITHUB_ENV"
+
+      - name: Restore vcpkg binary cache
+        uses: actions/cache/restore@v5
+        with:
+          path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
+          key: vcpkg-ios-${{ env.VCPKG_COMMIT }}-${{ hashFiles('vcpkg.json', 'cmake/triplets/arm64-ios.cmake') }}
+          restore-keys: vcpkg-ios-${{ env.VCPKG_COMMIT }}-
+
+      - name: Bootstrap vcpkg
+        run: |
+          set -euo pipefail
+          mkdir -p "${VCPKG_DEFAULT_BINARY_CACHE}"
+          git clone https://github.com/microsoft/vcpkg.git "${VCPKG_ROOT}"
+          git -C "${VCPKG_ROOT}" checkout "${VCPKG_COMMIT}"
+          "${VCPKG_ROOT}/bootstrap-vcpkg.sh" -disableMetrics
+
+      - name: Configure CMake (iOS)
+        run: |
+          set -o pipefail
+          mkdir -p logs
+          cmake --preset ios-vulkan 2>&1 | tee logs/configure_ios.log
+
+      - name: Save vcpkg binary cache
+        if: always()
+        uses: actions/cache/save@v5
+        with:
+          path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
+          key: vcpkg-ios-${{ env.VCPKG_COMMIT }}-${{ hashFiles('vcpkg.json', 'cmake/triplets/arm64-ios.cmake') }}-${{ github.run_id }}
+
+      - name: Build z_generals (iOS)
+        run: |
+          set -o pipefail
+          cmake --build build/ios-vulkan --target z_generals -- -k 0 2>&1 | tee logs/build_ios.log
+
+      # The iOS version follows the Android one (android/app/build.gradle), so a release carries
+      # the same version on both platforms.
+      - name: Package IPA
+        run: |
+          set -euo pipefail
+          GRADLE=android/app/build.gradle
+          export GX_VERSION_NAME="$(sed -n "s/.*androidVersionName : '\([^']*\)'.*/\1/p" "${GRADLE}")"
+          export GX_VERSION_CODE="$(sed -n 's/.*androidVersionCode as Integer) : \([0-9]*\)).*/\1/p' "${GRADLE}")"
+          export GX_BUNDLE_ID=com.housamkak.zhcommander
+          echo "Version ${GX_VERSION_NAME} (${GX_VERSION_CODE})"
+          ./scripts/build/ios/package-ios-zh.sh --runtime-only --unsigned --ipa
+          ls -la build/ios-package/
+          echo "IPA_PATH=${GITHUB_WORKSPACE}/build/ios-package/GeneralsXZH.ipa" >> "$GITHUB_ENV"
+          echo "IOS_VERSION=${GX_VERSION_NAME}" >> "$GITHUB_ENV"
+
+      # Never to GitHub: the IPA goes to R2 like every APK (private until released).
+      - name: Upload IPA to R2
+        env:
+          GZH_UPLOAD_TOKEN: ${{ secrets.SITE_UPLOAD_TOKEN }}
+          GZH_SITE_URL: https://zh-commander.housam-kak20.workers.dev
+        run: |
+          set -euo pipefail
+          python3 site/upload-ipa.py "${IPA_PATH}" "${IOS_VERSION}" ${{ inputs.release && '--release' || '' }}
+
+      - name: Upload build logs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ios-build-logs-${{ github.run_number }}
+          path: logs/
+          retention-days: 7

@@ -8,6 +8,7 @@
 // in parts small enough for a Worker request body, so an APK of any size goes up in one piece.
 
 import { DATA_KEY_RE, dataFile, dataManifest, publishData, type DataEnv } from "./data";
+import { IPA_KEY_RE, altstoreSource, recordBuild, serveIpa } from "./ios";
 
 interface Env extends DataEnv {
 	ASSETS: Fetcher;
@@ -38,6 +39,19 @@ export default {
 			const key = pathname.slice("/download/".length);
 			if (!KEY_RE.test(key)) return new Response("Not found", { status: 404 });
 			return serveApk(env, key, key.slice("apk/".length));
+		}
+		// iOS (ios.ts): the AltStore source, and the IPAs it points at.
+		if (pathname === "/altstore.json") {
+			return altstoreSource(env);
+		}
+		if (pathname.startsWith("/download/ipa/")) {
+			return serveIpa(env, pathname.slice("/download/".length));
+		}
+		if ((pathname === "/admin/ios/record" || pathname === "/admin/ios/release") && request.method === "POST") {
+			if (!(await isUploader(request, env))) {
+				return Response.json({ error: "unauthorized" }, { status: 401 });
+			}
+			return recordBuild(request, env, pathname.endsWith("/release"));
 		}
 		// The newest build CI uploaded, released or not: what bundle-game-data.sh starts from.
 		if (pathname === "/admin/build/latest") {
@@ -88,14 +102,14 @@ async function upload(request: Request, url: URL, env: Env): Promise<Response> {
 	const key = url.searchParams.get("key") ?? "";
 	const uploadId = url.searchParams.get("uploadId") ?? "";
 	// Uploads go to apk/ (APKs) or data/ (game data, see data.ts); publish/record name theirs in the body.
-	const validKey = KEY_RE.test(key) || (DATA_KEY_RE.test(key) && !key.includes(".."));
+	const validKey = KEY_RE.test(key) || IPA_KEY_RE.test(key) || (DATA_KEY_RE.test(key) && !key.includes(".."));
 	if (step !== "publish" && step !== "record" && !validKey) {
 		return Response.json({ error: "bad_key" }, { status: 400 });
 	}
 
 	if (request.method === "POST" && step === "start") {
 		const mpu = await env.APKS.createMultipartUpload(key, {
-			httpMetadata: { contentType: key.startsWith("data/") ? "application/octet-stream" : "application/vnd.android.package-archive" },
+			httpMetadata: { contentType: key.startsWith("apk/") ? "application/vnd.android.package-archive" : "application/octet-stream" },
 		});
 		return Response.json({ uploadId: mpu.uploadId });
 	}

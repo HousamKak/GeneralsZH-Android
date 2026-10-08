@@ -436,6 +436,54 @@ static void TryLoadCustomVulkanDriver(const char *internalPath)
 }
 #endif // __ANDROID__
 
+#if defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE
+#include <dirent.h>
+
+// GeneralsX @feature ZH Commander 09/10/2026 Copy every file under src (one level of
+// subfolders, enough for fonts/) to dest, skipping files dest already has.
+static void copyRuntimeIfMissing(const char *src, const char *dest)
+{
+	DIR *dir = opendir(src);
+	if (dir == nullptr) {
+		return;
+	}
+	mkdir(dest, 0755);
+	while (struct dirent *entry = readdir(dir)) {
+		if (entry->d_name[0] == '.') {
+			continue;
+		}
+		char from[1024];
+		char to[1024];
+		snprintf(from, sizeof(from), "%s/%s", src, entry->d_name);
+		snprintf(to, sizeof(to), "%s/%s", dest, entry->d_name);
+		struct stat st;
+		if (stat(from, &st) != 0) {
+			continue;
+		}
+		if (S_ISDIR(st.st_mode)) {
+			copyRuntimeIfMissing(from, to);
+			continue;
+		}
+		if (access(to, F_OK) == 0) {
+			continue;
+		}
+		FILE *in = fopen(from, "rb");
+		FILE *out = in != nullptr ? fopen(to, "wb") : nullptr;
+		if (in != nullptr && out != nullptr) {
+			char buf[65536];
+			size_t n;
+			while ((n = fread(buf, 1, sizeof(buf), in)) > 0) {
+				fwrite(buf, 1, n, out);
+			}
+			fprintf(stderr, "INFO: copied runtime file %s\n", to);
+		}
+		if (out != nullptr) fclose(out);
+		if (in != nullptr) fclose(in);
+	}
+	closedir(dir);
+}
+#endif
+
 /**
  * CreateGameEngine
  *
@@ -577,6 +625,17 @@ int main(int argc, char* argv[])
 		if (!usingBundleData && home != nullptr) {
 			char docs[1024];
 			snprintf(docs, sizeof(docs), "%s/Documents", home);
+			// GeneralsX @feature ZH Commander 09/10/2026 Builds without bundled assets
+			// (game data downloaded or copied into Documents) still need the runtime
+			// files the game folder must hold -- fonts/, dxvk.conf, DefaultOptions.ini;
+			// without fonts/ every button renders with no text. They ship in
+			// <bundle>/Runtime and are copied in when missing, never over an edited copy.
+			if (bundleData[0] != '\0') {
+				char runtime[1024];
+				snprintf(runtime, sizeof(runtime), "%.*sRuntime",
+					(int)(strlen(bundleData) - strlen("GameData")), bundleData);
+				copyRuntimeIfMissing(runtime, docs);
+			}
 			if (chdir(docs) != 0) {
 				fprintf(stderr, "WARNING: chdir(%s) failed: %s\n", docs, strerror(errno));
 			} else {

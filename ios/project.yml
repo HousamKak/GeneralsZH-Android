@@ -10,7 +10,7 @@
 # those at your own Apple Developer account rather than editing this file.
 name: GeneralsXZH
 options:
-  bundleIdPrefix: me.ammaar
+  bundleIdPrefix: com.housamkak
   deploymentTarget:
     iOS: "16.0"
 targets:
@@ -21,7 +21,9 @@ targets:
       - path: Stub
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: me.ammaar.generalszh
+        PRODUCT_BUNDLE_IDENTIFIER: com.housamkak.zhcommander
+        MARKETING_VERSION: "1.5.2"
+        CURRENT_PROJECT_VERSION: "10502"
         DEVELOPMENT_TEAM: 7S264298H8
         CODE_SIGN_STYLE: Automatic
         TARGETED_DEVICE_FAMILY: "1,2"
@@ -31,9 +33,9 @@ targets:
     info:
       path: Stub/Info.plist
       properties:
-        CFBundleDisplayName: Generals ZH
-        CFBundleShortVersionString: "1.04"
-        CFBundleVersion: "10"
+        CFBundleDisplayName: ZH Commander
+        CFBundleShortVersionString: "$(MARKETING_VERSION)"
+        CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
         UIFileSharingEnabled: true
         LSSupportsOpeningDocumentsInPlace: true
         UIRequiresFullScreen: true
