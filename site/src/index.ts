@@ -3,11 +3,15 @@
 // The bucket holds the APKs under apk/ and a latest.json naming the current one (written by
 // upload-apk.sh). /download streams that file; /api/latest gives the page its version and size.
 // upload-apk.sh lists any game data an APK bundles before publishing it.
+//
+// /admin/upload/* (bearer UPLOAD_TOKEN) is how upload-apk.py publishes: an R2 multipart upload
+// in parts small enough for a Worker request body, so an APK of any size goes up in one piece.
 
 interface Env {
 	ASSETS: Fetcher;
 	APKS: R2Bucket;
 	LICENSE: Fetcher; // the gzh-license Worker, which owns PayPal checkout and the key database
+	UPLOAD_TOKEN: string;
 }
 
 interface Latest {
@@ -18,9 +22,12 @@ interface Latest {
 	published: string;
 }
 
+const KEY_RE = /^apk\/[A-Za-z0-9._-]{1,200}\.apk$/;
+
 export default {
 	async fetch(request: Request, env: Env): Promise<Response> {
-		const { pathname } = new URL(request.url);
+		const url = new URL(request.url);
+		const { pathname } = url;
 		if (pathname === "/download") {
 			return download(env);
 		}
@@ -35,9 +42,69 @@ export default {
 			const { key: _key, ...info } = latest;
 			return Response.json(info, { headers: { "Cache-Control": "public, max-age=60" } });
 		}
+		if (pathname.startsWith("/admin/upload/")) {
+			if (!(await isUploader(request, env))) {
+				return Response.json({ error: "unauthorized" }, { status: 401 });
+			}
+			return upload(request, url, env);
+		}
 		return env.ASSETS.fetch(request);
 	},
 } satisfies ExportedHandler<Env>;
+
+async function upload(request: Request, url: URL, env: Env): Promise<Response> {
+	const step = url.pathname.slice("/admin/upload/".length);
+	const key = url.searchParams.get("key") ?? "";
+	const uploadId = url.searchParams.get("uploadId") ?? "";
+	if (step !== "publish" && !KEY_RE.test(key)) {
+		return Response.json({ error: "bad_key" }, { status: 400 });
+	}
+
+	if (request.method === "POST" && step === "start") {
+		const mpu = await env.APKS.createMultipartUpload(key, {
+			httpMetadata: { contentType: "application/vnd.android.package-archive" },
+		});
+		return Response.json({ uploadId: mpu.uploadId });
+	}
+	if (request.method === "PUT" && step === "part") {
+		const partNumber = Number(url.searchParams.get("part"));
+		if (!Number.isInteger(partNumber) || partNumber < 1 || !request.body) {
+			return Response.json({ error: "bad_part" }, { status: 400 });
+		}
+		const part = await env.APKS.resumeMultipartUpload(key, uploadId).uploadPart(partNumber, request.body);
+		return Response.json(part);
+	}
+	if (request.method === "POST" && step === "complete") {
+		const { parts } = (await request.json()) as { parts: R2UploadedPart[] };
+		const object = await env.APKS.resumeMultipartUpload(key, uploadId).complete(parts);
+		return Response.json({ key: object.key, size: object.size });
+	}
+	if (request.method === "POST" && step === "abort") {
+		await env.APKS.resumeMultipartUpload(key, uploadId).abort();
+		return Response.json({ aborted: true });
+	}
+	// Point the download at an uploaded APK, once it is complete and its size checks out.
+	if (request.method === "POST" && step === "publish") {
+		const latest = (await request.json()) as Latest;
+		const head = KEY_RE.test(latest.key ?? "") ? await env.APKS.head(latest.key) : null;
+		if (!head || head.size !== latest.size) {
+			return Response.json({ error: "not_uploaded" }, { status: 409 });
+		}
+		await env.APKS.put("latest.json", JSON.stringify(latest), {
+			httpMetadata: { contentType: "application/json" },
+		});
+		return Response.json({ published: latest.key });
+	}
+	return Response.json({ error: "not_found" }, { status: 404 });
+}
+
+async function isUploader(request: Request, env: Env): Promise<boolean> {
+	const header = request.headers.get("Authorization") ?? "";
+	const given = new TextEncoder().encode(header.replace(/^Bearer\s+/i, ""));
+	const expected = new TextEncoder().encode(env.UPLOAD_TOKEN ?? "");
+	if (expected.byteLength < 32 || given.byteLength !== expected.byteLength) return false;
+	return crypto.subtle.timingSafeEqual(given, expected);
+}
 
 async function download(env: Env): Promise<Response> {
 	const latest = await readLatest(env);
