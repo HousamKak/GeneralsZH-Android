@@ -9,7 +9,7 @@
 # (assets/gamedata/GameData) is listed before the upload, since it becomes publicly downloadable.
 #
 # Needs the upload token in ~/.generalszh/license_admin_token (or GZH_UPLOAD_TOKEN); the site
-# address defaults to https://zerohour.housamkak.com (GZH_SITE_URL overrides it).
+# address defaults to the Worker's workers.dev URL (GZH_SITE_URL overrides it).
 set -euo pipefail
 
 APK="${1:?APK to publish}"
@@ -18,7 +18,7 @@ PYTHON="$(command -v python3 || command -v python)"
 CONF="${HOME:-${USERPROFILE:-}}/.generalszh"
 TOKEN="${GZH_UPLOAD_TOKEN:-$(tr -d '\r\n' < "${CONF}/license_admin_token" 2>/dev/null || true)}"
 [[ -n "${TOKEN}" ]] || { echo "no upload token: put it in ${CONF}/license_admin_token"; exit 1; }
-URL="${GZH_SITE_URL:-https://zerohour.housamkak.com}"
+URL="${GZH_SITE_URL:-https://zh-commander.housam-kak20.workers.dev}"
 
 SHA256="$("${PYTHON}" -I "${SITE}/check-apk.py" "${APK}")"
 

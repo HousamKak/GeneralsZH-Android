@@ -4,6 +4,9 @@
 	"main": "src/index.ts",
 	"compatibility_date": "2026-10-01",
 	"observability": { "enabled": true },
+	// Kept on next to the custom domain: upload-apk.sh publishes through it, since it resolves
+	// even where a resolver still caches the custom domain as missing.
+	"workers_dev": true,
 	"routes": [
 		{ "pattern": "zerohour.housamkak.com", "custom_domain": true }
 	],
