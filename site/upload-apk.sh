@@ -2,7 +2,10 @@
 #
 # Publish an APK to the landing site's download link.
 #
-#   upload-apk.sh <apk>
+#   upload-apk.sh <apk> [--no-publish]
+#
+# --no-publish uploads and records it as the newest build without changing the site's download
+# (what CI does for every build).
 #
 # Uploads it to the zh-commander-apk R2 bucket, in parts, so any size works, and points
 # latest.json at it; /download serves it from then on. Any game data bundled in the APK
@@ -10,9 +13,12 @@
 #
 # Needs the upload token in ~/.generalszh/license_admin_token (or GZH_UPLOAD_TOKEN); the site
 # address defaults to the Worker's workers.dev URL (GZH_SITE_URL overrides it).
+# On Windows, install the TLS dependency with Python 3.10+ first:
+#   python -m pip install -r site/requirements.txt
 set -euo pipefail
 
 APK="${1:?APK to publish}"
+PUBLISH_FLAG="${2:-}"
 SITE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PYTHON="$(command -v python3 || command -v python)"
 CONF="${HOME:-${USERPROFILE:-}}/.generalszh"
@@ -29,5 +35,5 @@ VERSION="$("${AAPT}" dump badging "${APK}" | sed -n "s/.*versionName='\([^']*\)'
 [[ -n "${VERSION}" ]] || { echo "could not read versionName"; exit 1; }
 
 echo "==> Uploading ZH Commander ${VERSION} ($(( $(wc -c < "${APK}") / 1048576 )) MB) to ${URL}"
-"${PYTHON}" -I "${SITE}/upload-apk.py" "${APK}" "${VERSION}" "${SHA256}" "${URL}" "${TOKEN}"
-echo "==> /download now serves ZH Commander ${VERSION}"
+"${PYTHON}" -I "${SITE}/upload-apk.py" "${APK}" "${VERSION}" "${SHA256}" "${URL}" "${TOKEN}" ${PUBLISH_FLAG}
+[[ "${PUBLISH_FLAG}" == "--no-publish" ]] || echo "==> /download now serves ZH Commander ${VERSION}"

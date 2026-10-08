@@ -16,5 +16,6 @@ git -C "${WORK}" add -A
 git -C "${WORK}" -c user.name="$(git -C "${REPO}" config user.name || echo GeneralsX)" \
     -c user.email="$(git -C "${REPO}" config user.email || echo noreply@example.com)" \
     commit -q -m "update: manifest serial ${SERIAL}"
-git -C "${WORK}" push -q --force "$(git -C "${REPO}" remote get-url origin)" HEAD:refs/heads/updates
+# PUSH_URL lets CI push with its token; locally the repository's own origin is used.
+git -C "${WORK}" push -q --force "${PUSH_URL:-$(git -C "${REPO}" remote get-url origin)}" HEAD:refs/heads/updates
 echo "updates branch now at serial ${SERIAL}"

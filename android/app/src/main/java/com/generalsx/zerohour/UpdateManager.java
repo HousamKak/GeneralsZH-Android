@@ -213,6 +213,46 @@ final class UpdateManager {
     // ---------------------------------------------------------------------------------------
     // Checking
 
+    // ---------------------------------------------------------------------------------------
+    // App updates: a sideloaded app is never updated by Android, so a newer APK is announced in
+    // the signed manifest ("app": version_code, version_name, url, sha256, size) and AppUpdater
+    // offers it, downloads it and hands it to the system installer.
+
+    private static final String KEY_APP_OFFER = "app_offer";
+
+    static final class AppOffer {
+        int versionCode;
+        String versionName;
+        String url;
+        String sha256;
+        long size;
+    }
+
+    /** The newest announced APK, or null when this install is already that version or newer. */
+    static AppOffer appOffer(Context ctx) {
+        String json = prefs(ctx).getString(KEY_APP_OFFER, null);
+        if (json == null) {
+            return null;
+        }
+        try {
+            JSONObject app = new JSONObject(json);
+            AppOffer offer = new AppOffer();
+            offer.versionCode = app.getInt("version_code");
+            offer.versionName = app.getString("version_name");
+            offer.url = app.getString("url");
+            offer.sha256 = app.getString("sha256").toLowerCase(java.util.Locale.ROOT);
+            offer.size = app.getLong("size");
+            PackageInfo self = ctx.getPackageManager().getPackageInfo(ctx.getPackageName(), 0);
+            long installed = android.os.Build.VERSION.SDK_INT >= 28 ? self.getLongVersionCode() : self.versionCode;
+            if (offer.versionCode <= installed || !offer.url.startsWith("https://")) {
+                return null;
+            }
+            return offer;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     static final class Result {
         boolean ok;
         String error;
@@ -278,6 +318,11 @@ final class UpdateManager {
             }
 
             r.supportUpdated = applySupport(ctx, manifest.optJSONObject("support"));
+
+            // A newer APK, announced by the same signed manifest. Kept whether or not it is newer
+            // than this install; appOffer() decides that against the running version.
+            JSONObject app = manifest.optJSONObject("app");
+            prefs(ctx).edit().putString(KEY_APP_OFFER, app != null ? app.toString() : null).apply();
 
             JSONObject engine = manifest.optJSONObject("engine");
             if (engine != null && withEngine) {

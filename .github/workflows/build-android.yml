@@ -2,7 +2,7 @@ name: Build Android
 
 permissions:
   # GeneralsX @feature Android port 09/07/2026 contents:write is needed for the
-  # optional "create a GitHub Release" step below (softprops/action-gh-release
+  # release step below, which pushes the signed update to the updates branch (it used to be softprops/action-gh-release
   # needs to create a tag + release + upload an asset). Safe to declare at the
   # workflow level: pull_request (not pull_request_target) from a fork always
   # gets a read-only token from GitHub regardless of this block, and push/
@@ -57,14 +57,10 @@ on:
         type: string
         description: "Override versionCode (must be higher than any build already installed on your device). Leave blank to use the committed default."
         default: ""
-      create_release:
+      release:
         type: boolean
-        description: "Also publish a GitHub Release for this build (tag = v<version_name>). Requires version_name above to be set."
+        description: "Release this build: make it the site's download and offer it to installed apps as an in-app update (bump versionCode in build.gradle first)."
         default: false
-      release_notes:
-        type: string
-        description: "Optional custom text for the top of the release description (auto-generated commit/PR notes are still appended below it)."
-        default: ""
 
 jobs:
   build-android:
@@ -542,20 +538,23 @@ jobs:
           fi
           echo "OK: every DT_NEEDED of libmain.so is present in the APK."
 
-      - name: Upload APK artifact
-        uses: actions/upload-artifact@v7
-        with:
-          name: ${{ steps.artifact.outputs.apk_name }}
-          path: ${{ steps.locate.outputs.path }}
-          # GeneralsX @bugfix Android CI 18/07/2026 was 30: the free plan's
-          # Actions storage quota is 0.5 GB total and each APK is ~110 MB, so
-          # a single busy day of testing (this project pushes several builds
-          # an hour while chasing device-specific bugs) filled it to 90% on
-          # its own even with the "Delete old artifacts" cleanup step below.
-          # 7 days is still ample time for a tester to grab a build.
-          retention-days: 7
+      # APKs never go to GitHub: a public repository's artifacts and releases can be downloaded
+      # by anyone. Every build is uploaded to the site's R2 bucket instead, privately (recorded as
+      # the newest build, which bundle-game-data.sh fetches with the upload token); only a
+      # release (input above) makes it the site's public download.
+      - name: Upload APK to R2
+        env:
+          GZH_UPLOAD_TOKEN: ${{ secrets.SITE_UPLOAD_TOKEN }}
+          GZH_SITE_URL: https://zh-commander.housam-kak20.workers.dev
+        run: |
+          set -euo pipefail
+          if [ -z "${GZH_UPLOAD_TOKEN}" ]; then
+            echo "::error::SITE_UPLOAD_TOKEN secret is missing"
+            exit 1
+          fi
+          ./site/upload-apk.sh "${{ steps.locate.outputs.path }}" ${{ inputs.release && ' ' || '--no-publish' }}
 
-      # Same 7 days as the APK above on purpose: the table is only useful while
+      # Kept 7 days: the table is only useful while
       # someone can still be running the build it came from, and the cleanup
       # step below keeps just the newest run per branch anyway. Released builds
       # do not rely on this copy -- their table is attached to the Release.
@@ -574,33 +573,21 @@ jobs:
           # agreed with the log. Keep these for the full 90 days.
           retention-days: 90
 
-      # GeneralsX @feature Android port 09/07/2026 Actions artifacts expire
-      # (30 days) and require a GitHub login to download -- not a real "here,
-      # everyone download this" link. Manual dispatch with create_release=true
-      # publishes an actual GitHub Release with the APK attached instead,
-      # tagged from version_name (set alongside it above) so the release name
-      # always matches what's baked into the APK's own versionName.
-      - name: Create GitHub Release
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.create_release }}
+      # A release also tells installed apps: the signed update manifest on the updates branch
+      # gets this build's engine and an "app" entry (version, site address, SHA-256), which the
+      # launcher offers as an in-app update on its next start.
+      - name: Announce release to installed apps
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.release }}
+        env:
+          UPDATE_SIGNING_KEY: ${{ secrets.UPDATE_SIGNING_KEY }}
+          GH_PUSH_URL: https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
         run: |
           set -euo pipefail
-          if [ -z "${{ inputs.version_name }}" ]; then
-            echo "::error::create_release requires version_name to be set (used as the release tag)."
-            exit 1
-          fi
-
-      - name: Publish GitHub Release
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.create_release }}
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: v${{ inputs.version_name }}
-          name: v${{ inputs.version_name }}
-          body: ${{ inputs.release_notes }}
-          files: |
-            ${{ steps.locate.outputs.path }}
-            symbols/libmain-run${{ github.run_number }}.symbols.txt.gz
-          generate_release_notes: true
-          make_latest: true
+          KEY="${RUNNER_TEMP}/update_signing_key.pem"
+          echo "${UPDATE_SIGNING_KEY}" > "${KEY}"
+          python3 scripts/update/publish-update.py --apk "${{ steps.locate.outputs.path }}" --announce-app --out "${RUNNER_TEMP}/update" --key "${KEY}" --note "ZH Commander run ${{ github.run_number }}"
+          rm -f "${KEY}"
+          PUSH_URL="${GH_PUSH_URL}" scripts/update/push-updates-branch.sh "${RUNNER_TEMP}/update"
 
       - name: Collect dependency build logs for diagnosis
         if: always()

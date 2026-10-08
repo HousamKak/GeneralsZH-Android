@@ -157,7 +157,10 @@ public class SetupActivity extends Activity {
                     final android.content.Context app = getApplicationContext();
                     new Thread(() -> UpdateManager.check(app, true), "GXUpdateCheck").start();
                 }
-                startActivity(new Intent(this, GeneralsZHActivity.class));
+                // A newer APK announced by an earlier check is offered before the game starts;
+                // UpdateActivity goes on to the game itself when the player picks Later.
+                boolean offerUpdate = !UpdateActivity.sLaterThisProcess && UpdateManager.appOffer(this) != null;
+                startActivity(new Intent(this, offerUpdate ? UpdateActivity.class : GeneralsZHActivity.class));
                 finish();
                 return;
             }
@@ -588,6 +591,13 @@ public class SetupActivity extends Activity {
             getString(R.string.setup_card_updates), false);
         UiKit.supporting(content, getString(R.string.setup_updates_help));
         updatesStatusView = UiKit.body(content, null);
+        UpdateManager.AppOffer appOffer = UpdateManager.appOffer(this);
+        if (appOffer != null) {
+            UiKit.button(content, UiKit.BTN_PRIMARY, R.drawable.ic_gzh_download,
+                getString(R.string.update_button_version, appOffer.versionName), () ->
+                    startActivity(new Intent(this, UpdateActivity.class)
+                        .putExtra(UpdateActivity.EXTRA_FROM_SUPPORT, true)));
+        }
         UiKit.button(content, UiKit.BTN_TONAL, R.drawable.ic_gzh_download,
             getString(R.string.setup_button_check_updates), () -> runUpdateCheck(true));
         // The community data patch is updated on the multiplayer screen; this card only says a

@@ -31,6 +31,23 @@ export default {
 		if (pathname === "/download") {
 			return download(env);
 		}
+		// One exact APK, for the app's in-app update (the signed manifest names it, with its
+		// SHA-256): /download stays whatever is current, this address never changes.
+		if (pathname.startsWith("/download/apk/")) {
+			const key = pathname.slice("/download/".length);
+			if (!KEY_RE.test(key)) return new Response("Not found", { status: 404 });
+			return serveApk(env, key, key.slice("apk/".length));
+		}
+		// The newest build CI uploaded, released or not: what bundle-game-data.sh starts from.
+		if (pathname === "/admin/build/latest") {
+			if (!(await isUploader(request, env))) {
+				return Response.json({ error: "unauthorized" }, { status: 401 });
+			}
+			const build = await env.APKS.get("builds/latest.json");
+			if (!build) return Response.json({ error: "no_build" }, { status: 404 });
+			const info = (await build.json()) as Latest;
+			return serveApk(env, info.key, info.key.slice("apk/".length));
+		}
 		if (pathname.startsWith("/api/paypal/")) {
 			const target = new URL(request.url);
 			target.pathname = `/v1/paypal/${pathname.slice("/api/paypal/".length)}`;
@@ -56,7 +73,7 @@ async function upload(request: Request, url: URL, env: Env): Promise<Response> {
 	const step = url.pathname.slice("/admin/upload/".length);
 	const key = url.searchParams.get("key") ?? "";
 	const uploadId = url.searchParams.get("uploadId") ?? "";
-	if (step !== "publish" && !KEY_RE.test(key)) {
+	if (step !== "publish" && step !== "record" && !KEY_RE.test(key)) {
 		return Response.json({ error: "bad_key" }, { status: 400 });
 	}
 
@@ -83,17 +100,18 @@ async function upload(request: Request, url: URL, env: Env): Promise<Response> {
 		await env.APKS.resumeMultipartUpload(key, uploadId).abort();
 		return Response.json({ aborted: true });
 	}
-	// Point the download at an uploaded APK, once it is complete and its size checks out.
-	if (request.method === "POST" && step === "publish") {
+	// "record" notes an uploaded APK as the newest build (private: /admin/build/latest);
+	// "publish" also makes it the site's public download. Both only for a complete upload.
+	if (request.method === "POST" && (step === "publish" || step === "record")) {
 		const latest = (await request.json()) as Latest;
 		const head = KEY_RE.test(latest.key ?? "") ? await env.APKS.head(latest.key) : null;
 		if (!head || head.size !== latest.size) {
 			return Response.json({ error: "not_uploaded" }, { status: 409 });
 		}
-		await env.APKS.put("latest.json", JSON.stringify(latest), {
+		await env.APKS.put(step === "publish" ? "latest.json" : "builds/latest.json", JSON.stringify(latest), {
 			httpMetadata: { contentType: "application/json" },
 		});
-		return Response.json({ published: latest.key });
+		return Response.json({ [step === "publish" ? "published" : "recorded"]: latest.key });
 	}
 	return Response.json({ error: "not_found" }, { status: 404 });
 }
@@ -108,14 +126,21 @@ async function isUploader(request: Request, env: Env): Promise<boolean> {
 
 async function download(env: Env): Promise<Response> {
 	const latest = await readLatest(env);
-	const object = latest ? await env.APKS.get(latest.key) : null;
-	if (!latest || !object) {
+	if (!latest) {
 		return new Response("No release has been published yet.", { status: 404 });
+	}
+	return serveApk(env, latest.key, `ZH-Commander-${latest.version}.apk`);
+}
+
+async function serveApk(env: Env, key: string, filename: string): Promise<Response> {
+	const object = await env.APKS.get(key);
+	if (!object) {
+		return new Response("Not found", { status: 404 });
 	}
 	return new Response(object.body, {
 		headers: {
 			"Content-Type": "application/vnd.android.package-archive",
-			"Content-Disposition": `attachment; filename="ZH-Commander-${latest.version}.apk"`,
+			"Content-Disposition": `attachment; filename="${filename}"`,
 			"Content-Length": String(object.size),
 			ETag: object.httpEtag,
 			"Cache-Control": "no-store",

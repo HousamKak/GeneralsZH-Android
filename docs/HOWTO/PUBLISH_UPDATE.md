@@ -96,3 +96,18 @@ Launchers built here read `HousamKak/GeneralsZH-Android`'s `updates` branch and 
 repository's key. A phone that ran an upstream (MYSOREZ) build may already remember an upstream
 serial, and refuses any lower one, so the first publish here passes `--serial 1000`. Engine build
 numbers carry an offset of 10000 (`package-android-zh.sh`) for the same reason.
+
+## Releasing a new APK (in-app update)
+
+APKs are never put on GitHub. Every **Build Android** run uploads its APK to the site's R2
+bucket privately (`site/upload-apk.sh --no-publish`; the newest one is what
+`bundle-game-data.sh` fetches). To release:
+
+1. Bump `versionCode` / `versionName` in `android/app/build.gradle` and push.
+2. **Actions → Build Android → Run workflow**, with **release** ticked.
+
+That build becomes the site's download (`/download`), and the signed manifest on the `updates`
+branch gets an `app` entry (version, `https://zerohour.housamkak.com/download/apk/<name>`,
+SHA-256, size) plus its engine. Installed apps offer the update on their next start
+(`UpdateActivity`): download, check against the manifest, hand to the system installer.
+Needs the `SITE_UPLOAD_TOKEN` and `UPDATE_SIGNING_KEY` repository secrets.

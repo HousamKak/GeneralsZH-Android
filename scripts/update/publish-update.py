@@ -11,6 +11,8 @@
 #   support/<sha>.json   the launcher's "Support the project" card (with --support; its SHA-256
 #                        is in the manifest, so the manifest's signature covers it)
 #   engine/<seq>/libmain.so.gz, libmain60.so.gz   (with --apk)
+#   an "app" entry announcing the APK itself (with --apk --announce-app): version, the site address
+#                        it downloads from, SHA-256 and size, for the launcher's in-app update
 #
 # The engine entry names the SHA-256 of every other native library in the APK
 # (requires_libs): the launcher runs a downloaded engine only on an install whose libraries
@@ -21,10 +23,40 @@ import argparse, base64, gzip, hashlib, json, os, subprocess, sys, tempfile, url
 BASE_URL = "https://raw.githubusercontent.com/HousamKak/GeneralsZH-Android/updates/"
 ENGINE_LIBS = ("libmain.so", "libmain60.so")
 DATAPACK_CDN_MANIFEST = "https://cdn.playgenerals.online/manifest.json"
+# Where announced APKs download from: the site Worker serves /download/apk/<name> from R2
+# (site/upload-apk.py uploads them under that name).
+APP_DOWNLOAD_BASE = "https://zerohour.housamkak.com/download/"
 
 
 def sha256(data):
     return hashlib.sha256(data).hexdigest()
+
+
+def apk_version(apk):
+    """(versionCode, versionName) read with aapt from the Android SDK."""
+    sdk = os.environ.get("ANDROID_HOME") or os.environ.get("ANDROID_SDK_ROOT") or ""
+    tools = sorted(os.listdir(os.path.join(sdk, "build-tools"))) if sdk else []
+    for version in reversed(tools):
+        for name in ("aapt", "aapt.exe"):
+            aapt = os.path.join(sdk, "build-tools", version, name)
+            if os.path.isfile(aapt):
+                out = subprocess.run([aapt, "dump", "badging", apk], check=True,
+                                     capture_output=True, text=True).stdout
+                line = out.splitlines()[0]
+                code = int(line.split("versionCode='")[1].split("'")[0])
+                name_ = line.split("versionName='")[1].split("'")[0]
+                return code, name_
+    sys.exit("aapt not found: set ANDROID_HOME")
+
+
+def app_entry(apk):
+    with open(apk, "rb") as f:
+        data = f.read()
+    code, name = apk_version(apk)
+    digest = sha256(data)
+    # Same name site/upload-apk.py gives the upload.
+    url = "%sapk/ZH-Commander-%s-%s.apk" % (APP_DOWNLOAD_BASE, name, digest[:8])
+    return {"version_code": code, "version_name": name, "url": url, "sha256": digest, "size": len(data)}
 
 
 def current_serial():
@@ -75,6 +107,8 @@ def main():
     ap.add_argument("--out", required=True)
     ap.add_argument("--serial", type=int, help="default: the published serial + 1")
     ap.add_argument("--note", default="")
+    ap.add_argument("--announce-app", action="store_true",
+                    help="also offer the --apk itself as an in-app update (it must be uploaded to the site)")
     a = ap.parse_args()
 
     os.makedirs(a.out, exist_ok=True)
@@ -126,6 +160,8 @@ def main():
             if missing:
                 sys.exit("APK has no " + ", ".join(missing))
         manifest["engine"] = engine
+        if a.announce_app:
+            manifest["app"] = app_entry(a.apk)
 
     body = (json.dumps(manifest, indent=2, sort_keys=True, ensure_ascii=False) + "\n").encode("utf-8")
     mpath = os.path.join(a.out, "manifest.json")

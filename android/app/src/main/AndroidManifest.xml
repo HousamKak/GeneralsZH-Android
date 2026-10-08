@@ -58,6 +58,8 @@
          login (GeneralsOnlineActivity) and, eventually, the native
          multiplayer client both need plain outbound HTTPS/WebSocket. -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- In-app updates (UpdateActivity): hands a downloaded, verified APK to the installer. -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <!-- GeneralsX @bugfix Android LAN: WifiManager.MulticastLock, held only while the
          LAN lobby/match is active, so Wi-Fi drivers don't filter LAN broadcasts. -->
@@ -150,6 +152,12 @@
              until this device holds a license. -->
         <activity
             android:name=".ActivationActivity"
+            android:exported="false"
+            android:theme="@style/Theme.GeneralsZHSettings"
+            android:configChanges="orientation|screenSize|keyboardHidden" />
+
+        <activity
+            android:name=".UpdateActivity"
             android:exported="false"
             android:theme="@style/Theme.GeneralsZHSettings"
             android:configChanges="orientation|screenSize|keyboardHidden" />
