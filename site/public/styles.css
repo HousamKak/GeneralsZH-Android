@@ -1,0 +1,391 @@
+/* ZH Commander: desert-campaign field kit.
+   Sand ground, olive-drab ink, one hazard accent; stencil display type like crate markings. */
+
+:root {
+	--sand: #D2C192;      /* page ground: desert sand */
+	--canvas: #E4D8B3;    /* raised surfaces: tent canvas */
+	--ink: #1D1F14;       /* text: gunmetal ink */
+	--drab: #4A5228;      /* secondary ink, rules, contours: olive drab */
+	--signal: #C2461B;    /* the one accent: hazard orange */
+	--dust: #6F6A52;      /* muted captions */
+
+	--display: "Big Shoulders Stencil Display", "Arial Narrow", Impact, sans-serif;
+	--body: "IBM Plex Sans", "Segoe UI", Roboto, sans-serif;
+	--mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+
+	--gutter: clamp(16px, 4vw, 48px);
+	--measure: 1180px;
+	color-scheme: light;
+}
+
+:root[lang="ar"] {
+	--display: "Reem Kufi", "IBM Plex Sans Arabic", sans-serif;
+	--body: "IBM Plex Sans Arabic", "Segoe UI", Tahoma, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+body {
+	margin: 0;
+	background: var(--sand);
+	color: var(--ink);
+	font: 400 1.0625rem/1.6 var(--body);
+	-webkit-font-smoothing: antialiased;
+}
+
+a { color: inherit; text-decoration-color: var(--signal); text-underline-offset: 0.2em; }
+a:hover { color: var(--signal); }
+:focus-visible { outline: 3px solid var(--signal); outline-offset: 3px; }
+code, bdi.phone { font-family: var(--mono); font-size: 0.92em; white-space: nowrap; }
+
+/* ---- top bar ---- */
+
+.bar {
+	position: sticky;
+	top: env(safe-area-inset-top, 0px);
+	z-index: 10;
+	display: flex;
+	align-items: center;
+	gap: 1.5rem;
+	padding: 0.75rem var(--gutter);
+	background: var(--ink);
+	color: var(--sand);
+}
+.wordmark {
+	font: 900 1.5rem/1 "Big Shoulders Stencil Display", Impact, sans-serif;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+	text-decoration: none;
+	margin-inline-end: auto;
+}
+.bar-nav { display: flex; gap: 1.25rem; font-size: 0.95rem; }
+.bar-nav a { text-decoration: none; }
+.lang {
+	font: 600 0.95rem/1 var(--body);
+	color: var(--ink);
+	background: var(--sand);
+	border: 0;
+	border-radius: 2px;
+	padding: 0.5rem 0.85rem;
+	cursor: pointer;
+}
+.lang:lang(ar) { font-family: "IBM Plex Sans Arabic", sans-serif; }
+.lang:hover { background: var(--canvas); }
+
+/* ---- hero ---- */
+
+.hero {
+	position: relative;
+	overflow: hidden;
+	display: grid;
+	grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+	gap: clamp(2rem, 5vw, 4rem);
+	align-items: center;
+	max-width: var(--measure);
+	margin: 0 auto;
+	padding: clamp(3rem, 8vw, 6.5rem) var(--gutter) clamp(3rem, 7vw, 5rem);
+}
+.contours {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	color: var(--drab);
+	opacity: 0.22;
+	pointer-events: none;
+}
+.hero-copy, .crate { position: relative; }
+
+.eyebrow {
+	margin: 0 0 1rem;
+	font: 600 0.8rem/1.2 var(--mono);
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	color: var(--drab);
+}
+:root[lang="ar"] .eyebrow { letter-spacing: 0; font-family: var(--body); font-size: 0.95rem; }
+
+.title {
+	margin: 0;
+	font: 900 clamp(3.6rem, 9vw, 7.6rem)/0.84 "Big Shoulders Stencil Display", Impact, sans-serif;
+	text-transform: uppercase;
+	letter-spacing: 0.01em;
+	color: var(--ink);
+}
+.lede {
+	max-width: 34ch;
+	margin: 1.5rem 0 0;
+	font-size: clamp(1.1rem, 2vw, 1.3rem);
+	line-height: 1.5;
+}
+
+/* The signature: the download as a stenciled supply-crate label. */
+.crate {
+	background: var(--canvas);
+	border: 3px solid var(--ink);
+	box-shadow: 8px 8px 0 var(--drab);
+	padding: 0 1.25rem 1.25rem;
+}
+:root[dir="rtl"] .crate { box-shadow: -8px 8px 0 var(--drab); }
+.crate-head {
+	display: flex;
+	justify-content: space-between;
+	align-items: baseline;
+	margin: 0 -1.25rem 1rem;
+	padding: 0.6rem 1.25rem;
+	background: var(--ink);
+	color: var(--canvas);
+	font: 700 1.35rem/1 var(--display);
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+}
+:root[lang="ar"] .crate-head { letter-spacing: 0; }
+.crate-code { font: 600 0.75rem/1 var(--mono); letter-spacing: 0.12em; color: var(--sand); }
+.crate-specs { margin: 0 0 1.25rem; }
+.crate-specs div {
+	display: grid;
+	grid-template-columns: 7.5rem 1fr;
+	gap: 0.75rem;
+	padding: 0.5rem 0;
+	border-block-end: 1px dashed color-mix(in srgb, var(--drab) 55%, transparent);
+}
+.crate-specs dt {
+	font: 600 0.72rem/1.6 var(--mono);
+	text-transform: uppercase;
+	letter-spacing: 0.1em;
+	color: var(--dust);
+}
+:root[lang="ar"] .crate-specs dt { font-family: var(--body); font-size: 0.85rem; letter-spacing: 0; }
+.crate-specs dd { margin: 0; font-weight: 600; line-height: 1.45; }
+
+.download {
+	display: block;
+	padding: 0.95rem 1rem;
+	background: var(--signal);
+	color: #FFF8EC;
+	text-align: center;
+	text-decoration: none;
+	font: 700 1.45rem/1 var(--display);
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	border: 3px solid var(--ink);
+	transition: transform 120ms ease, box-shadow 120ms ease;
+	box-shadow: 0 4px 0 var(--ink);
+}
+:root[lang="ar"] .download { letter-spacing: 0; }
+.download:hover { color: #FFF8EC; transform: translateY(2px); box-shadow: 0 2px 0 var(--ink); }
+.download:active { transform: translateY(4px); box-shadow: 0 0 0 var(--ink); }
+.crate-note { margin: 0.75rem 0 0; font-size: 0.9rem; color: var(--dust); text-align: center; }
+
+/* A sticker slapped across the crate's top edge. */
+.stamp {
+	position: absolute;
+	inset-block-start: -1rem;
+	inset-inline-end: 6rem;
+	padding: 0.35rem 0.7rem;
+	background: var(--canvas);
+	border: 3px solid var(--signal);
+	color: var(--signal);
+	font: 700 0.95rem/1 var(--display);
+	text-transform: uppercase;
+	letter-spacing: 0.08em;
+	transform: rotate(-5deg);
+	pointer-events: none;
+}
+:root[dir="rtl"] .stamp { transform: rotate(5deg); letter-spacing: 0; }
+
+/* ---- sections ---- */
+
+.shots, .start, .buy, .features, .faq {
+	max-width: var(--measure);
+	margin: 0 auto;
+	padding: clamp(2.5rem, 6vw, 4.5rem) var(--gutter);
+}
+.section-title {
+	margin: 0 0 1.75rem;
+	font: 700 clamp(2.2rem, 5vw, 3.4rem)/0.95 var(--display);
+	text-transform: uppercase;
+	letter-spacing: 0.02em;
+}
+:root[lang="ar"] .section-title { line-height: 1.3; letter-spacing: 0; }
+
+/* Screenshots: landscape phone frames, scrolling sideways on small screens. */
+.shot-strip {
+	display: grid;
+	grid-auto-flow: column;
+	grid-auto-columns: minmax(260px, 1fr);
+	gap: 1rem;
+	overflow-x: auto;
+	scroll-snap-type: x mandatory;
+	padding-block-end: 0.5rem;
+}
+.shot { margin: 0; scroll-snap-align: start; }
+.shot-frame {
+	aspect-ratio: 20 / 9;
+	display: grid;
+	place-items: center;
+	border: 3px solid var(--ink);
+	border-radius: 14px;
+	background:
+		repeating-linear-gradient(135deg, transparent 0 12px, color-mix(in srgb, var(--drab) 14%, transparent) 12px 13px),
+		var(--canvas);
+	color: var(--dust);
+	font: 600 0.8rem/1 var(--mono);
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	overflow: hidden;
+}
+:root[lang="ar"] .shot-frame { font-family: var(--body); letter-spacing: 0; font-size: 0.95rem; }
+.shot-frame img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+/* Getting started: a real sequence, so it is numbered. */
+.steps {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: grid;
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+	gap: 1.25rem;
+	counter-reset: step;
+}
+.steps li {
+	counter-increment: step;
+	border-block-start: 3px solid var(--ink);
+	padding-block-start: 0.9rem;
+}
+.steps li::before {
+	content: counter(step);
+	display: block;
+	font: 900 2.6rem/1 "Big Shoulders Stencil Display", Impact, sans-serif;
+	color: var(--signal);
+	margin-block-end: 0.4rem;
+}
+.steps h3, .feature-grid h3 { margin: 0 0 0.4rem; font-size: 1.15rem; line-height: 1.3; }
+.steps p, .feature-grid p { margin: 0; color: color-mix(in srgb, var(--ink) 82%, var(--sand)); }
+
+/* Get a key: two ways to pay, and the key itself once bought. */
+.buy-lede { margin: -0.75rem 0 1.5rem; font-size: 1.1rem; }
+.buy-options {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 1.25rem;
+	align-items: start;
+}
+.buy-card {
+	background: var(--canvas);
+	border: 2px solid var(--ink);
+	padding: 1.25rem;
+}
+.buy-card h3 { margin: 0 0 0.4rem; font-size: 1.2rem; }
+.buy-card p { margin: 0; }
+.paypal-slot:not(:empty) { margin-block-start: 1rem; }
+.buy-card .buy-status { margin-block-start: 0.75rem; font-size: 0.92rem; color: var(--dust); }
+.buy .buy-status.is-error { color: var(--signal); font-weight: 600; }
+
+.key-result {
+	margin-block-start: 1.5rem;
+	padding: 1.5rem;
+	background: var(--ink);
+	color: var(--sand);
+	border-inline-start: 8px solid var(--signal);
+}
+.key-label { margin: 0; font: 600 0.8rem/1.2 var(--mono); letter-spacing: 0.12em; text-transform: uppercase; }
+:root[lang="ar"] .key-label { font-family: var(--body); letter-spacing: 0; font-size: 0.95rem; }
+.key-value {
+	margin: 0.5rem 0 1rem;
+	font: 600 clamp(1.4rem, 5vw, 2.4rem)/1.1 var(--mono);
+	letter-spacing: 0.04em;
+	color: #FFF8EC;
+	overflow-wrap: anywhere;
+}
+.key-copy {
+	font: 600 1rem/1 var(--body);
+	padding: 0.65rem 1.1rem;
+	background: var(--signal);
+	color: #FFF8EC;
+	border: 0;
+	cursor: pointer;
+}
+.key-help { margin: 1rem 0 0.4rem; max-width: 60ch; }
+.key-txn { margin: 0; font-size: 0.85rem; opacity: 0.8; }
+.key-txn bdi { font-family: var(--mono); }
+
+.lookup { margin-block-start: 1.5rem; }
+.lookup summary { cursor: pointer; font-weight: 600; }
+.lookup-form { margin-block-start: 0.75rem; max-width: 34rem; }
+.lookup-form label { display: block; font-size: 0.92rem; margin-block-end: 0.4rem; }
+.lookup-form .buy-status { margin: 0.6rem 0 0; font-size: 0.92rem; color: var(--dust); }
+.lookup-row { display: flex; gap: 0.5rem; }
+.lookup-row input {
+	flex: 1;
+	min-width: 0;
+	font: 400 1rem/1.2 var(--mono);
+	padding: 0.6rem 0.7rem;
+	background: var(--canvas);
+	color: var(--ink);
+	border: 2px solid var(--ink);
+}
+.lookup-row button {
+	font: 600 1rem/1 var(--body);
+	padding: 0 1rem;
+	background: var(--ink);
+	color: var(--sand);
+	border: 0;
+	cursor: pointer;
+}
+
+.feature-grid {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 0;
+	border: 2px solid var(--ink);
+	background: var(--canvas);
+}
+.feature-grid li {
+	padding: 1.25rem;
+	border-inline-end: 1px solid color-mix(in srgb, var(--drab) 45%, transparent);
+	border-block-end: 1px solid color-mix(in srgb, var(--drab) 45%, transparent);
+}
+
+.faq details {
+	border-block-end: 1px solid var(--drab);
+	padding: 1rem 0;
+}
+.faq summary {
+	cursor: pointer;
+	font-weight: 600;
+	font-size: 1.1rem;
+	list-style-position: inside;
+}
+.faq p { margin: 0.6rem 0 0; max-width: 70ch; }
+
+.foot {
+	margin-block-start: 2rem;
+	padding: 2rem var(--gutter) calc(2rem + env(safe-area-inset-bottom, 0px));
+	background: var(--ink);
+	color: color-mix(in srgb, var(--sand) 80%, var(--ink));
+	font-size: 0.88rem;
+}
+.foot p { max-width: var(--measure); margin: 0 auto 0.5rem; }
+.foot a { color: var(--sand); }
+
+/* ---- small screens ---- */
+
+@media (max-width: 860px) {
+	.hero { grid-template-columns: 1fr; }
+	.steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+	.buy-options { grid-template-columns: 1fr; }
+	.feature-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 520px) {
+	.bar-nav { display: none; }
+	.steps, .feature-grid { grid-template-columns: 1fr; }
+	.crate-specs div { grid-template-columns: 6rem 1fr; }
+	.stamp { inset-inline-end: 0.75rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+	.download { transition: none; }
+}

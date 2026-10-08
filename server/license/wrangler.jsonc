@@ -4,6 +4,8 @@
 	"main": "src/index.ts",
 	"compatibility_date": "2026-10-01",
 	"observability": { "enabled": true },
+	// "sandbox" while testing with sandbox credentials, "live" for real payments.
+	"vars": { "PAYPAL_ENV": "sandbox" },
 	"d1_databases": [
 		{
 			"binding": "DB",
@@ -12,5 +14,5 @@
 			"migrations_dir": "migrations"
 		}
 	]
-	// Secrets (wrangler secret put): ADMIN_TOKEN, LICENSE_PRIVATE_KEY. See README.md.
+	// Secrets (wrangler secret put): ADMIN_TOKEN, LICENSE_PRIVATE_KEY, and for checkout PAYPAL_CLIENT_ID, PAYPAL_SECRET. See README.md.
 }

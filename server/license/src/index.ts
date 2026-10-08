@@ -7,16 +7,15 @@
 // cannot be forged and does not move to another phone. Activation is forever: nothing is
 // re-checked after it.
 
-interface Env {
-	DB: D1Database;
+import { formatCode, json, normalizeCode, randomCode, readJson } from "./codes";
+import { paypalCapture, paypalConfig, paypalKeyLookup, paypalOrder, type PayPalEnv } from "./paypal";
+
+interface Env extends PayPalEnv {
 	ADMIN_TOKEN: string;
 	// PKCS#8 DER, base64. See README.md for how it is generated.
 	LICENSE_PRIVATE_KEY: string;
 }
 
-// Crockford-style base32 without the look-alikes I, L, O, U: easy to read out loud and type.
-const ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
-const CODE_LENGTH = 12; // 60 bits: far beyond guessing range.
 const DEVICE_RE = /^[0-9a-f]{64}$/;
 
 export default {
@@ -25,6 +24,13 @@ export default {
 		try {
 			if (request.method === "POST" && url.pathname === "/v1/activate") {
 				return await activate(request, env);
+			}
+			if (url.pathname.startsWith("/v1/paypal/")) {
+				const route = `${request.method} ${url.pathname.slice("/v1/paypal/".length)}`;
+				if (route === "GET config") return paypalConfig(env);
+				if (route === "POST order") return await paypalOrder(env);
+				if (route === "POST capture") return await paypalCapture(request, env);
+				if (route === "GET key") return await paypalKeyLookup(url, env);
 			}
 			if (url.pathname.startsWith("/admin/")) {
 				if (!(await isAdmin(request, env))) {
@@ -159,38 +165,10 @@ function rawToDer(raw: Uint8Array): Uint8Array {
 	return new Uint8Array([0x30, body.length, ...body]);
 }
 
-function randomCode(): string {
-	const bytes = crypto.getRandomValues(new Uint8Array(CODE_LENGTH));
-	// 256 is a multiple of 32, so taking each byte mod 32 is unbiased.
-	return Array.from(bytes, (b) => ALPHABET[b % ALPHABET.length]).join("");
-}
 
-function normalizeCode(input: unknown): string | null {
-	if (typeof input !== "string") return null;
-	let code = input.toUpperCase().replace(/[^0-9A-Z]/g, "");
-	if (code.startsWith("GZH")) code = code.slice(3);
-	code = code.replace(/O/g, "0").replace(/[IL]/g, "1");
-	return code.length === CODE_LENGTH && [...code].every((c) => ALPHABET.includes(c)) ? code : null;
-}
 
-function formatCode(code: string): string {
-	return `GZH-${code.slice(0, 4)}-${code.slice(4, 8)}-${code.slice(8)}`;
-}
 
-async function readJson(request: Request): Promise<Record<string, unknown> | null> {
-	try {
-		return (await request.json()) as Record<string, unknown>;
-	} catch {
-		return null;
-	}
-}
 
-function json(data: unknown, status = 200): Response {
-	return new Response(JSON.stringify(data), {
-		status,
-		headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
-	});
-}
 
 function toBase64(bytes: Uint8Array): string {
 	let s = "";
