@@ -52,7 +52,18 @@ public class ActivationActivity extends Activity {
         LinearLayout content = UiKit.card(page);
         UiKit.sectionHeader(content, R.drawable.ic_gzh_account, getString(R.string.activation_card_title), false);
         UiKit.helpText(content, getString(R.string.activation_help));
-        UiKit.helpText(content, getString(R.string.activation_buy)).setTextIsSelectable(true);
+        // GeneralsX @feature Codex 08/10/2026 Read prices from the signed settings manifest.
+        TextView buyText = UiKit.helpText(content, activationOffer());
+        buyText.setTextIsSelectable(true);
+        android.content.Context app = getApplicationContext();
+        new Thread(() -> {
+            UpdateManager.check(app, false);
+            runOnUiThread(() -> {
+                if (!isFinishing() && !isDestroyed()) {
+                    buyText.setText(activationOffer());
+                }
+            });
+        }, "GXActivationPrice").start();
 
         TextInputLayout field = new TextInputLayout(
             new ContextThemeWrapper(this, R.style.ThemeOverlay_GeneralsZH_OutlinedField));
@@ -119,6 +130,17 @@ public class ActivationActivity extends Activity {
             default:
                 return R.string.activation_error_server;
         }
+    }
+
+    private String activationOffer() {
+        String sale = priceSetting("activation_sale_price_usd", "10");
+        String regular = priceSetting("activation_regular_price_usd", "15");
+        return getString(R.string.activation_buy, sale, regular);
+    }
+
+    private String priceSetting(String key, String fallback) {
+        String value = UpdateManager.remoteConfig(this, key, fallback);
+        return value.matches("[0-9]{1,4}(?:\\.[0-9]{1,2})?") ? value : fallback;
     }
 
     private void openLauncher() {

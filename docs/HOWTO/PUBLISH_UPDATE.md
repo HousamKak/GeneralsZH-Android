@@ -6,7 +6,8 @@ kinds of update from it. The settings are applied by either check and shown on t
 screen; the engine is downloaded only by the Home check.
 
 - **Settings** (`update/config.json` in the main tree): values the engine reads at startup. Today
-  the STUN and TURN server lists (`stun_servers`, `turn_servers`), the PC client checksum for
+  the STUN and TURN server lists (`stun_servers`, `turn_servers`), the activation offer prices
+  (`activation_sale_price_usd`, `activation_regular_price_usd`), the PC client checksum for
   cross-play (`pc_exe_crc`, computed with `scripts/update/pc-exe-crc.py`) and the community data
   patch manifest address (`datapack_manifest_url`), and whether the current PC release ends its
   logic checksum with the GeneralsOnline revision tag (`logic_crc_revision`, `1`/`0`; 100126 does

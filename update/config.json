@@ -3,5 +3,7 @@
   "turn_servers": "turn:turn.playgenerals.online:53,turn:turn.playgenerals.online:3478",
   "pc_exe_crc": "560676586",
   "datapack_manifest_url": "https://cdn.playgenerals.online/manifest.json",
-  "logic_crc_revision": "0"
+  "logic_crc_revision": "0",
+  "activation_sale_price_usd": "10",
+  "activation_regular_price_usd": "15"
 }

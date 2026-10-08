@@ -391,7 +391,7 @@
     <string name="activation_title">Activation</string>
     <string name="activation_card_title">Activate this device</string>
     <string name="activation_help">Enter the activation key you were given. It works on one phone only; this device is checked once, online, and then plays offline.</string>
-    <string name="activation_buy">Don\'t have a key? Buy one for $5 via Whish: send a message to +961 71 406 981 to get your key.</string>
+    <string name="activation_buy">Don\'t have a key? Sale: $%1$s (normally $%2$s). Buy via Whish: send a message to +961 71 406 981 to get your key.</string>
     <string name="activation_key_hint">Activation key (GZH-XXXX-XXXX-XXXX)</string>
     <string name="activation_button">Activate</string>
     <string name="activation_working">Activating…</string>
