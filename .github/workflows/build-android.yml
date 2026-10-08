@@ -460,15 +460,36 @@ jobs:
           echo "version_name=${{ inputs.version_name || '' }}" >> "$GITHUB_OUTPUT"
           echo "apk_name=GeneralsXZH-android-run${{ github.run_number }}.apk" >> "$GITHUB_OUTPUT"
 
+      # Every APK this repository hands out is signed with ZH Commander's own key (repository
+      # secrets), never the public debug key: anyone holding that one could sign an APK that
+      # installs over ours. A build without the secrets fails here instead of shipping unsigned.
+      - name: Decode signing key
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: |
+          set -euo pipefail
+          if [ -z "${KEYSTORE_B64}" ] || [ -z "${KEYSTORE_PASSWORD}" ] || [ -z "${KEY_ALIAS}" ]; then
+            echo "::error::ANDROID_KEYSTORE_B64 / ANDROID_KEYSTORE_PASSWORD / ANDROID_KEY_ALIAS secrets are missing"
+            exit 1
+          fi
+          echo "${KEYSTORE_B64}" | base64 -d > "${RUNNER_TEMP}/zhcommander.jks"
+          {
+            echo "GX_KEYSTORE_FILE=${RUNNER_TEMP}/zhcommander.jks"
+            echo "GX_KEYSTORE_PASSWORD=${KEYSTORE_PASSWORD}"
+            echo "GX_KEY_ALIAS=${KEY_ALIAS}"
+          } >> "$GITHUB_ENV"
+
       - name: Package APK
         env:
           # scripts/build/android/package-android-zh.sh uses these to stage
-          # jniLibs/, the SDL3 Java glue, and fonts, then invokes Gradle. Same
-          # fixed debug.keystore every run (committed in android/app/) is what
-          # makes consecutive CI builds installable as updates over each other
-          # rather than requiring an uninstall, PROVIDED versionCode was bumped
-          # by hand (in build.gradle or via a manual-dispatch override) since
-          # the last build the user actually installed.
+          # jniLibs/, the SDL3 Java glue, and fonts, then invokes Gradle. The
+          # same signing key every run (decoded above) is what makes consecutive
+          # CI builds installable as updates over each other rather than
+          # requiring an uninstall, PROVIDED versionCode was bumped by hand (in
+          # build.gradle or via a manual-dispatch override) since the last build
+          # the user actually installed.
           GX_ANDROID_STAGING: ${{ github.workspace }}/android-staging
           GX_ANDROID_VERSION_CODE: ${{ steps.artifact.outputs.version_code }}
           GX_ANDROID_VERSION_NAME: ${{ steps.artifact.outputs.version_name }}

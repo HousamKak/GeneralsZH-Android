@@ -12,7 +12,7 @@
 #   4. gradle assembleDebug -> app-debug.apk, ready for adb install.
 #
 # Game .big archives are NOT packaged: the user copies their own game data to
-# /storage/emulated/0/Android/data/com.generalsx.zerohour/files/ (see
+# /storage/emulated/0/Android/data/com.housamkak.zhcommander/files/ (see
 # docs/port/ANDROID_PORT.md).
 #
 # Usage: ./scripts/build/android/package-android-zh.sh [--install]
@@ -358,6 +358,6 @@ if [[ $DO_INSTALL -eq 1 ]]; then
     echo "==> adb install -r"
     adb install -r "${APK}"
     echo "==> Installed. Game data goes to:"
-    echo "    /storage/emulated/0/Android/data/com.generalsx.zerohour/files/"
-    echo "    e.g.: adb push ~/GeneralsX/GeneralsZH/. /storage/emulated/0/Android/data/com.generalsx.zerohour/files/"
+    echo "    /storage/emulated/0/Android/data/com.housamkak.zhcommander/files/"
+    echo "    e.g.: adb push ~/GeneralsX/GeneralsZH/. /storage/emulated/0/Android/data/com.housamkak.zhcommander/files/"
 fi

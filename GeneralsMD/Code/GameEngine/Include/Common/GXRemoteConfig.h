@@ -44,7 +44,7 @@ namespace GXRemoteConfig
 #if defined(__ANDROID__)
 		char path[256];
 		const int userId = (int)(getuid() / 100000);
-		snprintf(path, sizeof(path), "/data/user/%d/com.generalsx.zerohour/files/update", userId);
+		snprintf(path, sizeof(path), "/data/user/%d/com.housamkak.zhcommander/files/update", userId);
 		return path;
 #else
 		return std::string();

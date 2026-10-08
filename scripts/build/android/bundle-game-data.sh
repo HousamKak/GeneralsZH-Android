@@ -5,8 +5,10 @@
 #   bundle-game-data.sh <zero_hour_dir> <base_generals_dir> [apk] [out.apk]
 #
 # With no APK given, downloads the APK artifact of the latest successful "Build Android" run
-# of this repository (needs the GitHub CLI, logged in). Signs with android/app/debug.keystore,
-# the same key CI uses, so the result installs over a CI build and the other way round.
+# of this repository (needs the GitHub CLI, logged in). Signs with ZH Commander's own key, the
+# one CI uses, so the result installs over a CI build and the other way round: by default
+# ~/.generalszh/zhcommander-release.jks with its password in release_keystore_password
+# (GX_KEYSTORE_FILE / GX_KEYSTORE_PASSWORD / GX_KEY_ALIAS override them).
 #
 # The output carries EA's copyrighted game data: it goes to build-local/, which is ignored.
 # Never commit, upload or share it.
@@ -37,6 +39,13 @@ BUILD_TOOLS="$(ls -d "${SDK}"/build-tools/* 2>/dev/null | sort -V | tail -n 1)"
 ZIPALIGN="${BUILD_TOOLS}/zipalign"; [[ -x "${ZIPALIGN}" ]] || ZIPALIGN="${ZIPALIGN}.exe"
 APKSIGNER="${BUILD_TOOLS}/apksigner"; [[ -x "${APKSIGNER}" ]] || APKSIGNER="${APKSIGNER}.bat"
 
+CONF="${HOME:-${USERPROFILE:-}}/.generalszh"
+KEYSTORE="${GX_KEYSTORE_FILE:-${CONF}/zhcommander-release.jks}"
+KEY_ALIAS="${GX_KEY_ALIAS:-zhcommander}"
+[[ -f "${KEYSTORE}" ]] || { echo "signing key not found: ${KEYSTORE}"; exit 1; }
+export GX_KEYSTORE_PASSWORD="${GX_KEYSTORE_PASSWORD:-$(tr -d '\r\n' < "${CONF}/release_keystore_password" 2>/dev/null || true)}"
+[[ -n "${GX_KEYSTORE_PASSWORD}" ]] || { echo "no keystore password: put it in ${CONF}/release_keystore_password"; exit 1; }
+
 PYTHON="$(command -v python3 || command -v python)"
 UNSIGNED="${OUT}.unsigned"; ALIGNED="${OUT}.aligned"
 trap 'rm -f "${UNSIGNED}" "${ALIGNED}"' EXIT
@@ -46,8 +55,8 @@ echo "==> Adding game data"
 echo "==> Aligning (16 KiB pages for native libraries)"
 "${ZIPALIGN}" -f -P 16 4 "${UNSIGNED}" "${ALIGNED}"
 echo "==> Signing"
-"${APKSIGNER}" sign --ks "${REPO}/android/app/debug.keystore" --ks-pass pass:android \
-    --ks-key-alias androiddebugkey --key-pass pass:android --out "${OUT}" "${ALIGNED}"
+"${APKSIGNER}" sign --ks "${KEYSTORE}" --ks-pass env:GX_KEYSTORE_PASSWORD \
+    --ks-key-alias "${KEY_ALIAS}" --key-pass env:GX_KEYSTORE_PASSWORD --out "${OUT}" "${ALIGNED}"
 rm -f "${OUT}.idsig"
 "${APKSIGNER}" verify "${OUT}"
 echo "==> ${OUT} ($(du -h "${OUT}" | cut -f1))"

@@ -24,10 +24,25 @@ android {
             keyAlias 'androiddebugkey'
             keyPassword 'android'
         }
+        // ZH Commander's own key. Builds that are handed out (CI) must use it: anyone holding
+        // the public debug key above could otherwise sign an APK that installs over ours.
+        // CI decodes it from repository secrets; without GX_KEYSTORE_FILE (a local test
+        // build) the debug key is used instead.
+        if (System.getenv('GX_KEYSTORE_FILE')) {
+            zhcommander {
+                storeFile file(System.getenv('GX_KEYSTORE_FILE'))
+                storePassword System.getenv('GX_KEYSTORE_PASSWORD')
+                keyAlias System.getenv('GX_KEY_ALIAS')
+                keyPassword System.getenv('GX_KEYSTORE_PASSWORD')
+            }
+        }
     }
 
     defaultConfig {
-        applicationId 'com.generalsx.zerohour'
+        // ZH Commander's own app id, distinct from upstream's com.generalsx.zerohour so neither
+        // can install over the other. The Java package (namespace) stays, which keeps the
+        // native JNI entry points (Java_com_generalsx_zerohour_*) valid.
+        applicationId 'com.housamkak.zhcommander'
         // API 28 (Android 9): floor that still covers the Redmi Note 8 Pro
         // line while giving bionic glob(3) and stable Vulkan loader behavior.
         // The real graphics gate is the GPU driver, not the OS version — see
@@ -73,8 +88,8 @@ android {
         // already on your device.
         // Scheme: versionCode = major*10000 + minor*100 + patch, so the
         // number always sorts the same way as versionName (1.2.0 -> 10200).
-        versionCode (project.hasProperty('androidVersionCode') ? (project.androidVersionCode as Integer) : 10401)
-        versionName (project.hasProperty('androidVersionName') ? project.androidVersionName : '1.4.1')
+        versionCode (project.hasProperty('androidVersionCode') ? (project.androidVersionCode as Integer) : 10500)
+        versionName (project.hasProperty('androidVersionName') ? project.androidVersionName : '1.5.0')
         ndk {
             abiFilters 'arm64-v8a'
         }
@@ -101,15 +116,12 @@ android {
     buildTypes {
         debug {
             // Explicit: overrides AGP's implicit per-machine debug signingConfig
-            // with the fixed in-repo key above.
-            signingConfig signingConfigs.debug
+            // with ZH Commander's key when it is provided, the fixed in-repo key otherwise.
+            signingConfig System.getenv('GX_KEYSTORE_FILE') ? signingConfigs.zhcommander : signingConfigs.debug
         }
         release {
             minifyEnabled false
-            // Sideload builds sign with the same fixed debug key; Play
-            // distribution is out of scope for a GPL port of a game whose
-            // assets the user must own.
-            signingConfig signingConfigs.debug
+            signingConfig System.getenv('GX_KEYSTORE_FILE') ? signingConfigs.zhcommander : signingConfigs.debug
         }
     }
 
