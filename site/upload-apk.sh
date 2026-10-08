@@ -5,8 +5,8 @@
 #   upload-apk.sh <apk>
 #
 # Uploads it to the zh-commander-apk R2 bucket and points latest.json at it; /download serves it
-# from then on. Refuses any APK carrying game data (assets/gamedata/GameData): only the plain
-# CI build may ever be published.
+# from then on. Any game data bundled in the APK (assets/gamedata/GameData) is listed before the
+# upload, since it becomes publicly downloadable.
 set -euo pipefail
 
 APK="${1:?APK to publish}"

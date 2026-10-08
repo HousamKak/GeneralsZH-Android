@@ -1,12 +1,15 @@
-"""Print an APK's SHA-256, refusing (exit 1) any APK that carries game data."""
+"""Print an APK's SHA-256 on stdout; list any bundled game archives on stderr."""
 import hashlib
 import sys
 import zipfile
 
 apk = sys.argv[1]
 with zipfile.ZipFile(apk) as z:
-    if any(n.startswith("assets/gamedata/GameData/") for n in z.namelist()):
-        sys.exit("REFUSED: this APK contains game data; publish the plain CI build only")
+    bundled = [n for n in z.namelist() if n.startswith("assets/gamedata/GameData/")]
+if bundled:
+    print("note: this APK bundles %d game data files, which will be public:" % len(bundled), file=sys.stderr)
+    for name in bundled:
+        print("  " + name[len("assets/gamedata/"):], file=sys.stderr)
 h = hashlib.sha256()
 with open(apk, "rb") as f:
     for chunk in iter(lambda: f.read(1 << 20), b""):

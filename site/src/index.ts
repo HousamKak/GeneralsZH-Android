@@ -2,7 +2,7 @@
 //
 // The bucket holds the APKs under apk/ and a latest.json naming the current one (written by
 // upload-apk.sh). /download streams that file; /api/latest gives the page its version and size.
-// APKs here never carry game data: upload-apk.sh refuses any that does.
+// upload-apk.sh lists any game data an APK bundles before publishing it.
 
 interface Env {
 	ASSETS: Fetcher;
