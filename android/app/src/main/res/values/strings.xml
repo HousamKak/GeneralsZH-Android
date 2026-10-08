@@ -14,6 +14,14 @@
     <string name="setup_button_select_game_folder">Select Game Folder</string>
     <string name="setup_button_launch_game">Launch Game</string>
     <string name="setup_no_game_data">No game data on this device yet.</string>
+    <string name="support_title">Support</string>
+    <string name="support_button">Support and settings</string>
+    <string name="support_button_back_to_game">Back to the game</string>
+    <string name="support_report_title">Support report</string>
+    <string name="support_report_help">Having a problem? Create a report and send it to us: it contains your device details, settings, a check of your game files and the game\'s logs.</string>
+    <string name="support_button_share_report">Create and send report</string>
+    <string name="nav_tab_online">Online</string>
+    <string name="nav_tab_report">Report</string>
     <string name="setup_button_view_logs">View Logs</string>
     <string name="setup_button_clear_game_folder">Clear Game Folder Setting</string>
 

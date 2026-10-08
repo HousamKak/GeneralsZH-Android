@@ -146,15 +146,33 @@ public class SetupActivity extends Activity {
             finish();
             return;
         }
+        // ZH Commander opens straight into the game. This screen is the Support screen behind
+        // the game's corner button (EXTRA_SUPPORT), or what a device without game data lands on.
+        supportFromGame = getIntent().getBooleanExtra(EXTRA_SUPPORT, false);
+        noGameData = getIntent().getBooleanExtra(EXTRA_NO_GAME_DATA, false);
+        if (!supportFromGame && !noGameData && savedInstanceState == null) {
+            if (hasGameData()) {
+                if (!sAutoUpdateCheckedThisProcess && UpdateManager.isAutoCheckEnabled(this)) {
+                    sAutoUpdateCheckedThisProcess = true;
+                    final android.content.Context app = getApplicationContext();
+                    new Thread(() -> UpdateManager.check(app, true), "GXUpdateCheck").start();
+                }
+                startActivity(new Intent(this, GeneralsZHActivity.class));
+                finish();
+                return;
+            }
+            noGameData = true;
+        }
         setTitle(R.string.setup_window_title);
 
         // GeneralsX @feature Android port launcher-ui-2026 08/09/2026 Which
         // bottom-navigation section to open on. Survives the recreate() the
-        // language picker performs, so changing the launcher language leaves
-        // you looking at the section you changed it from rather than being
-        // dropped back on Home.
+        // language picker performs, so changing the language leaves you looking
+        // at the section you changed it from.
         if (savedInstanceState != null) {
-            currentTab = savedInstanceState.getInt(STATE_TAB, TAB_HOME);
+            currentTab = savedInstanceState.getInt(STATE_TAB, TAB_GRAPHICS);
+        } else if (noGameData) {
+            currentTab = TAB_REPORT;
         }
 
         // GeneralsX @bugfix Android port 08/07/2026 This screen is the ONLY
@@ -205,10 +223,9 @@ public class SetupActivity extends Activity {
         statusText.setPadding(0, 0, 0, dp(24));
         root.addView(statusText);
 
-        addPlainButton(root, getString(R.string.setup_button_select_game_folder), this::onSelectGameFolder);
+        addPlainButton(root, getString(R.string.support_button_share_report), this::onShareReport);
         addPlainButton(root, getString(R.string.setup_button_view_logs), this::onViewLogs);
-        addPlainButton(root, getString(R.string.setup_button_launch_game), this::onLaunchGame);
-        addPlainButton(root, getString(R.string.setup_button_clear_game_folder), this::onClearGameFolder);
+        addPlainButton(root, getString(R.string.support_button_back_to_game), this::onBackToGame);
     }
 
     private void addPlainButton(LinearLayout root, String label, Runnable action) {
@@ -233,7 +250,11 @@ public class SetupActivity extends Activity {
         // of returning to its normal portrait-first state. Reset it every
         // time this screen comes back to the foreground; onLaunchGame()
         // re-applies the landscape lock itself the next time it's needed.
-        setRequestedOrientation(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
+        // Opened over the game: stay landscape, so going back does not hand the game's
+        // surface a portrait-sized window on the way.
+        setRequestedOrientation(supportFromGame
+            ? android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+            : android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
         refreshStatus();
         refreshGeneralsOnlineStatus();
         loadDxvkConfigIntoEditor();
@@ -257,14 +278,22 @@ public class SetupActivity extends Activity {
     // Nothing was dropped in the process: every card, button, switch, slider
     // and status line that existed before still exists, and every string
     // resource is still used. See showTab() for where each one landed.
+    //
+    // ZH Commander: no launcher in front of the game any more. These are the Support screen's
+    // sections, opened from the game's corner button: Graphics, Interface, Online (GeneralsOnline
+    // and updates) and Report (support report, logs, diagnostics). Home and Help are gone with
+    // the folder pickers; the game-data check now only feeds the report.
+    static final String EXTRA_SUPPORT = "com.housamkak.zhcommander.SUPPORT";
+    static final String EXTRA_NO_GAME_DATA = "com.housamkak.zhcommander.NO_GAME_DATA";
     private static final String STATE_TAB = "gzh_tab";
-    private static final int TAB_HOME = 1;
     private static final int TAB_GRAPHICS = 2;
     private static final int TAB_INTERFACE = 3;
-    private static final int TAB_TOOLS = 4;
-    private static final int TAB_HELP = 5;
+    private static final int TAB_REPORT = 4;
+    private static final int TAB_ONLINE = 6;
 
-    private int currentTab = TAB_HOME;
+    private int currentTab = TAB_GRAPHICS;
+    private boolean supportFromGame;
+    private boolean noGameData;
     private FrameLayout contentHost;
     private TextView appBarTitle;
 
@@ -280,9 +309,9 @@ public class SetupActivity extends Activity {
         // navigation bar below clears the gesture handle.
         InsetUtil.applySafeInsets(shell);
 
-        appBarTitle = UiKit.appBar(shell, getString(R.string.setup_title),
-            getString(R.string.nav_tab_home),
-            R.drawable.ic_gzh_doc, getString(R.string.setup_button_view_logs), this::onViewLogs);
+        appBarTitle = UiKit.appBar(shell, getString(R.string.support_title),
+            getString(tabTitle(currentTab)),
+            R.drawable.ic_gzh_play, getString(R.string.support_button_back_to_game), this::onBackToGame);
 
         contentHost = new FrameLayout(this);
         shell.addView(contentHost, new LinearLayout.LayoutParams(
@@ -326,11 +355,10 @@ public class SetupActivity extends Activity {
         nav.setItemRippleColor(UiKit.tint(this, R.color.gzh_ripple_primary));
 
         Menu menu = nav.getMenu();
-        menu.add(Menu.NONE, TAB_HOME, 0, R.string.nav_tab_home).setIcon(R.drawable.ic_gzh_home);
-        menu.add(Menu.NONE, TAB_GRAPHICS, 1, R.string.nav_tab_graphics).setIcon(R.drawable.ic_gzh_display);
-        menu.add(Menu.NONE, TAB_INTERFACE, 2, R.string.nav_tab_interface).setIcon(R.drawable.ic_gzh_globe);
-        menu.add(Menu.NONE, TAB_TOOLS, 3, R.string.nav_tab_tools).setIcon(R.drawable.ic_gzh_wrench);
-        menu.add(Menu.NONE, TAB_HELP, 4, R.string.nav_tab_help).setIcon(R.drawable.ic_gzh_info);
+        menu.add(Menu.NONE, TAB_GRAPHICS, 0, R.string.nav_tab_graphics).setIcon(R.drawable.ic_gzh_display);
+        menu.add(Menu.NONE, TAB_INTERFACE, 1, R.string.nav_tab_interface).setIcon(R.drawable.ic_gzh_globe);
+        menu.add(Menu.NONE, TAB_ONLINE, 2, R.string.nav_tab_online).setIcon(R.drawable.ic_gzh_account);
+        menu.add(Menu.NONE, TAB_REPORT, 3, R.string.nav_tab_report).setIcon(R.drawable.ic_gzh_doc);
 
         nav.setOnItemSelectedListener(item -> {
             showTab(item.getItemId());
@@ -342,11 +370,10 @@ public class SetupActivity extends Activity {
 
     private int tabTitle(int tab) {
         switch (tab) {
-            case TAB_GRAPHICS:  return R.string.nav_tab_graphics;
             case TAB_INTERFACE: return R.string.nav_tab_interface;
-            case TAB_TOOLS:     return R.string.nav_tab_tools;
-            case TAB_HELP:      return R.string.nav_tab_help;
-            default:            return R.string.nav_tab_home;
+            case TAB_ONLINE:    return R.string.nav_tab_online;
+            case TAB_REPORT:    return R.string.nav_tab_report;
+            default:            return R.string.nav_tab_graphics;
         }
     }
 
@@ -370,7 +397,22 @@ public class SetupActivity extends Activity {
 
         LinearLayout page = UiKit.scrollingPage(contentHost);
         switch (tab) {
+            case TAB_INTERFACE:
+                buildLanguageSection(page);
+                buildUiScaleSection(page);
+                buildInterfaceScaleSection(page);
+                break;
+            case TAB_ONLINE:
+                buildGeneralsOnlineSection(page);
+                buildUpdatesSection(page);
+                break;
+            case TAB_REPORT:
+                buildReportSection(page);
+                buildLogsSection(page);
+                buildDiagnosticsSection(page);
+                break;
             case TAB_GRAPHICS:
+            default:
                 buildSimRateSection(page);
                 // GeneralsX @tweak Android port 02/10/2026 The upscaler lives in the GLES translator
                 // (plain GLES and GLES on ANGLE); under Vulkan it does nothing, so it is not offered.
@@ -387,22 +429,6 @@ public class SetupActivity extends Activity {
                     buildCustomDriverSection(page);
                     buildDxvkConfigSection(page);
                 }
-                break;
-            case TAB_INTERFACE:
-                buildLanguageSection(page);
-                buildUiScaleSection(page);
-                buildInterfaceScaleSection(page);
-                break;
-            case TAB_TOOLS:
-                buildLogsSection(page);
-                buildDiagnosticsSection(page);
-                break;
-            case TAB_HELP:
-                buildHelpSection(page);
-                break;
-            case TAB_HOME:
-            default:
-                buildHomeSection(page);
                 break;
         }
 
@@ -431,22 +457,119 @@ public class SetupActivity extends Activity {
         java.util.Arrays.fill(diagnosticSwitches, null);
     }
 
-    // ------------------------------------------------------------ Home page
+    // ------------------------------------------------------------ Report page
 
-    private void buildHomeSection(LinearLayout page) {
-        // The one thing this app exists to do, as the first thing on it.
-        UiKit.button(page, UiKit.BTN_PRIMARY, R.drawable.ic_gzh_play,
-            getString(R.string.setup_button_launch_game), this::onLaunchGame);
+    // One button that gathers everything needed to help a player -- device, versions, settings,
+    // a check of the game data and every log -- into a zip for the share sheet. The game-data
+    // check that used to sit behind the folder pickers lives here now, out of players' way.
+    private void buildReportSection(LinearLayout page) {
+        LinearLayout content = UiKit.card(page);
+        UiKit.sectionHeader(content, R.drawable.ic_gzh_doc, getString(R.string.support_report_title), false);
+        if (noGameData && !hasGameData()) {
+            UiKit.body(content, getString(R.string.setup_no_game_data));
+        }
+        UiKit.helpText(content, getString(R.string.support_report_help));
+        UiKit.button(content, UiKit.BTN_PRIMARY, R.drawable.ic_gzh_share,
+            getString(R.string.support_button_share_report), this::onShareReport);
+    }
 
-        // No game-folder picker: ZH Commander plays the game data that ships inside the APK
-        // (extracted to <external>/GameData on first launch) or that is already in that folder.
+    private void onShareReport() {
+        SupportReport.share(this, buildSupportSummary());
+    }
 
-        // GeneralsX @bugfix Android port 01/08/2026 kept above the advanced
-        // settings -- signing into GeneralsOnline is a primary action most
-        // people want, not something to bury under settings most players
-        // never touch.
-        buildGeneralsOnlineSection(page);
-        buildUpdatesSection(page);
+    private void onBackToGame() {
+        if (supportFromGame) {
+            finish();  // the game is right underneath
+        } else {
+            onLaunchGame();
+        }
+    }
+
+    private String buildSupportSummary() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("ZH Commander support report\n");
+        sb.append("Created: ").append(new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss Z",
+            java.util.Locale.ROOT).format(new java.util.Date())).append("\n\n");
+
+        sb.append("== App ==\n");
+        try {
+            android.content.pm.PackageInfo info = getPackageManager().getPackageInfo(getPackageName(), 0);
+            sb.append("Package: ").append(getPackageName()).append("\n");
+            sb.append("Version: ").append(info.versionName).append(" (")
+                .append(android.os.Build.VERSION.SDK_INT >= 28 ? info.getLongVersionCode() : info.versionCode)
+                .append(")\n");
+        } catch (Exception e) {
+            sb.append("Version: unknown (").append(e).append(")\n");
+        }
+        try (java.io.InputStream in = getAssets().open("engine_build.txt")) {
+            byte[] buf = new byte[64];
+            int n = in.read(buf);
+            sb.append("Engine build (APK): ").append(n > 0 ? new String(buf, 0, n).trim() : "?").append("\n");
+        } catch (java.io.IOException e) {
+            sb.append("Engine build (APK): unknown\n");
+        }
+        sb.append("Activated: ").append(LicenseGate.isActivated(this)).append(" (device ")
+            .append(LicenseGate.deviceId(this).substring(0, 12)).append(")\n\n");
+
+        sb.append("== Device ==\n");
+        sb.append(android.os.Build.MANUFACTURER).append(" ").append(android.os.Build.MODEL)
+            .append(" (").append(android.os.Build.DEVICE).append(")\n");
+        sb.append("Android ").append(android.os.Build.VERSION.RELEASE)
+            .append(" (API ").append(android.os.Build.VERSION.SDK_INT).append(")\n");
+        if (android.os.Build.VERSION.SDK_INT >= 31) {
+            sb.append("SoC: ").append(android.os.Build.SOC_MANUFACTURER).append(" ")
+                .append(android.os.Build.SOC_MODEL).append("\n");
+        }
+        sb.append("ABIs: ").append(String.join(", ", android.os.Build.SUPPORTED_ABIS)).append("\n");
+        android.app.ActivityManager.MemoryInfo mem = new android.app.ActivityManager.MemoryInfo();
+        ((android.app.ActivityManager) getSystemService(ACTIVITY_SERVICE)).getMemoryInfo(mem);
+        sb.append("RAM: ").append(mem.totalMem >> 20).append(" MB total, ")
+            .append(mem.availMem >> 20).append(" MB free\n");
+        File ext = getExternalFilesDir(null);
+        if (ext != null) {
+            sb.append("Storage free: ").append(ext.getUsableSpace() >> 20).append(" MB\n");
+        }
+        sb.append("\n== Settings ==\n");
+        java.util.Map<String, ?> settings = getSharedPreferences(PREFS_NAME, MODE_PRIVATE).getAll();
+        for (java.util.Map.Entry<String, ?> e : new java.util.TreeMap<>(settings).entrySet()) {
+            String key = e.getKey().toLowerCase(java.util.Locale.ROOT);
+            boolean sensitive = key.contains("token") || key.contains("secret")
+                || key.contains("password") || key.contains("session");
+            sb.append(e.getKey()).append(" = ").append(sensitive ? "(hidden)" : e.getValue()).append("\n");
+        }
+
+        sb.append("\n== Game data ==\n");
+        String path = getSavedGamePath();
+        if (path == null) {
+            sb.append("No game data found.\n");
+        } else {
+            File dir = new File(path);
+            sb.append("Folder: ").append(path).append("\n");
+            appendArchives(sb, dir, "");
+            File[] subdirs = dir.listFiles(File::isDirectory);
+            if (subdirs != null) {
+                for (File sub : subdirs) {
+                    appendArchives(sb, sub, sub.getName() + "/");
+                }
+            }
+            java.util.List<String> issues = findGameFolderIntegrityIssues(dir);
+            sb.append(issues.isEmpty() ? "Integrity check: no problems found\n" : "Integrity check problems:\n");
+            for (String issue : issues) {
+                sb.append("  - ").append(issue.replace("\n", "\n    ")).append("\n");
+            }
+        }
+        return sb.toString();
+    }
+
+    private static void appendArchives(StringBuilder sb, File dir, String prefix) {
+        File[] bigs = dir.listFiles((d, name) -> name.toLowerCase(java.util.Locale.ROOT).endsWith(".big"));
+        if (bigs == null) {
+            return;
+        }
+        java.util.Arrays.sort(bigs);
+        for (File f : bigs) {
+            sb.append("  ").append(prefix).append(f.getName()).append("  ").append(f.length()).append(" bytes\n");
+        }
     }
 
     // ------------------------------------------------------------ Updates
@@ -519,10 +642,6 @@ public class SetupActivity extends Activity {
             runOnUiThread(() -> {
                 updateCheckRunning = false;
                 refreshUpdatesStatus();
-                // The support card is read from the support.json this check may just have replaced.
-                if (r.supportUpdated && currentTab == TAB_HELP && contentHost != null) {
-                    showTab(TAB_HELP);
-                }
                 if (!r.ok) {
                     if (userAsked) {
                         toast(r.offline
@@ -2646,6 +2765,17 @@ public class SetupActivity extends Activity {
             }
             return recovered;
         }
+
+        // ZH Commander has no folder picker: its game data is <external>/GameData, bundled in
+        // the APK or copied there. Report that folder, so every setting that writes into the
+        // game folder (language packs, dxvk.conf, diagnostics switches) uses it.
+        File external = ctx.getExternalFilesDir(null);
+        if (external != null) {
+            File gameData = new File(external, "GameData");
+            if (isValidGameFolder(gameData)) {
+                return gameData.getPath();
+            }
+        }
         return null;
     }
 
@@ -3057,7 +3187,7 @@ public class SetupActivity extends Activity {
         // Only the Home card changes shape (the "clear" button disappears) --
         // rebuilding that one page is enough, and keeps the user where they
         // are instead of restarting the whole Activity.
-        showTab(TAB_HOME);
+        showTab(currentTab);
     }
 
     String getBaseGeneralsPath() {
@@ -3155,7 +3285,7 @@ public class SetupActivity extends Activity {
                     saveBaseGeneralsPath(resolved.getAbsolutePath());
                     Toast.makeText(this, getString(R.string.setup_toast_base_generals_saved,
                         resolved.getAbsolutePath()), Toast.LENGTH_LONG).show();
-                    showTab(TAB_HOME);
+                    showTab(currentTab);
                 }
             }
         } else if (requestCode == REQUEST_IMPORT_DRIVER && resultCode == Activity.RESULT_OK && data != null) {
@@ -3356,8 +3486,10 @@ public class SetupActivity extends Activity {
             android.widget.Toast.makeText(this, R.string.setup_no_game_data, android.widget.Toast.LENGTH_LONG).show();
             return;
         }
+        // This screen is done once the game is up: the game's corner button opens a fresh one.
         if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE) {
             startActivity(new Intent(this, GeneralsZHActivity.class));
+            finish();
             return;
         }
         pendingLaunchAfterRotation = true;
@@ -3389,6 +3521,7 @@ public class SetupActivity extends Activity {
         if (pendingLaunchAfterRotation && newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE) {
             pendingLaunchAfterRotation = false;
             startActivity(new Intent(this, GeneralsZHActivity.class));
+            finish();
         }
     }
 

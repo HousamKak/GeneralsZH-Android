@@ -252,78 +252,7 @@ public class LogViewerActivity extends Activity {
     // sharing side (see the FileProvider migration comment at the top of
     // this file) -- the receiving app decides what it can handle, not us.
     private void shareLogAsFile() {
-        try {
-            File zipFile = new File(getCacheDir(), "generalszh-logs.zip");
-            int fileCount = 0;
-            try (java.util.zip.ZipOutputStream zos = new java.util.zip.ZipOutputStream(
-                    new java.io.FileOutputStream(zipFile, false))) {
-                fileCount += addLogFileToZip(zos, new File(getFilesDir(), "crash.log"));
-                fileCount += addLogFileToZip(zos, new File(getFilesDir(), "crash-prev.log"));
-                File extDir = getExternalFilesDir(null);
-                if (extDir != null) {
-                    fileCount += addLogFileToZip(zos, new File(extDir, "generals-stderr.log"));
-                    fileCount += addLogFileToZip(zos, new File(extDir, "generals-stderr-prev.log"));
-                    // GeneralsX @feature Android port 13/09/2026 The
-                    // launcher's own GeneralsOnline request log. Written by a
-                    // different process than the engine logs beside it, so it
-                    // is the only record of a sign-in that failed before the
-                    // game ever started.
-                    fileCount += addLogFileToZip(zos, new File(extDir, NetworkTrace.LOG_NAME));
-                    fileCount += addLogFileToZip(zos, new File(extDir, NetworkTrace.LOG_NAME + ".prev"));
-                }
-                // GeneralsX @feature Android port 23/09/2026 The Replay check's summary and
-                // the newest event record it wrote (Replays/<name>.gamestats.json), which is
-                // what gets compared with the PC client's -exportStats file.
-                File userData = DataPackInstaller.userDataDir();
-                fileCount += addLogFileToZip(zos, new File(userData, "gx_replay_check_result.txt"));
-                File[] stats = new File(userData, "Replays").listFiles(
-                    (d, name) -> name.endsWith(".gamestats.json"));
-                if (stats != null && stats.length > 0) {
-                    File newest = stats[0];
-                    for (File f : stats) {
-                        if (f.lastModified() > newest.lastModified()) {
-                            newest = f;
-                        }
-                    }
-                    fileCount += addLogFileToZip(zos, newest);
-                }
-            }
-
-            if (fileCount == 0) {
-                zipFile.delete();
-                Toast.makeText(this, R.string.logviewer_toast_share_none, Toast.LENGTH_LONG).show();
-                return;
-            }
-
-            Uri uri = FileProvider.getUriForFile(this, getPackageName() + ".fileprovider", zipFile);
-
-            Intent share = new Intent(Intent.ACTION_SEND);
-            share.setType("application/zip");
-            share.putExtra(Intent.EXTRA_SUBJECT, getString(R.string.logviewer_share_subject));
-            share.putExtra(Intent.EXTRA_STREAM, uri);
-            share.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-            startActivity(Intent.createChooser(share, getString(R.string.logviewer_share_chooser_title)));
-        } catch (IOException e) {
-            Toast.makeText(this, getString(R.string.logviewer_toast_share_failed, e.getMessage()), Toast.LENGTH_LONG).show();
-        }
-    }
-
-    // Returns 1 if the file existed and was added, 0 if it didn't exist (so
-    // the caller can tell "nothing to share" apart from "wrote an empty zip").
-    private int addLogFileToZip(java.util.zip.ZipOutputStream zos, File f) throws IOException {
-        if (!f.isFile()) {
-            return 0;
-        }
-        zos.putNextEntry(new java.util.zip.ZipEntry(f.getName()));
-        try (java.io.FileInputStream in = new java.io.FileInputStream(f)) {
-            byte[] buf = new byte[65536];
-            int n;
-            while ((n = in.read(buf)) > 0) {
-                zos.write(buf, 0, n);
-            }
-        }
-        zos.closeEntry();
-        return 1;
+        SupportReport.share(this, null);
     }
 
     /**

@@ -379,8 +379,10 @@ public class GeneralsZHActivity extends SDLActivity {
             // Setup instead of letting SDLActivity load the native library
             // into an app state that can only end in a black screen or a
             // confusing crash the user has no way to diagnose.
-            Log.i(TAG, "no valid game folder configured; redirecting to Setup");
-            startActivity(new Intent(this, SetupActivity.class));
+            Log.i(TAG, "no game data; opening Support");
+            // The flag stops Setup from routing straight back here, which would loop.
+            startActivity(new Intent(this, SetupActivity.class)
+                .putExtra(SetupActivity.EXTRA_NO_GAME_DATA, true));
             finish();
             return;
         }
@@ -412,6 +414,53 @@ public class GeneralsZHActivity extends SDLActivity {
         }
 
         super.onCreate(savedInstanceState);
+        addSupportButton();
+    }
+
+    // ZH Commander has no launcher in front of the game: settings, GeneralsOnline sign-in,
+    // updates and the support report sit behind this small button in the top corner, over the
+    // game's surface. It takes only its own taps; everything else still reaches the game.
+    private void addSupportButton() {
+        float density = getResources().getDisplayMetrics().density;
+        int size = Math.round(36 * density);
+        int margin = Math.round(10 * density);
+
+        android.widget.ImageButton button = new android.widget.ImageButton(this);
+        button.setImageResource(R.drawable.ic_gzh_wrench);
+        button.setImageTintList(android.content.res.ColorStateList.valueOf(0xFFFFFFFF));
+        button.setContentDescription(getString(R.string.support_button));
+        android.graphics.drawable.GradientDrawable background = new android.graphics.drawable.GradientDrawable();
+        background.setShape(android.graphics.drawable.GradientDrawable.OVAL);
+        background.setColor(0x80000000);
+        button.setBackground(background);
+        int pad = Math.round(8 * density);
+        button.setPadding(pad, pad, pad, pad);
+        button.setScaleType(android.widget.ImageView.ScaleType.FIT_CENTER);
+        button.setAlpha(0.7f);
+        button.setOnClickListener(v -> startActivity(new Intent(this, SetupActivity.class)
+            .putExtra(SetupActivity.EXTRA_SUPPORT, true)));
+
+        android.widget.FrameLayout.LayoutParams lp = new android.widget.FrameLayout.LayoutParams(
+            size, size, android.view.Gravity.TOP | android.view.Gravity.END);
+        lp.setMargins(margin, margin, margin, margin);
+        // Keep clear of a camera cutout on whichever side the phone is turned to.
+        button.setOnApplyWindowInsetsListener((v, insets) -> {
+            int top = margin;
+            int end = margin;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P && insets.getDisplayCutout() != null) {
+                DisplayCutout cutout = insets.getDisplayCutout();
+                top += cutout.getSafeInsetTop();
+                end += Math.max(cutout.getSafeInsetRight(), cutout.getSafeInsetLeft());
+            }
+            android.widget.FrameLayout.LayoutParams p = (android.widget.FrameLayout.LayoutParams) v.getLayoutParams();
+            if (p.topMargin != top || p.getMarginEnd() != end) {
+                p.topMargin = top;
+                p.setMarginEnd(end);
+                v.setLayoutParams(p);
+            }
+            return insets;
+        });
+        addContentView(button, lp);
     }
 
     // GeneralsX @bugfix Android port 02/08/2026 A tester reported the camera
