@@ -130,7 +130,6 @@ target_sources(z_generals PRIVATE
 # button (UIKit), run by SDL3Main before the engine starts. ARC; no precompiled header (the
 # target's PCH is C++ only).
 if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
-    enable_language(OBJCXX)
     target_sources(z_generals PRIVATE IOSGate.mm)
     set_source_files_properties(IOSGate.mm PROPERTIES
         COMPILE_OPTIONS "-fobjc-arc"

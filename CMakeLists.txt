@@ -33,6 +33,13 @@ endif()
 # Top level project, doesn't really affect anything.
 project(genzh LANGUAGES C CXX)
 
+# GeneralsX @build ZH Commander 09/10/2026 iOS builds compile one Objective-C++ file
+# (GeneralsMD/Code/Main/IOSGate.mm); the language must be enabled here, at the top, for
+# CMake to generate its rules in every directory.
+if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
+    enable_language(OBJCXX)
+endif()
+
 # GeneralsX @build BenderAI 10/02/2026
 # Linux port: Make CompatLib headers globally accessible so Core libraries (WWLib, WWMath, etc.)
 # can access platform compatibility types when building for non-Windows platforms
