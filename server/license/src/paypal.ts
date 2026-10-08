@@ -1,4 +1,4 @@
-// PayPal checkout: a $5 payment mints one activation key.
+// PayPal checkout: a $10 sale payment mints one activation key.
 //
 // The landing page's PayPal button asks for an order (/v1/paypal/order), the buyer approves it in
 // PayPal's window, and the page asks us to capture it (/v1/paypal/capture). Only a capture that
@@ -15,7 +15,8 @@ export interface PayPalEnv {
 	PAYPAL_SECRET?: string;
 }
 
-const PRICE = "5.00";
+// GeneralsX @tweak Codex 08/10/2026 Charge the advertised $10 sale price (regularly $15).
+const PRICE = "10.00";
 const CURRENCY = "USD";
 const ORDER_ID_RE = /^[A-Z0-9]{10,30}$/;
 
