@@ -1,4 +1,4 @@
-// Game data for activated apps: the owner's own (custom) asset archives, downloaded by the app
+// Game data for activated apps: asset archives downloaded by the app
 // after activation instead of being bundled in the APK.
 //
 // site/upload-data.py uploads a folder's files under data/<version>/ and publishes
@@ -7,8 +7,6 @@
 // connection and checking every file's SHA-256. Both require the X-ZH-License header: the
 // license the license server signed for that device (LicenseGate), verified here against
 // the license server's public key.
-
-import { RETAIL_ARCHIVES } from "./retail";
 
 export interface DataEnv {
 	APKS: R2Bucket;
@@ -62,6 +60,7 @@ export async function dataFile(request: Request, env: DataEnv, key: string): Pro
 	return new Response(object.body, { headers });
 }
 
+// GeneralsX @tweak Codex 08/10/2026 Accept all archive hashes without a retail blocklist.
 // Owner only (bearer token, checked by the caller): make an uploaded set of files the current
 // game data, once every file it lists is in the bucket at the size it claims.
 export async function publishData(request: Request, env: DataEnv): Promise<Response> {
@@ -72,10 +71,6 @@ export async function publishData(request: Request, env: DataEnv): Promise<Respo
 	for (const file of manifest.files) {
 		if (!DATA_KEY_RE.test(file.key ?? "") || file.key.includes("..") || !/^[0-9a-f]{64}$/.test(file.sha256 ?? "")) {
 			return Response.json({ error: "bad_file", file: file.path }, { status: 400 });
-		}
-		// Custom assets only: never an original retail archive.
-		if (RETAIL_ARCHIVES.has(file.sha256)) {
-			return Response.json({ error: "retail_archive", file: file.path, matches: RETAIL_ARCHIVES.get(file.sha256) }, { status: 422 });
 		}
 		const head = await env.APKS.head(file.key);
 		if (!head || head.size !== file.size) {

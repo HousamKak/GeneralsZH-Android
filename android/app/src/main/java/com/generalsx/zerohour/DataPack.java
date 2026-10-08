@@ -23,7 +23,7 @@ import java.util.Locale;
 import java.util.Map;
 
 /**
- * Game data downloaded after activation instead of bundled in the APK: the owner's custom asset
+ * Game data downloaded after activation instead of bundled in the APK: asset
  * archives, published with site/upload-data.py and served by the site only to requests carrying
  * this device's license (site/src/data.ts).
  *
