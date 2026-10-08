@@ -108,3 +108,6 @@ android-staging/
 # is disabled on this fork, so a ~40MB binary can't go into version control
 # at all even if it were source), not something to commit.
 /GeneralsXZH-android-local.apk
+
+# Personal APKs with bundled game data (scripts/build/android/bundle-game-data.sh)
+build-local/
