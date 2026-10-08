@@ -340,6 +340,9 @@ static NSDictionary<NSString *, NSString *> *installedFiles(void)
 // Decide what the player needs next: a license, then the game data.
 - (void)step
 {
+	if ([self updateRequired]) {
+		return;
+	}
 	if (storedLicense() == nil) {
 		[self showActivation];
 		return;
@@ -347,10 +350,41 @@ static NSDictionary<NSString *, NSString *> *installedFiles(void)
 	[self checkData];
 }
 
+// Releases are required: an app older than the newest one in the AltStore source does not
+// start the game. It cannot update itself on iOS -- SideStore/AltStore install the update --
+// so it says so and opens SideStore. Offline it lets the player through.
+- (BOOL)updateRequired
+{
+	NSMutableURLRequest *req = [NSMutableURLRequest requestWithURL:
+		[NSURL URLWithString:[kSite stringByAppendingString:@"/altstore.json"]]];
+	req.timeoutInterval = 8;
+	req.cachePolicy = NSURLRequestReloadIgnoringLocalCacheData;
+	NSInteger status = 0;
+	NSData *data = runRequest(req, &status);
+	NSDictionary *source = data && status == 200 ? [NSJSONSerialization JSONObjectWithData:data options:0 error:nil] : nil;
+	NSArray *apps = [source isKindOfClass:NSDictionary.class] ? source[@"apps"] : nil;
+	NSDictionary *app = [apps isKindOfClass:NSArray.class] ? apps.firstObject : nil;
+	NSArray *versions = [app isKindOfClass:NSDictionary.class] ? app[@"versions"] : nil;
+	NSString *latest = [versions isKindOfClass:NSArray.class] && versions.count > 0 ? versions.firstObject[@"version"] : nil;
+	NSString *mine = NSBundle.mainBundle.infoDictionary[@"CFBundleShortVersionString"];
+	if (![latest isKindOfClass:NSString.class] || mine == nil
+		|| [mine compare:latest options:NSNumericSearch] != NSOrderedAscending) {
+		return NO;
+	}
+	[self show:@"Update required"
+		  body:[NSString stringWithFormat:@"ZH Commander %@ is available and required to play (you have %@). Open SideStore or AltStore and update ZH Commander, then open the game again.", latest, mine]
+	   primary:@"Open SideStore" secondary:@"Check again" field:NO];
+	_primary.tag = 4;
+	_secondary.tag = 4;
+	return YES;
+}
+
 - (void)show:(NSString *)title body:(NSString *)body primary:(NSString *)primary secondary:(NSString *)secondary field:(BOOL)field
 {
 	_title.text = title;
 	_body.text = body;
+	_primary.tag = 0;  // each screen sets the actions it wants after calling show
+	_secondary.tag = 0;
 	_field.hidden = !field;
 	_progress.hidden = YES;
 	_primary.hidden = primary == nil;
@@ -381,13 +415,31 @@ static NSDictionary<NSString *, NSString *> *installedFiles(void)
 		case 1: [self activate]; break;
 		case 2: [self download]; break;
 		case 3: [self checkData]; break;
+		case 4: [self openStore]; break;
 		default: break;
 	}
 }
 
 - (void)onSecondary
 {
+	if (_secondary.tag == 4) {
+		[self step];  // "Check again" after updating in SideStore
+		return;
+	}
 	self.finished = YES;  // "Later" on a data update: go on to the game
+}
+
+- (void)openStore
+{
+	// SideStore first, then AltStore; whichever the player installed answers.
+	UIApplication *app = UIApplication.sharedApplication;
+	NSURL *sidestore = [NSURL URLWithString:@"sidestore://"];
+	NSURL *altstore = [NSURL URLWithString:@"altstore://"];
+	[app openURL:sidestore options:@{} completionHandler:^(BOOL opened) {
+		if (!opened) {
+			[app openURL:altstore options:@{} completionHandler:nil];
+		}
+	}];
 }
 
 - (void)activate

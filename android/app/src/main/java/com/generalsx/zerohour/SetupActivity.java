@@ -172,7 +172,8 @@ public class SetupActivity extends Activity {
             // What an earlier check found is offered before the game starts -- a newer APK first,
             // then newer game data; each goes on to the game itself when the player picks Later.
             Class<?> next = GeneralsZHActivity.class;
-            if (!UpdateActivity.sLaterThisProcess && UpdateManager.appOffer(this) != null) {
+            UpdateManager.AppOffer offer = UpdateManager.appOffer(this);
+            if (offer != null && (offer.mandatory || !UpdateActivity.sLaterThisProcess)) {
                 next = UpdateActivity.class;
             } else if (!DataDownloadActivity.sLaterThisProcess && DataPack.updateAvailable(this)) {
                 next = DataDownloadActivity.class;

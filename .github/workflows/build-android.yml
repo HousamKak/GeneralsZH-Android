@@ -61,6 +61,10 @@ on:
         type: boolean
         description: "Release this build: make it the site's download and offer it to installed apps as an in-app update (bump versionCode in build.gradle first)."
         default: false
+      optional_update:
+        type: boolean
+        description: "With release: let players keep playing without updating. Unticked, the update is required: the game does not start until it is installed."
+        default: false
 
 jobs:
   build-android:
@@ -585,7 +589,7 @@ jobs:
           set -euo pipefail
           KEY="${RUNNER_TEMP}/update_signing_key.pem"
           echo "${UPDATE_SIGNING_KEY}" > "${KEY}"
-          python3 scripts/update/publish-update.py --apk "${{ steps.locate.outputs.path }}" --announce-app --out "${RUNNER_TEMP}/update" --key "${KEY}" --note "ZH Commander run ${{ github.run_number }}"
+          python3 scripts/update/publish-update.py --apk "${{ steps.locate.outputs.path }}" --announce-app ${{ inputs.optional_update && '--optional-update' || '' }} --out "${RUNNER_TEMP}/update" --key "${KEY}" --note "ZH Commander run ${{ github.run_number }}"
           rm -f "${KEY}"
           PUSH_URL="${GH_PUSH_URL}" scripts/update/push-updates-branch.sh "${RUNNER_TEMP}/update"
 

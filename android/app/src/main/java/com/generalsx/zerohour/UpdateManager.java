@@ -226,6 +226,7 @@ final class UpdateManager {
         String url;
         String sha256;
         long size;
+        boolean mandatory;
     }
 
     /** The newest announced APK, or null when this install is already that version or newer. */
@@ -242,6 +243,8 @@ final class UpdateManager {
             offer.url = app.getString("url");
             offer.sha256 = app.getString("sha256").toLowerCase(java.util.Locale.ROOT);
             offer.size = app.getLong("size");
+            // Required: the game does not start until it is installed (UpdateActivity, SetupActivity).
+            offer.mandatory = app.optBoolean("mandatory", false);
             PackageInfo self = ctx.getPackageManager().getPackageInfo(ctx.getPackageName(), 0);
             long installed = android.os.Build.VERSION.SDK_INT >= 28 ? self.getLongVersionCode() : self.versionCode;
             if (offer.versionCode <= installed || !offer.url.startsWith("https://")) {

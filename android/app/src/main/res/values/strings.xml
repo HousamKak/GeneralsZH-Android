@@ -26,6 +26,7 @@
     <string name="update_button">Update now</string>
     <string name="update_button_version">Update to %1$s</string>
     <string name="update_later">Later</string>
+    <string name="update_required">This update is required: the game opens once it is installed.</string>
     <string name="update_close">Close</string>
     <string name="update_permission">Allow ZH Commander to install apps: turn on \"Allow from this source\", then come back.</string>
     <string name="update_permission_denied">Installing needs that permission. Tap Update now to try again.</string>

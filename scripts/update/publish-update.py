@@ -49,14 +49,15 @@ def apk_version(apk):
     sys.exit("aapt not found: set ANDROID_HOME")
 
 
-def app_entry(apk):
+def app_entry(apk, mandatory=True):
     with open(apk, "rb") as f:
         data = f.read()
     code, name = apk_version(apk)
     digest = sha256(data)
     # Same name site/upload-apk.py gives the upload.
     url = "%sapk/ZH-Commander-%s-%s.apk" % (APP_DOWNLOAD_BASE, name, digest[:8])
-    return {"version_code": code, "version_name": name, "url": url, "sha256": digest, "size": len(data)}
+    return {"version_code": code, "version_name": name, "url": url, "sha256": digest, "size": len(data),
+            "mandatory": mandatory}
 
 
 def current_serial():
@@ -109,6 +110,9 @@ def main():
     ap.add_argument("--note", default="")
     ap.add_argument("--announce-app", action="store_true",
                     help="also offer the --apk itself as an in-app update (it must be uploaded to the site)")
+    ap.add_argument("--optional-update", action="store_true",
+                    help="with --announce-app: players may start the game without updating "
+                         "(releases are required by default)")
     a = ap.parse_args()
 
     os.makedirs(a.out, exist_ok=True)
@@ -161,7 +165,7 @@ def main():
                 sys.exit("APK has no " + ", ".join(missing))
         manifest["engine"] = engine
         if a.announce_app:
-            manifest["app"] = app_entry(a.apk)
+            manifest["app"] = app_entry(a.apk, mandatory=not a.optional_update)
 
     body = (json.dumps(manifest, indent=2, sort_keys=True, ensure_ascii=False) + "\n").encode("utf-8")
     mpath = os.path.join(a.out, "manifest.json")

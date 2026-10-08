@@ -87,10 +87,18 @@ public class UpdateActivity extends Activity {
             LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
         statusText = UiKit.helpText(content, "");
 
+        // A required update has no Later on the way into the game: the game does not start
+        // until it is installed. From Support (game already running) it can still be closed;
+        // it is then enforced on the next start.
+        if (offer.mandatory && !fromSupport) {
+            UiKit.helpText(content, getString(R.string.update_required));
+        }
         updateButton = UiKit.button(content, UiKit.BTN_PRIMARY, R.drawable.ic_gzh_download,
             getString(R.string.update_button), this::onUpdate);
-        laterButton = UiKit.button(content, UiKit.BTN_TONAL, R.drawable.ic_gzh_play,
-            getString(fromSupport ? R.string.update_close : R.string.update_later), this::onLater);
+        if (!offer.mandatory || fromSupport) {
+            laterButton = UiKit.button(content, UiKit.BTN_TONAL, R.drawable.ic_gzh_play,
+                getString(fromSupport ? R.string.update_close : R.string.update_later), this::onLater);
+        }
 
         setContentView(root);
         InsetUtil.applySafeInsets(root);
@@ -98,7 +106,12 @@ public class UpdateActivity extends Activity {
 
     @Override
     public void onBackPressed() {
-        if (!downloading) {
+        if (downloading) {
+            return;
+        }
+        if (laterButton == null) {
+            finishAffinity();  // required update: leaving closes the app instead of starting the game
+        } else {
             onLater();
         }
     }
@@ -137,7 +150,9 @@ public class UpdateActivity extends Activity {
     private void startDownload() {
         downloading = true;
         updateButton.setEnabled(false);
-        laterButton.setEnabled(false);
+        if (laterButton != null) {
+            laterButton.setEnabled(false);
+        }
         progress.setProgress(0);
         progress.setVisibility(android.view.View.VISIBLE);
         statusText.setText(getString(R.string.update_downloading, 0));
@@ -152,7 +167,9 @@ public class UpdateActivity extends Activity {
                 }
                 downloading = false;
                 updateButton.setEnabled(true);
-                laterButton.setEnabled(true);
+                if (laterButton != null) {
+                    laterButton.setEnabled(true);
+                }
                 if (error != 0) {
                     progress.setVisibility(android.view.View.GONE);
                     statusText.setText(error);
