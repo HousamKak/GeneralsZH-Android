@@ -126,6 +126,18 @@ target_sources(z_generals PRIVATE
     $<$<NOT:$<BOOL:${MSVC}>>:ReferenceFloatMath.cpp>
 )
 
+# GeneralsX @feature ZH Commander 09/10/2026 iOS activation, game-data download and Support
+# button (UIKit), run by SDL3Main before the engine starts. ARC; no precompiled header (the
+# target's PCH is C++ only).
+if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
+    enable_language(OBJCXX)
+    target_sources(z_generals PRIVATE IOSGate.mm)
+    set_source_files_properties(IOSGate.mm PROPERTIES
+        COMPILE_OPTIONS "-fobjc-arc"
+        SKIP_PRECOMPILE_HEADERS ON)
+    target_link_libraries(z_generals PRIVATE "-framework UIKit" "-framework Security" "-framework Foundation")
+endif()
+
 if(NOT MSVC)
     # Keep the compiler from rewriting "(float)sin((double)x)" back into sinf inside sinf.
     # And keep the target's inherited precompiled header out of it: the PCH brings in <math.h>,

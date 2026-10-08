@@ -12,7 +12,7 @@ name: GeneralsXZH
 options:
   bundleIdPrefix: com.housamkak
   deploymentTarget:
-    iOS: "16.0"
+    iOS: "16.4"
 targets:
   GeneralsXZH:
     type: application

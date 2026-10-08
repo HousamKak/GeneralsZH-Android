@@ -83,7 +83,7 @@ export async function altstoreSource(env: IosEnv): Promise<Response> {
 					localizedDescription: `ZH Commander ${r.version}`,
 					downloadURL: `${SITE}/download/${r.key}`,
 					size: r.size,
-					minOSVersion: "16.0",
+					minOSVersion: "16.4",
 				})),
 				appPermissions: {
 					entitlements: [],

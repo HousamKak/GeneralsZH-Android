@@ -439,6 +439,11 @@ static void TryLoadCustomVulkanDriver(const char *internalPath)
 #if defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE
 #include <dirent.h>
 
+// IOSGate.mm: activation and game-data download before the engine starts, and the Support
+// button over the game.
+extern "C" bool ZHIOSRunGate(void);
+extern "C" void ZHIOSInstallSupportButton(void);
+
 // GeneralsX @feature ZH Commander 09/10/2026 Copy every file under src (one level of
 // subfolders, enough for fonts/) to dest, skipping files dest already has.
 static void copyRuntimeIfMissing(const char *src, const char *dest)
@@ -641,6 +646,10 @@ int main(int argc, char* argv[])
 			} else {
 				fprintf(stderr, "INFO: iOS working directory (Documents): %s\n", docs);
 			}
+			// GeneralsX @feature ZH Commander 09/10/2026 Without bundled assets the game data is
+			// downloaded into Documents after activation; the gate returns once both are in place.
+			ZHIOSRunGate();
+			ZHIOSInstallSupportButton();
 		}
 
 		if (home != nullptr) {
