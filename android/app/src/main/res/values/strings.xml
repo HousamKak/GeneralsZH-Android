@@ -13,6 +13,7 @@
     <string name="setup_card_game_folder">Game Folder</string>
     <string name="setup_button_select_game_folder">Select Game Folder</string>
     <string name="setup_button_launch_game">Launch Game</string>
+    <string name="setup_no_game_data">No game data on this device yet.</string>
     <string name="setup_button_view_logs">View Logs</string>
     <string name="setup_button_clear_game_folder">Clear Game Folder Setting</string>
 

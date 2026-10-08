@@ -438,28 +438,13 @@ public class SetupActivity extends Activity {
         UiKit.button(page, UiKit.BTN_PRIMARY, R.drawable.ic_gzh_play,
             getString(R.string.setup_button_launch_game), this::onLaunchGame);
 
-        LinearLayout folder = UiKit.card(page);
-        UiKit.sectionHeader(folder, R.drawable.ic_gzh_folder,
-            getString(R.string.setup_card_game_folder), false);
-
-        statusText = UiKit.body(folder, null);
-        statusText.setTextIsSelectable(true);
-
-        UiKit.button(folder, UiKit.BTN_TONAL, R.drawable.ic_gzh_folder,
-            getString(R.string.setup_button_select_game_folder), this::onSelectGameFolder);
-        UiKit.button(folder, UiKit.BTN_TONAL, R.drawable.ic_gzh_folder,
-            getString(R.string.setup_button_select_base_generals), this::onSelectBaseGeneralsFolder);
-        UiKit.button(folder, UiKit.BTN_DANGER, R.drawable.ic_gzh_broom,
-            getString(R.string.setup_button_clear_game_folder), this::onClearGameFolder);
-        if (getBaseGeneralsPath() != null) {
-            UiKit.button(folder, UiKit.BTN_DANGER, R.drawable.ic_gzh_broom,
-                getString(R.string.setup_button_clear_base_generals), this::onClearBaseGeneralsFolder);
-        }
+        // No game-folder picker: ZH Commander plays the game data that ships inside the APK
+        // (extracted to <external>/GameData on first launch) or that is already in that folder.
 
         // GeneralsX @bugfix Android port 01/08/2026 kept above the advanced
         // settings -- signing into GeneralsOnline is a primary action most
-        // people want right after picking their game folder, not something to
-        // bury under settings most players never touch.
+        // people want, not something to bury under settings most players
+        // never touch.
         buildGeneralsOnlineSection(page);
         buildUpdatesSection(page);
     }
@@ -3366,12 +3351,36 @@ public class SetupActivity extends Activity {
     private boolean pendingLaunchAfterRotation = false;
 
     private void onLaunchGame() {
+        // Without game data GeneralsZHActivity would only bounce straight back here.
+        if (!hasGameData()) {
+            android.widget.Toast.makeText(this, R.string.setup_no_game_data, android.widget.Toast.LENGTH_LONG).show();
+            return;
+        }
         if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE) {
             startActivity(new Intent(this, GeneralsZHActivity.class));
             return;
         }
         pendingLaunchAfterRotation = true;
         setRequestedOrientation(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+    }
+
+    // Game data counts wherever GeneralsZHActivity would find it: a folder picked by an older
+    // version, <external>/GameData, or archives bundled in the APK that it extracts there.
+    private boolean hasGameData() {
+        String path = getSavedGamePath();
+        if (path != null && isValidGameFolder(new File(path))) {
+            return true;
+        }
+        File root = getExternalFilesDir(null);
+        if (root != null && isValidGameFolder(new File(root, "GameData"))) {
+            return true;
+        }
+        try {
+            String[] bundled = getAssets().list("gamedata/GameData");
+            return bundled != null && bundled.length > 0;
+        } catch (java.io.IOException e) {
+            return false;
+        }
     }
 
     @Override
