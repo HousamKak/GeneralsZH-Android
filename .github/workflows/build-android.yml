@@ -278,11 +278,37 @@ jobs:
       # and run #2 sailed straight past a fatal configure error into "success"
       # — exactly the pipeline-masking failure the porting playbook warns
       # about. The Verify step caught it; now the failing step reports itself.
+      # The launcher's Simulation Rate setting switches between two engines:
+      # the tick rate is a compile-time constant (see build-dual-hz.sh), so the
+      # 60 Hz one is a separate build. Built first and set aside, like
+      # build-dual-hz.sh does locally; the 30 Hz pass below then reconfigures
+      # the same tree with the option OFF and produces libmain.so, the default.
+      - name: Build 60 Hz engine (libmain60.so)
+        run: |
+          set -o pipefail
+          mkdir -p logs symbols
+          cmake --preset ${{ env.PRESET }} \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+            -DANDROID_CI_BUILD_NUMBER=${{ github.run_number }} \
+            -DSAGE_HIGH_FPS_SIM=ON \
+            2>&1 | tee logs/configure_android_60hz.log
+          cmake --build build/${{ env.PRESET }} --target z_generals dxvk_d3d8_install \
+            main_hook file_redirect_hook gsl_alloc_hook hook_impl -- -k 0 2>&1 | tee logs/build_android_60hz.log
+          LIB="build/${{ env.PRESET }}/GeneralsMD/Code/Main/libmain.so"
+          TOOLS="$(dirname "$(ls "${ANDROID_NDK_HOME}"/toolchains/llvm/prebuilt/*/bin/llvm-strip | head -1)")"
+          "$TOOLS/llvm-nm" --defined-only --numeric-sort --print-size --demangle "$LIB" \
+            | gzip -9 > "symbols/libmain60-run${{ github.run_number }}.symbols.txt.gz"
+          "$TOOLS/llvm-strip" --strip-unneeded -o build/libmain60.so "$LIB"
+          ls -la build/libmain60.so
+
       - name: Configure CMake (Android)
         run: |
           set -o pipefail
           mkdir -p logs
+          # Explicit OFF: the 60 Hz pass above left SAGE_HIGH_FPS_SIM=ON in the cache.
           cmake --preset ${{ env.PRESET }} \
+            -DSAGE_HIGH_FPS_SIM=OFF \
             -DCMAKE_C_COMPILER_LAUNCHER=ccache \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
             -DANDROID_CI_BUILD_NUMBER=${{ github.run_number }} \
@@ -446,6 +472,7 @@ jobs:
           GX_ANDROID_STAGING: ${{ github.workspace }}/android-staging
           GX_ANDROID_VERSION_CODE: ${{ steps.artifact.outputs.version_code }}
           GX_ANDROID_VERSION_NAME: ${{ steps.artifact.outputs.version_name }}
+          GX_SECOND_GAME_LIB: ${{ github.workspace }}/build/libmain60.so
         run: |
           ./scripts/build/android/package-android-zh.sh
 
