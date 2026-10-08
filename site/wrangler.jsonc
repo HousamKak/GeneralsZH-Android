@@ -4,6 +4,9 @@
 	"main": "src/index.ts",
 	"compatibility_date": "2026-10-01",
 	"observability": { "enabled": true },
+	"routes": [
+		{ "pattern": "zerohour.housamkak.com", "custom_domain": true }
+	],
 	"assets": {
 		"directory": "./public",
 		"binding": "ASSETS",
