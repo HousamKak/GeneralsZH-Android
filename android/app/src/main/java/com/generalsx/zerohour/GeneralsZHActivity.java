@@ -360,6 +360,14 @@ public class GeneralsZHActivity extends SDLActivity {
         // Activity's window is even measured, closing the gap further.
         setRequestedOrientation(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
 
+        // Same redirect as the missing-game-folder one below: never load
+        // libmain.so on a device that has not been activated.
+        if (!LicenseGate.isActivated(this)) {
+            startActivity(new Intent(this, ActivationActivity.class));
+            finish();
+            return;
+        }
+
         extractBundledRuntime();
 
         String gamePath = getSavedGamePath();

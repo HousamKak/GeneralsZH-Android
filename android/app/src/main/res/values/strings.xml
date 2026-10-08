@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">GeneralsZH</string>
+    <string name="app_name">ZH Commander</string>
     <string name="common_cancel">Cancel</string>
 
     <!-- SetupActivity: title / fallback -->
-    <string name="setup_window_title">GeneralsZH Settings</string>
-    <string name="setup_title">Command &amp; Conquer Generals: Zero Hour</string>
+    <string name="setup_window_title">ZH Commander Settings</string>
+    <string name="setup_title">ZH Commander</string>
     <string name="setup_subtitle">Android Settings</string>
     <string name="setup_fallback_warning">The normal Settings UI failed to load (%1$s). Showing a basic fallback so you can still get to your logs/game folder.</string>
 
@@ -168,7 +168,7 @@
     <string name="folderpicker_hint_valid">✓ This folder contains INIZH.big/INI.big — looks correct.</string>
     <string name="folderpicker_hint_invalid">Navigate into your game folder, then tap \"Use This Folder\".</string>
     <string name="folderpicker_toast_cant_read">Can\'t read this folder. If browsing looks empty everywhere, grant \"All files access\" from the Setup screen first.</string>
-    <string name="folderpicker_toast_cant_read_legacy">Can\'t read this folder. On Android 9–10, allow the Storage permission for this app (Settings → Apps → GeneralsZH → Permissions → Storage), then try again.</string>
+    <string name="folderpicker_toast_cant_read_legacy">Can\'t read this folder. On Android 9–10, allow the Storage permission for this app (Settings → Apps → ZH Commander → Permissions → Storage), then try again.</string>
 
     <!-- NetworkDiagnosticsActivity -->
     <string name="netdiag_title">Network diagnostics</string>
@@ -181,7 +181,7 @@
     <string name="netdiag_button_copy">Copy</string>
     <string name="netdiag_toast_copied">Report copied to clipboard.</string>
     <string name="netdiag_toast_share_failed">Could not share the report: %1$s</string>
-    <string name="netdiag_share_subject">GeneralsZH network log</string>
+    <string name="netdiag_share_subject">ZH Commander network log</string>
 
     <!-- LogViewerActivity -->
     <string name="logviewer_title">Logs</string>
@@ -202,7 +202,7 @@
     <string name="logviewer_dialog_clear_confirm">Clear</string>
     <string name="logviewer_dialog_clear_cancel">Cancel</string>
     <string name="logviewer_toast_cleared">Logs cleared.</string>
-    <string name="logviewer_share_subject">GeneralsZH Android log</string>
+    <string name="logviewer_share_subject">ZH Commander Android log</string>
     <string name="logviewer_share_chooser_title">Share log</string>
     <string name="logviewer_toast_share_failed">Could not prepare log file to share: %1$s</string>
     <string name="logviewer_toast_share_none">No log files found to share yet.</string>
@@ -251,7 +251,7 @@
     <string name="online_switch_crossplay_desc">Reports the Windows client\'s EXE checksum so its games will accept you. That checksum is not anti-cheat — it is what keeps two machines that would compute the match differently from playing it together, so this can desync the game for everyone in the lobby. Turn it on for a PC you own, and only after copying that PC\'s INI data into this game folder so the two really do match.</string>
     <string name="online_button_sign_in">Sign In</string>
     <string name="online_status_signing_in">Signing in...</string>
-    <string name="online_status_battery_opt">Allow GeneralsZH to run in the background on the next screen, then come back and tap Sign In again -- otherwise Android may kill the sign-in check while you\'re in the browser.</string>
+    <string name="online_status_battery_opt">Allow ZH Commander to run in the background on the next screen, then come back and tap Sign In again -- otherwise Android may kill the sign-in check while you\'re in the browser.</string>
     <string name="online_toast_no_browser">No browser available: %1$s</string>
     <string name="online_status_continue_browser">Continue in your browser -- come back here once you\'ve signed in.</string>
     <string name="online_status_network_error">Network error -- check your connection and try again.</string>
@@ -352,4 +352,16 @@
     <string name="setup_interface_scale_label">%1$d%%</string>
     <string name="setup_button_apply_interface_scale">Apply Interface Size</string>
     <string name="setup_interface_scale_help">Makes the in-game interface bigger, without touching the game\'s files: the control bar with the radar grows up from the bottom, and the generals\' powers bar, chat, event messages, player list, in-game menu with Save/Load and Options, and the main menu\'s buttons grow from where they sit. Nothing is pushed off the screen: each part grows only as far as it fits, so the control bar gets taller rather than wider on a wide phone, and the battlefield above it gets shorter. Works together with Menu Text Size. Takes effect the next time you launch the game.</string>
+    <string name="activation_title">Activation</string>
+    <string name="activation_card_title">Activate this device</string>
+    <string name="activation_help">Enter the activation key you were given. It works on one phone only; this device is checked once, online, and then plays offline.</string>
+    <string name="activation_buy">Don\'t have a key? Buy one for $5 via Whish: send a message to +961 71 406 981 to get your key.</string>
+    <string name="activation_key_hint">Activation key (GZH-XXXX-XXXX-XXXX)</string>
+    <string name="activation_button">Activate</string>
+    <string name="activation_working">Activating…</string>
+    <string name="activation_error_invalid_key">That key is not valid. Check it and try again.</string>
+    <string name="activation_error_key_used">That key has already been used on another device.</string>
+    <string name="activation_error_revoked">That key has been withdrawn.</string>
+    <string name="activation_error_network">Could not reach the activation server. Check your internet connection.</string>
+    <string name="activation_error_server">The activation server had a problem. Try again later.</string>
 </resources>

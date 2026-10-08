@@ -1,0 +1,16 @@
+{
+	"$schema": "./node_modules/wrangler/config-schema.json",
+	"name": "gzh-license",
+	"main": "src/index.ts",
+	"compatibility_date": "2026-10-01",
+	"observability": { "enabled": true },
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "gzh-license",
+			"database_id": "fa07f82c-78fa-4fba-b481-78dac77c7e6c",
+			"migrations_dir": "migrations"
+		}
+	]
+	// Secrets (wrangler secret put): ADMIN_TOKEN, LICENSE_PRIVATE_KEY. See README.md.
+}

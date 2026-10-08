@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">GeneralsZH</string>
+    <string name="app_name">ZH Commander</string>
     <string name="common_cancel">Anuluj</string>
 
     <!-- SetupActivity: title / fallback -->
-    <string name="setup_window_title">Ustawienia GeneralsZH</string>
-    <string name="setup_title">Command &amp; Conquer Generals: Zero Hour</string>
+    <string name="setup_window_title">Ustawienia ZH Commander</string>
+    <string name="setup_title">ZH Commander</string>
     <string name="setup_subtitle">Ustawienia Android</string>
     <string name="setup_fallback_warning">Nie udało się załadować zwykłego interfejsu ustawień (%1$s). Wyświetlono prosty interfejs zastępczy, abyś nadal mógł dotrzeć do dzienników/folderu gry.</string>
 
@@ -155,7 +155,7 @@
     <string name="folderpicker_hint_valid">✓ Ten folder zawiera INIZH.big/INI.big — wygląda poprawnie.</string>
     <string name="folderpicker_hint_invalid">Przejdź do folderu gry, a następnie dotknij „Użyj tego folderu”.</string>
     <string name="folderpicker_toast_cant_read">Nie można odczytać tego folderu. Jeśli listy wszędzie wyglądają na puste, najpierw przyznaj „Dostęp do wszystkich plików” na ekranie Ustawień.</string>
-    <string name="folderpicker_toast_cant_read_legacy">Nie można odczytać tego folderu. W Androidzie 9–10 zezwól aplikacji na dostęp do pamięci (Ustawienia → Aplikacje → GeneralsZH → Uprawnienia → Pamięć) i spróbuj ponownie.</string>
+    <string name="folderpicker_toast_cant_read_legacy">Nie można odczytać tego folderu. W Androidzie 9–10 zezwól aplikacji na dostęp do pamięci (Ustawienia → Aplikacje → ZH Commander → Uprawnienia → Pamięć) i spróbuj ponownie.</string>
 
     <!-- LogViewerActivity -->
     <string name="logviewer_title">Dzienniki</string>
@@ -174,7 +174,7 @@
     <string name="logviewer_dialog_clear_confirm">Wyczyść</string>
     <string name="logviewer_dialog_clear_cancel">Anuluj</string>
     <string name="logviewer_toast_cleared">Wyczyszczono dzienniki.</string>
-    <string name="logviewer_share_subject">Dziennik GeneralsZH Android</string>
+    <string name="logviewer_share_subject">Dziennik ZH Commander Android</string>
     <string name="logviewer_share_chooser_title">Udostępnij dziennik</string>
     <string name="logviewer_toast_share_failed">Nie udało się przygotować pliku dziennika do udostępnienia: %1$s</string>
     <string name="logviewer_read_failed">(nie udało się odczytać %1$s: %2$s)</string>
@@ -187,7 +187,7 @@
     <string name="online_signin_help">Dotknij Zaloguj się. Za pierwszym razem może pojawić się prośba o wykluczenie tej aplikacji z optymalizacji baterii — zezwól na to, a następnie wróć i ponownie dotknij Zaloguj się. Otworzy się wtedy przeglądarka na playgenerals.online, już z jednorazowym kodem dla tego urządzenia. Wybierz tam Steam, Discord lub GameReplays, a następnie po prostu wróć do tej aplikacji — logowanie zakończy się samo.</string>
     <string name="online_button_sign_in">Zaloguj się</string>
     <string name="online_status_signing_in">Logowanie...</string>
-    <string name="online_status_battery_opt">Zezwól aplikacji GeneralsZH na działanie w tle na następnym ekranie, a następnie wróć i ponownie dotknij Zaloguj się — w przeciwnym razie Android może przerwać sprawdzanie logowania podczas przebywania w przeglądarce.</string>
+    <string name="online_status_battery_opt">Zezwól aplikacji ZH Commander na działanie w tle na następnym ekranie, a następnie wróć i ponownie dotknij Zaloguj się — w przeciwnym razie Android może przerwać sprawdzanie logowania podczas przebywania w przeglądarce.</string>
     <string name="online_toast_no_browser">Brak dostępnej przeglądarki: %1$s</string>
     <string name="online_status_continue_browser">Kontynuuj w przeglądarce — wróć tutaj po zalogowaniu.</string>
     <string name="online_status_network_error">Błąd sieci — sprawdź połączenie i spróbuj ponownie.</string>
@@ -239,7 +239,7 @@
     <string name="netdiag_button_copy">Kopiuj</string>
     <string name="netdiag_toast_copied">Raport skopiowany do schowka.</string>
     <string name="netdiag_toast_share_failed">Nie udało się udostępnić raportu: %1$s</string>
-    <string name="netdiag_share_subject">Dziennik sieci GeneralsZH</string>
+    <string name="netdiag_share_subject">Dziennik sieci ZH Commander</string>
     <string name="online_status_banned">To konto jest zbanowane w GeneralsOnline. Odwołanie możesz złożyć na ich Discordzie.</string>
     <string name="online_status_banned_reason">To konto jest zbanowane w GeneralsOnline: %1$s</string>
     <string name="online_status_requesting_code">Pobieranie kodu logowania z serwera…</string>

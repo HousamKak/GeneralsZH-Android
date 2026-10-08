@@ -146,6 +146,14 @@
             </intent-filter>
         </activity>
 
+        <!-- Activation gate (LicenseGate): shown by SetupActivity and GeneralsZHActivity
+             until this device holds a license. -->
+        <activity
+            android:name=".ActivationActivity"
+            android:exported="false"
+            android:theme="@style/Theme.GeneralsZHSettings"
+            android:configChanges="orientation|screenSize|keyboardHidden" />
+
         <activity
             android:name=".FolderPickerActivity"
             android:exported="false"

@@ -134,7 +134,7 @@ def main():
     if a.key:
         sig = subprocess.run(["openssl", "dgst", "-sha256", "-sign", a.key, mpath],
                              check=True, capture_output=True).stdout
-        with open(mpath + ".sig", "w") as f:
+        with open(mpath + ".sig", "w", newline="\n") as f:
             f.write(base64.b64encode(sig).decode() + "\n")
     else:
         print("manifest left unsigned: push it, then run the 'Sign update' workflow")

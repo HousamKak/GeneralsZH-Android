@@ -141,6 +141,11 @@ public class SetupActivity extends Activity {
         // Setup -> Launch rotation race that used to be sidestepped by never
         // rotating Setup at all.
         super.onCreate(savedInstanceState);
+        if (!LicenseGate.isActivated(this)) {
+            startActivity(new Intent(this, ActivationActivity.class));
+            finish();
+            return;
+        }
         setTitle(R.string.setup_window_title);
 
         // GeneralsX @feature Android port launcher-ui-2026 08/09/2026 Which
