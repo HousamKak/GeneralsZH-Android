@@ -4,6 +4,9 @@
 	"main": "src/index.ts",
 	"compatibility_date": "2026-10-01",
 	"observability": { "enabled": true },
+	// Public half of the license server's signing key (LicenseGate.PUBLIC_KEY_B64): game data
+	// is served only to requests carrying a license it signed.
+	"vars": { "LICENSE_PUBLIC_KEY": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEAhE861NJAUCPcAoeya8LDyNmUux2QKucHdX3ndZ+IjYbkPYVqQU/GXBmn5tsuKg1Wp3b70Xx6aLSbsvJEfjOmg==" },
 	// Kept on next to the custom domain: upload-apk.sh publishes through it, since it resolves
 	// even where a resolver still caches the custom domain as missing.
 	"workers_dev": true,
@@ -13,7 +16,7 @@
 	"assets": {
 		"directory": "./public",
 		"binding": "ASSETS",
-		"run_worker_first": ["/download", "/download/*", "/api/*", "/admin/*"]
+		"run_worker_first": ["/download", "/download/*", "/api/*", "/admin/*", "/data/*"]
 	},
 	// PayPal checkout lives in the license server; /api/paypal/* is forwarded to it.
 	"services": [

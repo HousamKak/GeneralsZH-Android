@@ -1,0 +1,329 @@
+package com.generalsx.zerohour;
+
+import android.content.Context;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+
+/**
+ * Game data downloaded after activation instead of bundled in the APK: the owner's custom asset
+ * archives, published with site/upload-data.py and served by the site only to requests carrying
+ * this device's license (site/src/data.ts).
+ *
+ * <p>The site's manifest lists every file (path, size, SHA-256, key). Files go straight into
+ * {@code <external>/GameData} -- one copy, nothing to unpack -- through a {@code .part} file that
+ * a dropped connection resumes, and each is checked against its SHA-256 before it replaces
+ * anything. What was installed is recorded in {@code GameData/.zh-data.json}, so a new data
+ * version downloads only the files that changed and removes the ones it no longer lists.
+ */
+final class DataPack {
+    private DataPack() {}
+
+    static final String SITE = "https://zerohour.housamkak.com";
+    private static final String STATE_FILE = ".zh-data.json";
+    private static final String PREFS = "gx_datapack";
+    private static final String KEY_LATEST = "latest_version";
+
+    static final class Entry {
+        String path;
+        long size;
+        String sha256;
+        String key;
+    }
+
+    static final class Manifest {
+        String version;
+        List<Entry> files = new ArrayList<>();
+
+        long totalSize() {
+            long sum = 0;
+            for (Entry e : files) {
+                sum += e.size;
+            }
+            return sum;
+        }
+    }
+
+    interface Progress {
+        void onProgress(long done, long total, String file);
+    }
+
+    static File gameDataDir(Context ctx) {
+        File root = ctx.getExternalFilesDir(null);
+        return root != null ? new File(root, "GameData") : null;
+    }
+
+    /** The data version installed on this device, or null. */
+    static String installedVersion(Context ctx) {
+        JSONObject state = readState(ctx);
+        return state != null ? state.optString("version", null) : null;
+    }
+
+    /** True when the last check saw a data version other than the installed one. */
+    static boolean updateAvailable(Context ctx) {
+        String latest = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY_LATEST, null);
+        String installed = installedVersion(ctx);
+        return latest != null && installed != null && !latest.equals(installed);
+    }
+
+    /** Blocking. Fetches the manifest and remembers its version for updateAvailable(). */
+    static Manifest fetchManifest(Context ctx) throws IOException {
+        String license = LicenseGate.storedLicense(ctx);
+        if (license == null) {
+            throw new IOException("not activated");
+        }
+        HttpURLConnection conn = open(SITE + "/api/data/manifest", license);
+        try {
+            int status = conn.getResponseCode();
+            if (status == 404) {
+                return null;  // nothing published yet
+            }
+            if (status != 200) {
+                throw new IOException("HTTP " + status);
+            }
+            JSONObject json = new JSONObject(readAll(conn.getInputStream()));
+            Manifest m = new Manifest();
+            m.version = json.getString("version");
+            JSONArray files = json.getJSONArray("files");
+            for (int i = 0; i < files.length(); i++) {
+                JSONObject f = files.getJSONObject(i);
+                Entry e = new Entry();
+                e.path = f.getString("path");
+                e.size = f.getLong("size");
+                e.sha256 = f.getString("sha256").toLowerCase(Locale.ROOT);
+                e.key = f.getString("key");
+                if (e.path.contains("..") || e.path.startsWith("/")) {
+                    throw new IOException("bad path in manifest: " + e.path);
+                }
+                m.files.add(e);
+            }
+            ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString(KEY_LATEST, m.version).apply();
+            return m;
+        } catch (org.json.JSONException e) {
+            throw new IOException("bad manifest", e);
+        } finally {
+            conn.disconnect();
+        }
+    }
+
+    /** The manifest's files this device does not already have, unchanged. */
+    static List<Entry> missing(Context ctx, Manifest m) {
+        Map<String, String> installed = installedFiles(ctx);
+        File dir = gameDataDir(ctx);
+        List<Entry> out = new ArrayList<>();
+        for (Entry e : m.files) {
+            File local = dir != null ? new File(dir, e.path) : null;
+            boolean same = local != null && local.isFile() && local.length() == e.size
+                && e.sha256.equals(installed.get(e.path));
+            if (!same) {
+                out.add(e);
+            }
+        }
+        return out;
+    }
+
+    static long bytesOf(List<Entry> entries) {
+        long sum = 0;
+        for (Entry e : entries) {
+            sum += e.size;
+        }
+        return sum;
+    }
+
+    /**
+     * Blocking. Downloads every file in {@code todo}, then records {@code m} as installed and
+     * deletes files the previous version had that {@code m} does not list.
+     */
+    static void install(Context ctx, Manifest m, List<Entry> todo, Progress progress) throws IOException {
+        String license = LicenseGate.storedLicense(ctx);
+        File dir = gameDataDir(ctx);
+        if (license == null || dir == null) {
+            throw new IOException("not activated or no storage");
+        }
+        long total = bytesOf(todo);
+        long done = 0;
+        for (Entry e : todo) {
+            File target = new File(dir, e.path);
+            File parent = target.getParentFile();
+            if (parent != null && !parent.isDirectory() && !parent.mkdirs()) {
+                throw new IOException("cannot create " + parent);
+            }
+            File part = new File(target.getPath() + ".part");
+            downloadFile(license, e, part, done, total, progress);
+            if (target.exists() && !target.delete()) {
+                throw new IOException("cannot replace " + target);
+            }
+            if (!part.renameTo(target)) {
+                throw new IOException("cannot move " + part);
+            }
+            done += e.size;
+        }
+
+        Map<String, String> before = installedFiles(ctx);
+        for (Entry e : m.files) {
+            before.remove(e.path);
+        }
+        for (String obsolete : before.keySet()) {
+            new File(dir, obsolete).delete();
+        }
+        writeState(ctx, m);
+    }
+
+    private static void downloadFile(String license, Entry e, File part, long doneBefore, long total,
+                                     Progress progress) throws IOException {
+        long have = part.isFile() ? part.length() : 0;
+        if (have > e.size) {
+            part.delete();
+            have = 0;
+        }
+        if (have < e.size) {
+            HttpURLConnection conn = open(SITE + "/" + encodePath(e.key), license);
+            if (have > 0) {
+                conn.setRequestProperty("Range", "bytes=" + have + "-");
+            }
+            try {
+                int status = conn.getResponseCode();
+                boolean resumed = status == 206;
+                if (status != 200 && !resumed) {
+                    throw new IOException("HTTP " + status + " for " + e.path);
+                }
+                if (!resumed) {
+                    have = 0;  // the server sent the whole file: start the part over
+                }
+                try (InputStream in = conn.getInputStream();
+                     OutputStream out = new FileOutputStream(part, resumed)) {
+                    byte[] buf = new byte[256 * 1024];
+                    int n;
+                    long lastReport = 0;
+                    while ((n = in.read(buf)) > 0) {
+                        out.write(buf, 0, n);
+                        have += n;
+                        if (have > e.size) {
+                            throw new IOException("too much data for " + e.path);
+                        }
+                        if (have - lastReport > 1024 * 1024 || have == e.size) {
+                            lastReport = have;
+                            progress.onProgress(doneBefore + have, total, e.path);
+                        }
+                    }
+                }
+            } finally {
+                conn.disconnect();
+            }
+        }
+        if (part.length() != e.size || !e.sha256.equals(sha256(part))) {
+            part.delete();
+            throw new IOException("checksum mismatch for " + e.path);
+        }
+    }
+
+    private static HttpURLConnection open(String url, String license) throws IOException {
+        HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
+        conn.setConnectTimeout(20000);
+        conn.setReadTimeout(60000);
+        conn.setRequestProperty("X-ZH-License", license);
+        conn.setRequestProperty("User-Agent", "ZHCommander-Data");
+        return conn;
+    }
+
+    private static String encodePath(String key) throws IOException {
+        StringBuilder sb = new StringBuilder();
+        for (String seg : key.split("/")) {
+            if (sb.length() > 0) {
+                sb.append('/');
+            }
+            sb.append(java.net.URLEncoder.encode(seg, "UTF-8").replace("+", "%20"));
+        }
+        return sb.toString();
+    }
+
+    private static Map<String, String> installedFiles(Context ctx) {
+        Map<String, String> out = new HashMap<>();
+        JSONObject state = readState(ctx);
+        JSONArray files = state != null ? state.optJSONArray("files") : null;
+        if (files != null) {
+            for (int i = 0; i < files.length(); i++) {
+                JSONObject f = files.optJSONObject(i);
+                if (f != null) {
+                    out.put(f.optString("path"), f.optString("sha256"));
+                }
+            }
+        }
+        return out;
+    }
+
+    private static JSONObject readState(Context ctx) {
+        File dir = gameDataDir(ctx);
+        File file = dir != null ? new File(dir, STATE_FILE) : null;
+        if (file == null || !file.isFile()) {
+            return null;
+        }
+        try (InputStream in = new FileInputStream(file)) {
+            return new JSONObject(readAll(in));
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private static void writeState(Context ctx, Manifest m) throws IOException {
+        try {
+            JSONObject state = new JSONObject();
+            state.put("version", m.version);
+            JSONArray files = new JSONArray();
+            for (Entry e : m.files) {
+                files.put(new JSONObject().put("path", e.path).put("sha256", e.sha256).put("size", e.size));
+            }
+            state.put("files", files);
+            try (OutputStream out = new FileOutputStream(new File(gameDataDir(ctx), STATE_FILE))) {
+                out.write(state.toString().getBytes(StandardCharsets.UTF_8));
+            }
+        } catch (org.json.JSONException e) {
+            throw new IOException(e);
+        }
+    }
+
+    private static String sha256(File f) throws IOException {
+        try (InputStream in = new FileInputStream(f)) {
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            byte[] buf = new byte[1024 * 1024];
+            int n;
+            while ((n = in.read(buf)) > 0) {
+                md.update(buf, 0, n);
+            }
+            StringBuilder hex = new StringBuilder();
+            for (byte b : md.digest()) {
+                hex.append(String.format(Locale.ROOT, "%02x", b));
+            }
+            return hex.toString();
+        } catch (java.security.NoSuchAlgorithmException e) {
+            throw new IOException(e);
+        }
+    }
+
+    private static String readAll(InputStream in) throws IOException {
+        ByteArrayOutputStream buf = new ByteArrayOutputStream();
+        byte[] chunk = new byte[8192];
+        int n;
+        while ((n = in.read(chunk)) > 0) {
+            buf.write(chunk, 0, n);
+        }
+        return buf.toString("UTF-8");
+    }
+}

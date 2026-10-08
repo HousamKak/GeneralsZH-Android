@@ -41,6 +41,12 @@ final class LicenseGate {
     private static final String PREFS = "gx_license";
     private static final String KEY_LICENSE = "license";
 
+    /** This device's license, sent with game-data downloads (DataPack); null if not activated. */
+    static String storedLicense(Context ctx) {
+        String license = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY_LICENSE, null);
+        return license != null && isValid(license, deviceId(ctx)) ? license : null;
+    }
+
     static boolean isActivated(Context ctx) {
         String license = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY_LICENSE, null);
         return license != null && isValid(license, deviceId(ctx));

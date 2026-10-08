@@ -163,6 +163,12 @@
             android:configChanges="orientation|screenSize|keyboardHidden" />
 
         <activity
+            android:name=".DataDownloadActivity"
+            android:exported="false"
+            android:theme="@style/Theme.GeneralsZHSettings"
+            android:configChanges="orientation|screenSize|keyboardHidden" />
+
+        <activity
             android:name=".FolderPickerActivity"
             android:exported="false"
             android:theme="@style/Theme.GeneralsZHSettings"

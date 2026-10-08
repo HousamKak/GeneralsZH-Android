@@ -7,9 +7,10 @@
 // /admin/upload/* (bearer UPLOAD_TOKEN) is how upload-apk.py publishes: an R2 multipart upload
 // in parts small enough for a Worker request body, so an APK of any size goes up in one piece.
 
-interface Env {
+import { DATA_KEY_RE, dataFile, dataManifest, publishData, type DataEnv } from "./data";
+
+interface Env extends DataEnv {
 	ASSETS: Fetcher;
-	APKS: R2Bucket;
 	LICENSE: Fetcher; // the gzh-license Worker, which owns PayPal checkout and the key database
 	UPLOAD_TOKEN: string;
 }
@@ -48,6 +49,19 @@ export default {
 			const info = (await build.json()) as Latest;
 			return serveApk(env, info.key, info.key.slice("apk/".length));
 		}
+		// Game data for activated apps (data.ts).
+		if (pathname === "/api/data/manifest") {
+			return dataManifest(request, env);
+		}
+		if (pathname.startsWith("/data/")) {
+			return dataFile(request, env, decodeURIComponent(pathname.slice(1)));
+		}
+		if (pathname === "/admin/data/publish" && request.method === "POST") {
+			if (!(await isUploader(request, env))) {
+				return Response.json({ error: "unauthorized" }, { status: 401 });
+			}
+			return publishData(request, env);
+		}
 		if (pathname.startsWith("/api/paypal/")) {
 			const target = new URL(request.url);
 			target.pathname = `/v1/paypal/${pathname.slice("/api/paypal/".length)}`;
@@ -73,13 +87,15 @@ async function upload(request: Request, url: URL, env: Env): Promise<Response> {
 	const step = url.pathname.slice("/admin/upload/".length);
 	const key = url.searchParams.get("key") ?? "";
 	const uploadId = url.searchParams.get("uploadId") ?? "";
-	if (step !== "publish" && step !== "record" && !KEY_RE.test(key)) {
+	// Uploads go to apk/ (APKs) or data/ (game data, see data.ts); publish/record name theirs in the body.
+	const validKey = KEY_RE.test(key) || (DATA_KEY_RE.test(key) && !key.includes(".."));
+	if (step !== "publish" && step !== "record" && !validKey) {
 		return Response.json({ error: "bad_key" }, { status: 400 });
 	}
 
 	if (request.method === "POST" && step === "start") {
 		const mpu = await env.APKS.createMultipartUpload(key, {
-			httpMetadata: { contentType: "application/vnd.android.package-archive" },
+			httpMetadata: { contentType: key.startsWith("data/") ? "application/octet-stream" : "application/vnd.android.package-archive" },
 		});
 		return Response.json({ uploadId: mpu.uploadId });
 	}

@@ -150,21 +150,36 @@ public class SetupActivity extends Activity {
         // the game's corner button (EXTRA_SUPPORT), or what a device without game data lands on.
         supportFromGame = getIntent().getBooleanExtra(EXTRA_SUPPORT, false);
         noGameData = getIntent().getBooleanExtra(EXTRA_NO_GAME_DATA, false);
-        if (!supportFromGame && !noGameData && savedInstanceState == null) {
-            if (hasGameData()) {
-                if (!sAutoUpdateCheckedThisProcess && UpdateManager.isAutoCheckEnabled(this)) {
-                    sAutoUpdateCheckedThisProcess = true;
-                    final android.content.Context app = getApplicationContext();
-                    new Thread(() -> UpdateManager.check(app, true), "GXUpdateCheck").start();
-                }
-                // A newer APK announced by an earlier check is offered before the game starts;
-                // UpdateActivity goes on to the game itself when the player picks Later.
-                boolean offerUpdate = !UpdateActivity.sLaterThisProcess && UpdateManager.appOffer(this) != null;
-                startActivity(new Intent(this, offerUpdate ? UpdateActivity.class : GeneralsZHActivity.class));
+        if (!supportFromGame && savedInstanceState == null) {
+            // No game data yet: it is downloaded after activation (DataPack), not bundled.
+            if (!hasGameData()) {
+                startActivity(new Intent(this, DataDownloadActivity.class));
                 finish();
                 return;
             }
-            noGameData = true;
+            if (!sAutoUpdateCheckedThisProcess && UpdateManager.isAutoCheckEnabled(this)) {
+                sAutoUpdateCheckedThisProcess = true;
+                final android.content.Context app = getApplicationContext();
+                new Thread(() -> {
+                    UpdateManager.check(app, true);
+                    try {
+                        DataPack.fetchManifest(app);  // remembers the latest data version
+                    } catch (java.io.IOException e) {
+                        android.util.Log.i("GXDataPack", "data check skipped: " + e.getMessage());
+                    }
+                }, "GXUpdateCheck").start();
+            }
+            // What an earlier check found is offered before the game starts -- a newer APK first,
+            // then newer game data; each goes on to the game itself when the player picks Later.
+            Class<?> next = GeneralsZHActivity.class;
+            if (!UpdateActivity.sLaterThisProcess && UpdateManager.appOffer(this) != null) {
+                next = UpdateActivity.class;
+            } else if (!DataDownloadActivity.sLaterThisProcess && DataPack.updateAvailable(this)) {
+                next = DataDownloadActivity.class;
+            }
+            startActivity(new Intent(this, next));
+            finish();
+            return;
         }
         setTitle(R.string.setup_window_title);
 
@@ -591,6 +606,10 @@ public class SetupActivity extends Activity {
             getString(R.string.setup_card_updates), false);
         UiKit.supporting(content, getString(R.string.setup_updates_help));
         updatesStatusView = UiKit.body(content, null);
+        UiKit.button(content, UiKit.BTN_TONAL, R.drawable.ic_gzh_download,
+            getString(R.string.data_button_check), () ->
+                startActivity(new Intent(this, DataDownloadActivity.class)
+                    .putExtra(DataDownloadActivity.EXTRA_FROM_SUPPORT, true)));
         UpdateManager.AppOffer appOffer = UpdateManager.appOffer(this);
         if (appOffer != null) {
             UiKit.button(content, UiKit.BTN_PRIMARY, R.drawable.ic_gzh_download,

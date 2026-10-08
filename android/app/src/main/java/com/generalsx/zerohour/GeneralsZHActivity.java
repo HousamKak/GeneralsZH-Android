@@ -379,10 +379,8 @@ public class GeneralsZHActivity extends SDLActivity {
             // Setup instead of letting SDLActivity load the native library
             // into an app state that can only end in a black screen or a
             // confusing crash the user has no way to diagnose.
-            Log.i(TAG, "no game data; opening Support");
-            // The flag stops Setup from routing straight back here, which would loop.
-            startActivity(new Intent(this, SetupActivity.class)
-                .putExtra(SetupActivity.EXTRA_NO_GAME_DATA, true));
+            Log.i(TAG, "no game data; opening the game-data download");
+            startActivity(new Intent(this, DataDownloadActivity.class));
             finish();
             return;
         }

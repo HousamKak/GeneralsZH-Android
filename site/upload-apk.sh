@@ -35,5 +35,5 @@ VERSION="$("${AAPT}" dump badging "${APK}" | sed -n "s/.*versionName='\([^']*\)'
 [[ -n "${VERSION}" ]] || { echo "could not read versionName"; exit 1; }
 
 echo "==> Uploading ZH Commander ${VERSION} ($(( $(wc -c < "${APK}") / 1048576 )) MB) to ${URL}"
-"${PYTHON}" -I "${SITE}/upload-apk.py" "${APK}" "${VERSION}" "${SHA256}" "${URL}" "${TOKEN}" ${PUBLISH_FLAG}
+"${PYTHON}" "${SITE}/upload-apk.py" "${APK}" "${VERSION}" "${SHA256}" "${URL}" "${TOKEN}" ${PUBLISH_FLAG}
 [[ "${PUBLISH_FLAG}" == "--no-publish" ]] || echo "==> /download now serves ZH Commander ${VERSION}"
