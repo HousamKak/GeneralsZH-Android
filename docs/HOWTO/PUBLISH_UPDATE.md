@@ -89,3 +89,10 @@ Without the key at hand, leave out `--key`, push, and run **Actions → Sign upd
 workflow**; it signs the manifest on the branch with the secret in a few seconds.
 
 The branch always holds a single commit, so old engines do not pile up in the history.
+
+## This repository
+
+Launchers built here read `HousamKak/GeneralsZH-Android`'s `updates` branch and trust only this
+repository's key. A phone that ran an upstream (MYSOREZ) build may already remember an upstream
+serial, and refuses any lower one, so the first publish here passes `--serial 1000`. Engine build
+numbers carry an offset of 10000 (`package-android-zh.sh`) for the same reason.

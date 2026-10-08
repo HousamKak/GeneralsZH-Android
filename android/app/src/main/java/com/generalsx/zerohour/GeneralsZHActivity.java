@@ -394,11 +394,13 @@ public class GeneralsZHActivity extends SDLActivity {
         // already had a custom path saved before this fix shipped would
         // otherwise keep missing fonts/ forever (every button renders with no
         // text; see SetupActivity.copyBundledRuntimeIfMissing for why).
-        if (haveCustomPath) {
-            File bundledRoot = getExternalFilesDir(null);
-            if (bundledRoot != null) {
-                SetupActivity.copyBundledRuntimeIfMissing(bundledRoot, gamePath);
-            }
+        // The legacy <external>/GameData folder is the game's working directory
+        // too, so it needs the same runtime files: without fonts/ there every
+        // menu button rendered with no text.
+        File bundledRoot = getExternalFilesDir(null);
+        if (bundledRoot != null) {
+            String runtimeTarget = haveCustomPath ? gamePath : legacyGameDataDir().getPath();
+            SetupActivity.copyBundledRuntimeIfMissing(bundledRoot, runtimeTarget);
         }
 
         super.onCreate(savedInstanceState);

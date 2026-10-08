@@ -18,7 +18,7 @@
 import datetime
 import argparse, base64, gzip, hashlib, json, os, subprocess, sys, tempfile, urllib.request, zipfile
 
-BASE_URL = "https://raw.githubusercontent.com/MYSOREZ/GeneralsZH-Android-Port/updates/"
+BASE_URL = "https://raw.githubusercontent.com/HousamKak/GeneralsZH-Android/updates/"
 ENGINE_LIBS = ("libmain.so", "libmain60.so")
 DATAPACK_CDN_MANIFEST = "https://cdn.playgenerals.online/manifest.json"
 

@@ -2450,9 +2450,9 @@ public class SetupActivity extends Activity {
     // file in the repository, a translator's pull request reaches players as soon as it is
     // merged.
     private static final String LANGUAGE_PACK_INDEX =
-        "https://api.github.com/repos/MYSOREZ/GeneralsZH-Android-Port/contents/languages?ref=main";
+        "https://api.github.com/repos/HousamKak/GeneralsZH-Android/contents/languages?ref=main";
     private static final String LANGUAGE_PACK_BASE =
-        "https://raw.githubusercontent.com/MYSOREZ/GeneralsZH-Android-Port/main/languages/";
+        "https://raw.githubusercontent.com/HousamKak/GeneralsZH-Android/main/languages/";
 
     // GeneralsX @feature Android port 09/09/2026 Fetch every pack there is, and do not ask
     // which one first.

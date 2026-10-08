@@ -306,7 +306,10 @@ find "${DEFAULT_DRIVER_ASSETS}" -type f | sed "s|${DEFAULT_DRIVER_ASSETS}/|    d
 # GeneralsX @feature Android port 27/09/2026 The launcher's update check (UpdateManager.java)
 # only runs a downloaded engine whose build number is higher than the APK's own. The number is
 # the commit count of the tree the engine was built from, so later builds always sort higher.
-ENGINE_BUILD="$(git -C "${PROJECT_ROOT}" rev-list --count HEAD 2>/dev/null || echo 0)"
+# This repository was imported without upstream history, so its commit count restarts near 1;
+# the offset keeps every build here above the upstream engines (3274+) already on players' phones.
+ENGINE_BUILD_OFFSET="${GX_ENGINE_BUILD_OFFSET:-10000}"
+ENGINE_BUILD="$(( $(git -C "${PROJECT_ROOT}" rev-list --count HEAD 2>/dev/null || echo 0) + ENGINE_BUILD_OFFSET ))"
 echo "${ENGINE_BUILD}" > "${ANDROID_DIR}/app/src/main/assets/engine_build.txt"
 echo "==> Engine build number: ${ENGINE_BUILD}"
 

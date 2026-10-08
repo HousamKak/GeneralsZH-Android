@@ -63,11 +63,11 @@ final class UpdateManager {
     private static final String TAG = "GXUpdate";
 
     static final String BASE_URL =
-        "https://raw.githubusercontent.com/MYSOREZ/GeneralsZH-Android-Port/updates/";
+        "https://raw.githubusercontent.com/HousamKak/GeneralsZH-Android/updates/";
 
     /** SubjectPublicKeyInfo (DER, base64) of the update signing key. */
     static final String PUBLIC_KEY_B64 =
-        "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEFjy+4K0lTRmnwQe+nQqXreCMtJehCl1wiYNgq5Rr/MHWkDukps0eUbmuyxSenyFL4T5zo+WBIFeLDO5PXFoG/A==";
+        "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEEh5QywQ4i6yFBrWZ7jYYflSFJ4KOTJA+1sMAd/EdiEpjBD39EZEHg0Xj3UpqRbEJOKVcm4XxSDi1gEcvsFtG8g==";
 
     static final String[] ENGINE_LIBS = { "libmain.so", "libmain60.so" };
 
