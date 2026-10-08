@@ -374,7 +374,7 @@ public class GeneralsZHActivity extends SDLActivity {
         boolean haveCustomPath = gamePath != null && SetupActivity.isValidGameFolder(new File(gamePath));
         boolean haveLegacyPath = !haveCustomPath && isValidGameFolder(legacyGameDataDir());
 
-        if (!haveCustomPath && !haveLegacyPath) {
+        if ((!haveCustomPath && !haveLegacyPath) || DataPack.downloadIncomplete(this)) {
             // Never touch libmain.so on a misconfigured install: redirect to
             // Setup instead of letting SDLActivity load the native library
             // into an app state that can only end in a black screen or a

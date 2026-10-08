@@ -47,6 +47,12 @@
     <string name="data_button_download">Download</string>
     <string name="data_button_retry">Try again</string>
     <string name="data_button_check">Game data</string>
+    <string name="data_background_note">You can leave the app: the download continues in the background, and resumes where it stopped if it is interrupted.</string>
+    <string name="data_notification_channel">Game data download</string>
+    <string name="data_notification_title">ZH Commander game data</string>
+    <string name="data_notification_starting">Starting the download…</string>
+    <string name="data_notification_done">Game data ready. Tap to play.</string>
+    <string name="data_notification_paused">Download paused. Open the app to continue where it stopped.</string>
     <string name="nav_tab_online">Online</string>
     <string name="nav_tab_report">Report</string>
     <string name="setup_button_view_logs">View Logs</string>

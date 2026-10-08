@@ -2,6 +2,7 @@ package com.generalsx.zerohour;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.os.Build;
 import android.os.Bundle;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
@@ -48,7 +49,8 @@ public class DataDownloadActivity extends Activity {
         super.onCreate(savedInstanceState);
         fromSupport = getIntent().getBooleanExtra(EXTRA_FROM_SUPPORT, false);
         File dir = DataPack.gameDataDir(this);
-        haveData = dir != null && SetupActivity.isValidGameFolder(dir);
+        // Half a download is not game data, even if INIZH.big is already in the folder.
+        haveData = dir != null && SetupActivity.isValidGameFolder(dir) && !DataPack.downloadIncomplete(this);
         setTitle(R.string.data_title);
 
         LinearLayout root = new LinearLayout(this);
@@ -83,18 +85,28 @@ public class DataDownloadActivity extends Activity {
 
         setContentView(root);
         InsetUtil.applySafeInsets(root);
-        checkManifest();
+        if (DataDownloadService.sRunning) {
+            showDownloading();  // already going in the background: just show it
+        } else {
+            checkManifest();
+        }
     }
 
     @Override
     public void onBackPressed() {
-        if (!busy) {
-            if (laterButton != null) {
-                onLater();
-            } else {
-                super.onBackPressed();
-            }
+        if (busy) {
+            moveTaskToBack(true);  // the download carries on in the background service
+        } else if (laterButton != null) {
+            onLater();
+        } else {
+            super.onBackPressed();
         }
+    }
+
+    @Override
+    protected void onDestroy() {
+        handler.removeCallbacksAndMessages(null);
+        super.onDestroy();
     }
 
     private void checkManifest() {
@@ -128,6 +140,12 @@ public class DataDownloadActivity extends Activity {
                 manifest = result;
                 todo = DataPack.missing(this, result);
                 long bytes = DataPack.bytesOf(todo);
+                // An interrupted download continues by itself: what finished is kept, the
+                // unfinished file resumes where it stopped.
+                if (DataPack.downloadIncomplete(this)) {
+                    startDownload();
+                    return;
+                }
                 if (todo.isEmpty()) {
                     bodyText.setText(getString(R.string.data_up_to_date, result.version));
                     if (!fromSupport) {
@@ -148,60 +166,70 @@ public class DataDownloadActivity extends Activity {
         }, "GXDataCheck").start();
     }
 
+    // The download runs in DataDownloadService, so it outlives this screen; the screen only
+    // shows its progress.
     private void startDownload() {
-        if (manifest == null || todo == null) {
-            return;
+        // Android 13+ asks before an app may post notifications; the download runs either way,
+        // the permission only decides whether its progress shows in the notification shade.
+        if (Build.VERSION.SDK_INT >= 33
+                && checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)
+                    != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(new String[] { android.Manifest.permission.POST_NOTIFICATIONS }, 1);
         }
+        DataDownloadService.start(getApplicationContext());
+        showDownloading();
+    }
+
+    private void showDownloading() {
         busy = true;
         downloadButton.setEnabled(false);
         if (laterButton != null) {
             laterButton.setEnabled(false);
         }
         progress.setVisibility(android.view.View.VISIBLE);
-        statusText.setText("");
-        final DataPack.Manifest m = manifest;
-        final List<DataPack.Entry> files = todo;
-        final android.content.Context app = getApplicationContext();
-        new Thread(() -> {
-            String error = null;
-            try {
-                DataPack.install(app, m, files, (done, total, file) -> runOnUiThread(() -> {
-                    progress.setProgress((int) (done * 1000 / Math.max(1, total)));
-                    statusText.setText(getString(R.string.data_progress, done >> 20, total >> 20));
-                }));
-            } catch (java.io.IOException e) {
-                error = e.getMessage();
+        statusText.setText(R.string.data_background_note);
+        getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        handler.post(watcher);
+    }
+
+    private final android.os.Handler handler = new android.os.Handler(android.os.Looper.getMainLooper());
+
+    private final Runnable watcher = new Runnable() {
+        @Override
+        public void run() {
+            if (isFinishing()) {
+                return;
             }
-            final String failure = error;
-            runOnUiThread(() -> {
-                busy = false;
-                if (isFinishing()) {
-                    return;
-                }
-                if (failure != null) {
-                    statusText.setText(getString(R.string.data_failed));
-                    downloadButton.setEnabled(true);
-                    if (laterButton != null) {
-                        laterButton.setEnabled(true);
-                    }
-                    return;
-                }
-                // fonts/, dxvk.conf and the rest the game folder needs beside the archives.
-                File root = getExternalFilesDir(null);
-                if (root != null) {
-                    SetupActivity.copyBundledRuntimeIfMissing(root, DataPack.gameDataDir(this).getPath());
-                }
+            long done = DataDownloadService.sDone;
+            long total = DataDownloadService.sTotal;
+            if (total > 0) {
+                progress.setProgress((int) (done * 1000 / total));
+                bodyText.setText(getString(R.string.data_progress, done >> 20, total >> 20));
+            }
+            if (DataDownloadService.sRunning) {
+                handler.postDelayed(this, 500);
+                return;
+            }
+            busy = false;
+            getWindow().clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+            if (DataDownloadService.sFinished) {
                 if (fromSupport) {
-                    statusText.setText(getString(R.string.data_up_to_date, m.version));
+                    statusText.setText(getString(R.string.data_up_to_date, DataDownloadService.sVersion));
                     if (laterButton != null) {
                         laterButton.setEnabled(true);
                     }
                 } else {
                     goToGame();
                 }
-            });
-        }, "GXDataDownload").start();
-    }
+                return;
+            }
+            // Every retry has failed (no connection for a while): what finished stays, and the
+            // next tap -- or the next start of the app -- continues from there.
+            statusText.setText(getString(R.string.data_failed));
+            downloadButton.setEnabled(true);
+            downloadButton.setOnClickListener(v -> startDownload());
+        }
+    };
 
     private void onLater() {
         sLaterThisProcess = true;

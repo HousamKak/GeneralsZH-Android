@@ -58,6 +58,12 @@
          login (GeneralsOnlineActivity) and, eventually, the native
          multiplayer client both need plain outbound HTTPS/WebSocket. -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Game-data download (DataDownloadService): keeps going with the app in the background,
+         progress in a notification, the CPU kept awake while it runs. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
     <!-- In-app updates (UpdateActivity): hands a downloaded, verified APK to the installer. -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
@@ -167,6 +173,11 @@
             android:exported="false"
             android:theme="@style/Theme.GeneralsZHSettings"
             android:configChanges="orientation|screenSize|keyboardHidden" />
+
+        <service
+            android:name=".DataDownloadService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
 
         <activity
             android:name=".FolderPickerActivity"

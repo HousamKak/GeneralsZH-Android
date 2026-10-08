@@ -152,7 +152,7 @@ public class SetupActivity extends Activity {
         noGameData = getIntent().getBooleanExtra(EXTRA_NO_GAME_DATA, false);
         if (!supportFromGame && savedInstanceState == null) {
             // No game data yet: it is downloaded after activation (DataPack), not bundled.
-            if (!hasGameData()) {
+            if (!hasGameData() || DataPack.downloadIncomplete(this)) {
                 startActivity(new Intent(this, DataDownloadActivity.class));
                 finish();
                 return;

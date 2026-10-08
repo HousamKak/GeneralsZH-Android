@@ -38,6 +38,7 @@ final class DataPack {
 
     static final String SITE = "https://zerohour.housamkak.com";
     private static final String STATE_FILE = ".zh-data.json";
+    private static final String PROGRESS_FILE = ".zh-data-progress.json";
     private static final String PREFS = "gx_datapack";
     private static final String KEY_LATEST = "latest_version";
 
@@ -123,20 +124,33 @@ final class DataPack {
         }
     }
 
-    /** The manifest's files this device does not already have, unchanged. */
+    /**
+     * The manifest's files this device does not already have, unchanged: neither in the installed
+     * state nor finished earlier in an interrupted download of this same data version.
+     */
     static List<Entry> missing(Context ctx, Manifest m) {
         Map<String, String> installed = installedFiles(ctx);
+        Map<String, String> finished = finishedFiles(ctx, m.version);
         File dir = gameDataDir(ctx);
         List<Entry> out = new ArrayList<>();
         for (Entry e : m.files) {
             File local = dir != null ? new File(dir, e.path) : null;
             boolean same = local != null && local.isFile() && local.length() == e.size
-                && e.sha256.equals(installed.get(e.path));
+                && (e.sha256.equals(installed.get(e.path)) || e.sha256.equals(finished.get(e.path)));
             if (!same) {
                 out.add(e);
             }
         }
         return out;
+    }
+
+    /**
+     * True while a download has started and not completed. The game must not start then: the
+     * folder can already hold INIZH.big and pass the game-folder check with half the files.
+     */
+    static boolean downloadIncomplete(Context ctx) {
+        File dir = gameDataDir(ctx);
+        return dir != null && new File(dir, PROGRESS_FILE).isFile();
     }
 
     static long bytesOf(List<Entry> entries) {
@@ -157,6 +171,14 @@ final class DataPack {
         if (license == null || dir == null) {
             throw new IOException("not activated or no storage");
         }
+        if (!dir.isDirectory() && !dir.mkdirs()) {
+            throw new IOException("cannot create " + dir);
+        }
+        // Every finished file is recorded at once (PROGRESS_FILE), so an interruption -- the
+        // app closed, the phone asleep, the connection gone -- loses at most the unfinished
+        // part of one file, and that part resumes over Range.
+        Map<String, String> finished = finishedFiles(ctx, m.version);
+        writeProgress(ctx, m.version, finished);
         long total = bytesOf(todo);
         long done = 0;
         for (Entry e : todo) {
@@ -166,13 +188,15 @@ final class DataPack {
                 throw new IOException("cannot create " + parent);
             }
             File part = new File(target.getPath() + ".part");
-            downloadFile(license, e, part, done, total, progress);
+            downloadWithRetries(license, e, part, done, total, progress);
             if (target.exists() && !target.delete()) {
                 throw new IOException("cannot replace " + target);
             }
             if (!part.renameTo(target)) {
                 throw new IOException("cannot move " + part);
             }
+            finished.put(e.path, e.sha256);
+            writeProgress(ctx, m.version, finished);
             done += e.size;
         }
 
@@ -184,6 +208,77 @@ final class DataPack {
             new File(dir, obsolete).delete();
         }
         writeState(ctx, m);
+        new File(dir, PROGRESS_FILE).delete();
+    }
+
+    // A dropped connection is retried before giving up; each attempt resumes the .part file.
+    private static final long[] RETRY_DELAYS_MS = { 2000, 5000, 15000, 30000 };
+
+    private static void downloadWithRetries(String license, Entry e, File part, long doneBefore, long total,
+                                            Progress progress) throws IOException {
+        for (int attempt = 0; ; attempt++) {
+            try {
+                downloadFile(license, e, part, doneBefore, total, progress);
+                return;
+            } catch (IOException err) {
+                if (attempt >= RETRY_DELAYS_MS.length) {
+                    throw err;
+                }
+                try {
+                    Thread.sleep(RETRY_DELAYS_MS[attempt]);
+                } catch (InterruptedException interrupted) {
+                    Thread.currentThread().interrupt();
+                    throw err;
+                }
+            }
+        }
+    }
+
+    private static Map<String, String> finishedFiles(Context ctx, String version) {
+        Map<String, String> out = new HashMap<>();
+        File dir = gameDataDir(ctx);
+        File file = dir != null ? new File(dir, PROGRESS_FILE) : null;
+        if (file == null || !file.isFile()) {
+            return out;
+        }
+        try (InputStream in = new FileInputStream(file)) {
+            JSONObject json = new JSONObject(readAll(in));
+            if (!version.equals(json.optString("version"))) {
+                return out;  // progress of another data version: nothing in it counts
+            }
+            JSONObject files = json.optJSONObject("files");
+            if (files != null) {
+                java.util.Iterator<String> keys = files.keys();
+                while (keys.hasNext()) {
+                    String path = keys.next();
+                    out.put(path, files.optString(path));
+                }
+            }
+        } catch (Exception e) {
+            return new HashMap<>();
+        }
+        return out;
+    }
+
+    private static void writeProgress(Context ctx, String version, Map<String, String> finished) throws IOException {
+        try {
+            JSONObject files = new JSONObject();
+            for (Map.Entry<String, String> f : finished.entrySet()) {
+                files.put(f.getKey(), f.getValue());
+            }
+            JSONObject json = new JSONObject().put("version", version).put("files", files);
+            File dir = gameDataDir(ctx);
+            File tmp = new File(dir, PROGRESS_FILE + ".tmp");
+            try (OutputStream out = new FileOutputStream(tmp)) {
+                out.write(json.toString().getBytes(StandardCharsets.UTF_8));
+            }
+            // Rename, so an interruption never leaves a half-written record behind.
+            if (!tmp.renameTo(new File(dir, PROGRESS_FILE))) {
+                throw new IOException("cannot record download progress");
+            }
+        } catch (org.json.JSONException e) {
+            throw new IOException(e);
+        }
     }
 
     private static void downloadFile(String license, Entry e, File part, long doneBefore, long total,

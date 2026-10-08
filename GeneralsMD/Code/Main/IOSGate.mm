@@ -126,12 +126,46 @@ static NSString *storedLicense(void)
 	return license != nil && licenseValid(license, deviceHash()) ? license : nil;
 }
 
+// Present while a download has started and not completed; lists the files already finished
+// for that data version, so an interruption loses at most the unfinished part of one file.
+static NSString *const kProgressFile = @".zh-data-progress.json";
+
+static NSString *progressPath(void)
+{
+	return [documentsDir() stringByAppendingPathComponent:kProgressFile];
+}
+
+static BOOL downloadIncomplete(void)
+{
+	return [NSFileManager.defaultManager fileExistsAtPath:progressPath()];
+}
+
+static NSDictionary<NSString *, NSString *> *finishedFiles(NSString *version)
+{
+	NSData *d = [NSData dataWithContentsOfFile:progressPath()];
+	NSDictionary *json = d ? [NSJSONSerialization JSONObjectWithData:d options:0 error:nil] : nil;
+	if (![json isKindOfClass:NSDictionary.class] || ![json[@"version"] isEqual:version]
+		|| ![json[@"files"] isKindOfClass:NSDictionary.class]) {
+		return @{};
+	}
+	return json[@"files"];
+}
+
+static void writeProgress(NSString *version, NSDictionary *finished)
+{
+	NSData *json = [NSJSONSerialization dataWithJSONObject:@{@"version": version ?: @"", @"files": finished}
+		options:0 error:nil];
+	[json writeToFile:progressPath() atomically:YES];
+}
+
+// Half a download is not game data, even with INIZH.big already in the folder.
 static BOOL haveGameData(void)
 {
 	NSFileManager *fm = NSFileManager.defaultManager;
 	NSString *docs = documentsDir();
-	return [fm fileExistsAtPath:[docs stringByAppendingPathComponent:@"INIZH.big"]]
-		|| [fm fileExistsAtPath:[docs stringByAppendingPathComponent:@"INI.big"]];
+	return !downloadIncomplete()
+		&& ([fm fileExistsAtPath:[docs stringByAppendingPathComponent:@"INIZH.big"]]
+			|| [fm fileExistsAtPath:[docs stringByAppendingPathComponent:@"INI.big"]]);
 }
 
 // Blocking from the caller's point of view, but the main run loop keeps turning, so the UI stays
@@ -435,17 +469,28 @@ static NSDictionary<NSString *, NSString *> *installedFiles(void)
 	_dataVersion = json[@"version"];
 	_manifestFiles = files;
 	NSDictionary *installed = installedFiles();
+	NSDictionary *finished = finishedFiles(_dataVersion);
 	NSMutableArray *todo = [NSMutableArray array];
 	long long bytes = 0;
 	for (ZHDataFile *e in files) {
 		NSString *local = [documentsDir() stringByAppendingPathComponent:e.path];
 		NSDictionary *attrs = [NSFileManager.defaultManager attributesOfItemAtPath:local error:nil];
-		if (attrs == nil || [attrs fileSize] != (unsigned long long)e.size || ![installed[e.path] isEqual:e.sha256]) {
+		BOOL have = attrs != nil && [attrs fileSize] == (unsigned long long)e.size
+			&& ([installed[e.path] isEqual:e.sha256] || [finished[e.path] isEqual:e.sha256]);
+		if (!have) {
 			[todo addObject:e];
 			bytes += e.size;
 		}
 	}
 	_todo = todo;
+	// An interrupted download continues by itself: what finished is kept, the unfinished file
+	// resumes where it stopped.
+	if (downloadIncomplete()) {
+		[self show:@"Game data" body:@"Resuming the download…" primary:@"Download" secondary:nil field:NO];
+		_primary.tag = 2;
+		[self download];
+		return;
+	}
 	if (todo.count == 0) {
 		self.finished = YES;
 		return;
@@ -477,23 +522,44 @@ static NSDictionary<NSString *, NSString *> *installedFiles(void)
 	NSFileManager *fm = NSFileManager.defaultManager;
 	NSString *docs = documentsDir();
 	NSString *license = storedLicense();
+	// Recorded before the first byte and after every file, so the next start knows a download is
+	// underway and which files it already has.
+	NSMutableDictionary *finished = [finishedFiles(_dataVersion) mutableCopy];
+	writeProgress(_dataVersion, finished);
+	[UIApplication.sharedApplication setIdleTimerDisabled:YES];  // no auto-lock while downloading
 	for (ZHDataFile *e in _todo) {
 		NSString *target = [docs stringByAppendingPathComponent:e.path];
 		[fm createDirectoryAtPath:target.stringByDeletingLastPathComponent withIntermediateDirectories:YES attributes:nil error:nil];
 		NSString *part = [target stringByAppendingString:@".part"];
-		if (![self fetch:e to:part license:license before:doneBytes total:total]) {
+		// A dropped connection is retried before giving up; each attempt resumes the .part file.
+		BOOL fetched = NO;
+		for (int attempt = 0; attempt < 5 && !fetched; attempt++) {
+			if (attempt > 0) {
+				NSDate *until = [NSDate dateWithTimeIntervalSinceNow:(attempt == 1 ? 2 : attempt == 2 ? 5 : 15)];
+				while ([until timeIntervalSinceNow] > 0) {
+					[NSRunLoop.currentRunLoop runMode:NSDefaultRunLoopMode beforeDate:[NSDate dateWithTimeIntervalSinceNow:0.1]];
+				}
+			}
+			fetched = [self fetch:e to:part license:license before:doneBytes total:total];
+		}
+		if (!fetched) {
+			[UIApplication.sharedApplication setIdleTimerDisabled:NO];
 			_status.text = @"The download stopped. Tap Download to continue where it left off.";
 			_primary.enabled = YES;
 			return;
 		}
 		[fm removeItemAtPath:target error:nil];
 		if (![fm moveItemAtPath:part toPath:target error:nil]) {
+			[UIApplication.sharedApplication setIdleTimerDisabled:NO];
 			_status.text = @"Couldn't save the game data. Free up some space and try again.";
 			_primary.enabled = YES;
 			return;
 		}
+		finished[e.path] = e.sha256;
+		writeProgress(_dataVersion, finished);
 		doneBytes += e.size;
 	}
+	[UIApplication.sharedApplication setIdleTimerDisabled:NO];
 	// Files the previous data version had and this one does not.
 	NSMutableDictionary *previous = [installedFiles() mutableCopy];
 	for (ZHDataFile *e in _manifestFiles) {
@@ -508,6 +574,7 @@ static NSDictionary<NSString *, NSString *> *installedFiles(void)
 	}
 	NSData *json = [NSJSONSerialization dataWithJSONObject:@{@"version": _dataVersion ?: @"", @"files": state} options:0 error:nil];
 	[json writeToFile:[docs stringByAppendingPathComponent:kStateFile] atomically:YES];
+	[fm removeItemAtPath:progressPath() error:nil];
 	self.finished = YES;
 }
 
