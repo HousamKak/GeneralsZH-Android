@@ -25,7 +25,7 @@ if [[ -z "${APK}" ]]; then
     [[ -n "${RUN_ID}" ]] || { echo "no successful Build Android run found"; exit 1; }
     rm -rf "${OUT_DIR}/ci-apk"
     gh run download "${RUN_ID}" --dir "${OUT_DIR}/ci-apk" --pattern '*apk*'
-    APK="$(find "${OUT_DIR}/ci-apk" -name '*.apk' | head -n 1)"
+    APK="$(find "${OUT_DIR}/ci-apk" -type f -name '*.apk' | head -n 1)"
     [[ -n "${APK}" ]] || { echo "run ${RUN_ID} has no APK artifact"; exit 1; }
     echo "==> CI run ${RUN_ID}: ${APK}"
 fi
