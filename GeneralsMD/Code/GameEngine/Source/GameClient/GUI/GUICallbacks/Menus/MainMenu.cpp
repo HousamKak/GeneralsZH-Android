@@ -670,6 +670,12 @@ static void openMods()
 		ZHCommander::hooks().openMods();
 }
 
+static void onlineCreateAccount()
+{
+	if (ZHCommander::hooks().onlineCreateAccount)
+		ZHCommander::hooks().onlineCreateAccount();
+}
+
 static void onlineSignIn()
 {
 	if (ZHCommander::hooks().onlineSignIn)
@@ -1939,10 +1945,21 @@ WindowMsgHandledType MainMenuSystem( GameWindow *window, UnsignedInt msg,
 				if (ZHCommander::hooks().onlineAccount != nullptr
 					&& !ZHCommander::hooks().onlineAccount( account, sizeof(account) ))
 				{
-					MessageBoxOkCancel( UnicodeString( L"GENERALSONLINE" ),
-						UnicodeString( L"Sign in to GeneralsOnline to play online. The sign-in opens in your "
-							L"browser and brings you back here; then press Online again." ),
-						onlineSignIn, nullptr );
+					// GeneralsX @tweak ZH Commander 10/10/2026 Most players have no account yet: a free
+					// GameReplays account is the easiest to sign in with, so offer to make one first.
+					if (ZHCommander::hooks().onlineCreateAccount != nullptr)
+						MessageBoxYesNo( UnicodeString( L"GENERALSONLINE" ),
+							UnicodeString( L"Sign in to GeneralsOnline to play online.\n\n"
+								L"Have an account? Press YES to sign in: it opens in your browser and brings you "
+								L"back here.\n\n"
+								L"No account yet? Press NO. The easiest way is a free account on GameReplays: "
+								L"create it, come back, press Online again and choose GameReplays to sign in." ),
+							onlineSignIn, onlineCreateAccount );
+					else
+						MessageBoxOkCancel( UnicodeString( L"GENERALSONLINE" ),
+							UnicodeString( L"Sign in to GeneralsOnline to play online. The sign-in opens in your "
+								L"browser and brings you back here; then press Online again." ),
+							onlineSignIn, nullptr );
 					break;
 				}
 				// GeneralsX @feature ZH Commander 10/10/2026 A mod that changes gameplay (an optional

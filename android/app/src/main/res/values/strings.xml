@@ -258,6 +258,8 @@
     <string name="online_button_sign_out">Sign Out</string>
     <string name="online_card_sign_in">Sign in</string>
     <string name="online_signin_help">Tap Sign In. The first tap may ask to exempt this app from battery optimization -- allow it, then come back and tap Sign In again. A browser then opens to playgenerals.online, already carrying a one-time code for this device. Pick Steam, Discord, or GameReplays there, then just come back to this app; it finishes on its own.</string>
+    <string name="online_gamereplays_hint">No account yet? The easiest way to play online: create a free account on GameReplays (gamereplays.org), then come back, tap Sign In and choose GameReplays.</string>
+    <string name="online_button_gamereplays">Create a GameReplays account</string>
     <string name="online_card_datapacks">Online game data</string>
     <string name="online_datapacks_help">Playing online needs two things the retail game does not ship: the community data patch, which decides whether a PC-hosted game will accept this device, and the community maps those games are played on. This fetches both from GeneralsOnline directly — no PC involved.</string>
     <string name="online_button_datapacks_update">Update</string>

@@ -69,6 +69,8 @@ public class GeneralsOnlineActivity extends Activity {
     // broke that July sign-in was the client id itself; see
     // GeneralsOnlineSession.CLIENT_ID.
     private static final String LOGIN_URL_FMT = "https://www.playgenerals.online/login/?gamecode=%s";
+    // GameReplays registration: the easiest account to sign in to GeneralsOnline with.
+    static final String GAMEREPLAYS_SIGNUP_URL = "https://www.gamereplays.org/";
 
     private static final String PREFS_NAME = GeneralsOnlineSession.PREFS_NAME;
     private static final String PREF_SESSION_TOKEN = GeneralsOnlineSession.PREF_SESSION_TOKEN;
@@ -197,8 +199,19 @@ public class GeneralsOnlineActivity extends Activity {
         UiKit.sectionHeader(stepsCard, R.drawable.ic_gzh_check,
             getString(R.string.online_card_sign_in), false);
         UiKit.supporting(stepsCard, getString(R.string.online_signin_help));
+        // No account yet: a free GameReplays account is the easiest one to sign in with.
+        UiKit.supporting(stepsCard, getString(R.string.online_gamereplays_hint));
         signInButton = UiKit.button(stepsCard, UiKit.BTN_PRIMARY, R.drawable.ic_gzh_account,
             getString(R.string.online_button_sign_in), this::onSignIn);
+        UiKit.button(stepsCard, UiKit.BTN_TONAL, R.drawable.ic_gzh_account,
+            getString(R.string.online_button_gamereplays), () -> {
+                try {
+                    startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(GAMEREPLAYS_SIGNUP_URL)));
+                } catch (Exception e) {
+                    Toast.makeText(this, getString(R.string.online_toast_no_browser, e.getMessage()),
+                        Toast.LENGTH_LONG).show();
+                }
+            });
 
         // GeneralsX @feature Android port 13/09/2026 The online data comes before
         // the cross-play toggle because it gates it: without the community patch

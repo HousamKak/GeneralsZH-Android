@@ -136,6 +136,14 @@ final class ZHBridge {
             .putExtra(GeneralsOnlineActivity.EXTRA_FROM_GAME, true));
     }
 
+    /** Opens GameReplays, the easiest account to sign in to GeneralsOnline with. */
+    static void onlineCreateAccount() {
+        Activity a = game();
+        a.startActivity(new Intent(Intent.ACTION_VIEW,
+            android.net.Uri.parse(GeneralsOnlineActivity.GAMEREPLAYS_SIGNUP_URL)));
+        ZHTelemetry.track("online_create_account");
+    }
+
     /** Forgets this device's GeneralsOnline session (local only, as the account screen does). */
     static void onlineSignOut() {
         GeneralsOnlineSession.clearSession(game());

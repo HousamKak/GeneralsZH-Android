@@ -63,6 +63,8 @@ namespace ZHCommander
 		bool (*onlineAccount)(char *name, int size);
 		void (*onlineSignIn)();
 		void (*onlineSignOut)();
+		// Opens the site of the easiest account to sign in with (GameReplays).
+		void (*onlineCreateAccount)();
 
 		// Release notes (UTF-8, in the game's text language): this version's, once after an update
 		// ("What's new"), and an offered version's, for the update dialog. Body lines start "• ".
