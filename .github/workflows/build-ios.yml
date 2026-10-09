@@ -113,6 +113,7 @@ jobs:
           ls -la build/ios-package/
           echo "IPA_PATH=${GITHUB_WORKSPACE}/build/ios-package/GeneralsXZH.ipa" >> "$GITHUB_ENV"
           echo "IOS_VERSION=${GX_VERSION_NAME}" >> "$GITHUB_ENV"
+          echo "IOS_BUILD=${GX_VERSION_CODE}" >> "$GITHUB_ENV"
 
       # Never to GitHub: the IPA goes to R2 like every APK (private until released).
       - name: Upload IPA to R2
@@ -121,7 +122,7 @@ jobs:
           GZH_SITE_URL: https://zh-commander.housam-kak20.workers.dev
         run: |
           set -euo pipefail
-          python3 site/upload-ipa.py "${IPA_PATH}" "${IOS_VERSION}" ${{ inputs.release && '--release' || '' }}
+          python3 site/upload-ipa.py "${IPA_PATH}" "${IOS_VERSION}" "${IOS_BUILD}" ${{ inputs.release && '--release' || '' }}
 
       - name: Upload build logs
         if: always()

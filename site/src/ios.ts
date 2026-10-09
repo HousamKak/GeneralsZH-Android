@@ -13,6 +13,7 @@ export interface IosEnv {
 export interface IosBuild {
 	key: string;
 	version: string;
+	build?: number; // CFBundleVersion (the Android versionCode); what the app compares
 	size: number;
 	sha256: string;
 	published: string;
@@ -79,6 +80,7 @@ export async function altstoreSource(env: IosEnv): Promise<Response> {
 				category: "games",
 				versions: releases.map((r) => ({
 					version: r.version,
+					...(r.build !== undefined ? { buildVersion: String(r.build) } : {}),
 					date: r.published,
 					localizedDescription: `ZH Commander ${r.version}`,
 					downloadURL: `${SITE}/download/${r.key}`,

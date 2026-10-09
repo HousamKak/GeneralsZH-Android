@@ -98,6 +98,25 @@ static UIFont *zhFont(NSString *file, CGFloat size, UIFont *fallback)
 	return font != NULL ? (__bridge_transfer UIFont *)font : fallback;
 }
 
+// Whether an AltStore source entry is newer than this app. By build number when the entry has one
+// (CFBundleVersion, which only goes up): version names restarted at 0.1.N, so "0.1.9" is newer than
+// "1.5.8". Older entries without a build number are compared by name.
+static BOOL isNewerRelease(NSDictionary *entry)
+{
+	if (![entry isKindOfClass:NSDictionary.class]) {
+		return NO;
+	}
+	NSDictionary *info = NSBundle.mainBundle.infoDictionary;
+	id build = entry[@"buildVersion"];
+	if ([build isKindOfClass:NSString.class] && [info[@"CFBundleVersion"] isKindOfClass:NSString.class]) {
+		return [(NSString *)build longLongValue] > [info[@"CFBundleVersion"] longLongValue];
+	}
+	NSString *latest = entry[@"version"];
+	NSString *mine = info[@"CFBundleShortVersionString"];
+	return [latest isKindOfClass:NSString.class] && mine != nil
+		&& [mine compare:latest options:NSNumericSearch] == NSOrderedAscending;
+}
+
 static NSString *documentsDir(void)
 {
 	return NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES).firstObject;
@@ -458,10 +477,10 @@ static UIColor *zhColor(uint32_t rgb)
 	NSArray *apps = [source isKindOfClass:NSDictionary.class] ? source[@"apps"] : nil;
 	NSDictionary *app = [apps isKindOfClass:NSArray.class] ? apps.firstObject : nil;
 	NSArray *versions = [app isKindOfClass:NSDictionary.class] ? app[@"versions"] : nil;
-	NSString *latest = [versions isKindOfClass:NSArray.class] && versions.count > 0 ? versions.firstObject[@"version"] : nil;
+	NSDictionary *entry = [versions isKindOfClass:NSArray.class] && versions.count > 0 ? versions.firstObject : nil;
+	NSString *latest = [entry isKindOfClass:NSDictionary.class] ? entry[@"version"] : nil;
 	NSString *mine = NSBundle.mainBundle.infoDictionary[@"CFBundleShortVersionString"];
-	if (![latest isKindOfClass:NSString.class] || mine == nil
-		|| [mine compare:latest options:NSNumericSearch] != NSOrderedAscending) {
+	if (![latest isKindOfClass:NSString.class] || mine == nil || !isNewerRelease(entry)) {
 		return NO;
 	}
 	[self show:@"Update required"
@@ -957,7 +976,7 @@ extern "C" bool ZHIOSRunGate(void)
 
 // What the checks below found while the game runs: the gate already made sure the app and the
 // data were current when it started, so these only change when something is published mid-game.
-static NSString *s_latestApp;
+static NSDictionary *s_latestApp;  // the newest entry of the AltStore source
 static NSString *s_latestData;
 
 static void checkForUpdatesInBackground(void)
@@ -971,8 +990,8 @@ static void checkForUpdatesInBackground(void)
 			NSArray *apps = [json isKindOfClass:NSDictionary.class] ? json[@"apps"] : nil;
 			NSDictionary *app = [apps isKindOfClass:NSArray.class] ? apps.firstObject : nil;
 			NSArray *versions = [app isKindOfClass:NSDictionary.class] ? app[@"versions"] : nil;
-			NSString *latest = [versions isKindOfClass:NSArray.class] && versions.count > 0 ? versions.firstObject[@"version"] : nil;
-			if ([latest isKindOfClass:NSString.class]) {
+			NSDictionary *latest = [versions isKindOfClass:NSArray.class] && versions.count > 0 ? versions.firstObject : nil;
+			if ([latest isKindOfClass:NSDictionary.class] && [latest[@"version"] isKindOfClass:NSString.class]) {
 				dispatch_async(dispatch_get_main_queue(), ^{ s_latestApp = latest; });
 			}
 		}] resume];
@@ -1007,11 +1026,10 @@ static const char *iosAppVersion(void)
 // Releases are required on iOS (see updateRequired above): the next start will not go past the gate.
 static bool iosAppUpdateOffer(char *version, int size, bool *mandatory)
 {
-	NSString *mine = NSBundle.mainBundle.infoDictionary[@"CFBundleShortVersionString"];
-	if (s_latestApp == nil || mine == nil || [mine compare:s_latestApp options:NSNumericSearch] != NSOrderedAscending) {
+	if (s_latestApp == nil || !isNewerRelease(s_latestApp)) {
 		return false;
 	}
-	snprintf(version, size, "%s", s_latestApp.UTF8String);
+	snprintf(version, size, "%s", [s_latestApp[@"version"] UTF8String]);
 	*mandatory = true;
 	return true;
 }
