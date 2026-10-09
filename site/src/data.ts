@@ -134,3 +134,12 @@ function derToRaw(der: Uint8Array): Uint8Array | null {
 function fromBase64(b64: string): Uint8Array {
 	return Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
 }
+
+// GET /admin/data/manifest (upload token): the published manifest, so upload-data.py --reuse can
+// keep the uploads of files that did not change instead of sending gigabytes again.
+export async function currentManifest(env: DataEnv): Promise<Response> {
+	const object = await env.APKS.get(MANIFEST_KEY);
+	return object
+		? new Response(object.body, { headers: { "Content-Type": "application/json" } })
+		: Response.json({ error: "no_manifest", message: "no game data published yet" }, { status: 404 });
+}

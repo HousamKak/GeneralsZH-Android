@@ -7,7 +7,7 @@
 // /admin/upload/* (bearer UPLOAD_TOKEN) is how upload-apk.py publishes: an R2 multipart upload
 // in parts small enough for a Worker request body, so an APK of any size goes up in one piece.
 
-import { DATA_KEY_RE, dataFile, dataManifest, publishData, type DataEnv } from "./data";
+import { DATA_KEY_RE, currentManifest, dataFile, dataManifest, publishData, type DataEnv } from "./data";
 import { IPA_KEY_RE, altstoreSource, readReleases, recordBuild, serveIpa } from "./ios";
 import { listReports, receiveReport, reportRoute } from "./support";
 import { notesApi, publishNotes, readAllNotes } from "./notes";
@@ -75,6 +75,12 @@ export default {
 		}
 		if (pathname.startsWith("/data/")) {
 			return dataFile(request, env, decodeURIComponent(pathname.slice(1)));
+		}
+		if (pathname === "/admin/data/manifest" && request.method === "GET") {
+			if (!(await isUploader(request, env))) {
+				return Response.json({ error: "unauthorized" }, { status: 401 });
+			}
+			return currentManifest(env);
 		}
 		if (pathname === "/admin/data/publish" && request.method === "POST") {
 			if (!(await isUploader(request, env))) {
