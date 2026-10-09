@@ -25,20 +25,11 @@
 <main id="top">
 
 	<section class="hero">
-		<svg class="contours" viewBox="0 0 1200 700" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-			<g fill="none" stroke="currentColor" stroke-width="1.2">
-				<path d="M890 120c120 10 230 90 240 200s-80 210-210 220-260-40-300-140 20-200 120-250c40-20 90-32 150-30z"/>
-				<path d="M900 170c90 8 170 70 176 150s-62 150-158 158-190-30-220-104 16-146 90-182c30-14 66-24 112-22z"/>
-				<path d="M908 222c58 6 108 44 112 96s-40 96-102 100-120-18-140-66 10-94 58-116c20-10 42-16 72-14z"/>
-				<path d="M914 272c30 4 54 22 56 48s-20 46-50 48-58-8-68-32 4-44 28-56c10-6 20-8 34-8z"/>
-				<path d="M120 520c80-60 200-80 300-40s150 120 90 170-200 50-300 20-150-90-90-150z"/>
-				<path d="M170 540c60-40 150-54 222-26s108 86 64 122-146 36-218 14-108-64-68-110z"/>
-				<path d="M220 562c40-26 96-34 142-16s70 54 42 78-94 22-140 8-70-42-44-70z"/>
-				<path d="M-40 260c140-40 300-20 420 40s230 70 330 30"/>
-				<path d="M-40 300c140-36 290-14 404 44s240 76 350 30"/>
-				<path d="M640 690c40-90 140-150 260-160s240 30 340 10"/>
-			</g>
-		</svg>
+		<div class="hero-media" aria-hidden="true">
+			<!-- Sources are chosen in app.js by screen width; with no script, or reduced motion, the poster stays. -->
+			<video id="hero-video" muted loop playsinline preload="none" poster="/hero/hero_poster.jpg"></video>
+		</div>
+		<div class="hero-inner">
 
 		<div class="hero-copy">
 			<p class="eyebrow" data-i18n="eyebrow">Real-time strategy · Android</p>
@@ -60,14 +51,16 @@
 			<p class="crate-note" data-i18n-html="crate_note">The download is free. <a href="#buy">Activation key: <span class="sale-price"><del>$15</del> <strong>$10</strong></span>.</a></p>
 			<span class="stamp" aria-hidden="true" data-i18n="stamp">Activation required</span>
 		</aside>
+		</div>
 	</section>
 
 	<section class="shots" aria-labelledby="shots-title">
 		<h2 id="shots-title" class="section-title" data-i18n="shots_title">From the field</h2>
 		<div class="shot-strip">
-			<figure class="shot"><div class="shot-frame"><span data-i18n="shot_soon">Screenshot coming soon</span></div></figure>
-			<figure class="shot"><div class="shot-frame"><span data-i18n="shot_soon">Screenshot coming soon</span></div></figure>
-			<figure class="shot"><div class="shot-frame"><span data-i18n="shot_soon">Screenshot coming soon</span></div></figure>
+			<figure class="shot"><a class="shot-frame" href="/shots/zh_base_wide.jpg"><img src="/shots/zh_base_wide.jpg" width="1600" height="720" loading="lazy" decoding="async" alt="A USA base: command center, airfield and supply lines"></a><figcaption data-i18n="shot_base">Build your base</figcaption></figure>
+			<figure class="shot"><a class="shot-frame" href="/shots/zh_missile_strike.jpg"><img src="/shots/zh_missile_strike.jpg" width="1600" height="720" loading="lazy" decoding="async" alt="A strike lands on an enemy palace"></a><figcaption data-i18n="shot_strike">Call in the strike</figcaption></figure>
+			<figure class="shot"><a class="shot-frame" href="/shots/zh_palace_hit.jpg"><img src="/shots/zh_palace_hit.jpg" width="1600" height="720" loading="lazy" decoding="async" alt="An enemy palace in flames while tanks close in"></a><figcaption data-i18n="shot_burn">Break their defenses</figcaption></figure>
+			<figure class="shot"><a class="shot-frame" href="/shots/zh_army_moves.jpg"><img src="/shots/zh_army_moves.jpg" width="1600" height="720" loading="lazy" decoding="async" alt="Tanks moving through a town and across the map"></a><figcaption data-i18n="shot_army">Move the army</figcaption></figure>
 		</div>
 	</section>
 

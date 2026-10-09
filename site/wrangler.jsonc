@@ -16,7 +16,7 @@
 	"assets": {
 		"directory": "./public",
 		"binding": "ASSETS",
-		"run_worker_first": ["/download", "/download/*", "/api/*", "/admin/*", "/data/*", "/altstore.json"]
+		"run_worker_first": ["/hero/*", "/download", "/download/*", "/api/*", "/admin/*", "/data/*", "/altstore.json"]
 	},
 	// PayPal checkout lives in the license server; /api/paypal/* is forwarded to it.
 	"services": [

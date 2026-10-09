@@ -36,6 +36,9 @@ export default {
 	async fetch(request: Request, env: Env): Promise<Response> {
 		const url = new URL(request.url);
 		const { pathname } = url;
+		if (pathname.startsWith("/hero/")) {
+			return heroAsset(request, env);
+		}
 		if (pathname === "/download") {
 			return download(env);
 		}
@@ -274,4 +277,39 @@ async function serveApk(env: Env, key: string, filename: string): Promise<Respon
 async function readLatest(env: Env): Promise<Latest | null> {
 	const object = await env.APKS.get("latest.json");
 	return object ? ((await object.json()) as Latest) : null;
+}
+
+// The hero loop's videos. Static assets answer a Range request with the whole file (200), and
+// Safari will not play a video that way: it asks for "bytes=0-1" first and needs a 206. The
+// files are under 2 MB, so the slice is cut here from the asset itself.
+async function heroAsset(request: Request, env: Env): Promise<Response> {
+	const asset = await env.ASSETS.fetch(request);
+	const header = request.headers.get("Range");
+	const m = header ? /^bytes=(\d*)-(\d*)$/.exec(header.trim()) : null;
+	if (!asset.ok || !m || (m[1] === "" && m[2] === "")) {
+		const headers = new Headers(asset.headers);
+		headers.set("Accept-Ranges", "bytes");
+		return new Response(asset.body, { status: asset.status, headers });
+	}
+	const body = await asset.arrayBuffer();
+	const size = body.byteLength;
+	let start: number;
+	let end: number;
+	if (m[1] === "") {
+		start = Math.max(0, size - Number(m[2])); // "bytes=-N": the last N bytes
+		end = size - 1;
+	} else {
+		start = Number(m[1]);
+		end = m[2] === "" ? size - 1 : Math.min(Number(m[2]), size - 1);
+	}
+	const headers = new Headers(asset.headers);
+	headers.set("Accept-Ranges", "bytes");
+	if (start >= size || start > end) {
+		headers.set("Content-Range", `bytes */${size}`);
+		headers.delete("Content-Length");
+		return new Response(null, { status: 416, headers });
+	}
+	headers.set("Content-Range", `bytes ${start}-${end}/${size}`);
+	headers.set("Content-Length", String(end - start + 1));
+	return new Response(body.slice(start, end + 1), { status: 206, headers });
 }

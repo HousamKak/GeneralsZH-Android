@@ -35,7 +35,10 @@
 		crate_note: "التحميل مجاني. <a href=\"#buy\">مفتاح التفعيل: <span class=\"sale-price\"><del><bdi>$15</bdi></del> <strong><bdi>$10</bdi></strong></span>.</a>",
 		stamp: "يتطلب التفعيل",
 		shots_title: "من أرض المعركة",
-		shot_soon: "لقطة الشاشة قريبًا",
+		shot_base: "ابنِ قاعدتك",
+		shot_strike: "اطلب الضربة",
+		shot_burn: "حطّم دفاعاتهم",
+		shot_army: "حرّك جيشك",
 		start_title: "كيف تبدأ",
 		s1_t: "حمّل وثبّت",
 		s1_b: "حمّل ملف APK على هاتفك وافتحه. سيطلب أندرويد السماح بالتثبيت من المتصفح؛ اسمح بذلك مرة واحدة.",
@@ -242,4 +245,27 @@
 			document.getElementById("apk-version").textContent = info.version;
 		})
 		.catch(function () { /* keep the built-in values */ });
+})();
+
+// The hero's background loop: the 480p loop on small screens, 720p (WebM first) on larger ones.
+(function () {
+	"use strict";
+	var video = document.getElementById("hero-video");
+	if (!video || (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches)) {
+		return;
+	}
+	var sources = window.innerWidth >= 700
+		? [["/hero/hero_1280x720.webm", "video/webm"], ["/hero/hero_1280x720.mp4", "video/mp4"]]
+		: [["/hero/hero_854x480.mp4", "video/mp4"]];
+	sources.forEach(function (s) {
+		var el = document.createElement("source");
+		el.src = s[0];
+		el.type = s[1];
+		video.appendChild(el);
+	});
+	video.load();
+	var playing = video.play();
+	if (playing && playing.catch) {
+		playing.catch(function () { /* autoplay refused (data saver): the poster stays */ });
+	}
 })();
