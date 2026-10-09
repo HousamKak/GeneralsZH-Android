@@ -123,9 +123,35 @@ final class DataPackInstaller {
     private static final String INSTALLED_LIST = "datapack-installed.json";
 
     /** Where the engine looks: BuildUserDataPathFromRegistry's Android branch. */
+    // GeneralsX @bugfix ZH Commander 10/10/2026 Where saves, replays and Options.ini live. The
+    // shared-storage folder (Generals/...) needs "All files access", which only the old setup
+    // screen asked for; installs set up by the game-data download never have it, so the engine
+    // could not create the folder and nothing it wrote was kept (settings, saves, skirmish
+    // setup). Without that access, the app's own external folder is used instead: no permission,
+    // still reachable over USB under Android/data. The rule is the engine's too (SDL3Main.cpp).
+    private static volatile Context sAppContext;
+
+    static void init(Context ctx) {
+        sAppContext = ctx.getApplicationContext();
+    }
+
     static File userDataDir() {
-        return new File(android.os.Environment.getExternalStorageDirectory(),
+        File shared = new File(android.os.Environment.getExternalStorageDirectory(),
             "Generals/Command and Conquer Generals Zero Hour Data");
+        Context ctx = sAppContext;
+        if (ctx == null || sharedStorageWritable()) {
+            return shared;
+        }
+        File own = ctx.getExternalFilesDir(null);
+        return own != null ? new File(own, "UserData/Command and Conquer Generals Zero Hour Data") : shared;
+    }
+
+    private static boolean sharedStorageWritable() {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+            return android.os.Environment.isExternalStorageManager();
+        }
+        return sAppContext != null && sAppContext.checkSelfPermission(
+            android.Manifest.permission.WRITE_EXTERNAL_STORAGE) == android.content.pm.PackageManager.PERMISSION_GRANTED;
     }
 
     static File communityPatchFile() {

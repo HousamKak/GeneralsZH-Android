@@ -804,6 +804,18 @@ int main(int argc, char* argv[])
 			char generalsRoot[280];
 			int rootLen = snprintf(generalsRoot, sizeof(generalsRoot),
 				"/storage/emulated/%d/Generals", userId);
+			// GeneralsX @bugfix ZH Commander 10/10/2026 Without "All files access" (installs set up
+			// by the game-data download never ask for it) the shared folder cannot be created, and
+			// nothing the engine wrote was kept: settings, saves, skirmish setup. Then the app's own
+			// external folder holds the same layout, which needs no permission. The launcher
+			// decides the same way (DataPackInstaller.userDataDir).
+			mkdir(generalsRoot, 0755);
+			const char *ownExternal = SDL_GetAndroidExternalStoragePath();
+			if (access(generalsRoot, W_OK) != 0 && ownExternal != nullptr) {
+				rootLen = snprintf(generalsRoot, sizeof(generalsRoot), "%s/UserData", ownExternal);
+				mkdir(generalsRoot, 0755);
+				fprintf(stderr, "INFO: no access to shared storage; user data in %s\n", generalsRoot);
+			}
 			if (rootLen > 0 && (size_t)rootLen < sizeof(generalsRoot)) {
 				char zhUserDataDir[400];
 				int zhLen = snprintf(zhUserDataDir, sizeof(zhUserDataDir),

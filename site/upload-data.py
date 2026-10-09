@@ -62,6 +62,15 @@ def main():
             files.append((rel, full))
     if not files:
         sys.exit("no files in %s" % a.folder)
+    # The game keeps its AI and match rules as loose files, not inside an archive: without
+    # Data/Scripts/SkirmishScripts.scb the computer opponents do nothing at all (seen on a phone
+    # on 10/10/2026, with a pack that had every .big but no Data/ folder).
+    present = {rel.lower() for rel, _ in files}
+    required = ["data/scripts/skirmishscripts.scb", "data/scripts/multiplayerscripts.scb", "data/scripts/scripts.ini"]
+    missing = [r for r in required if r not in present]
+    if missing:
+        sys.exit("the game data is missing %s (copy the Data/Scripts folder of the game into %s)"
+                 % (", ".join(missing), a.folder))
 
     # GeneralsX @tweak Codex 08/10/2026 Accept all archives; keep hashes for download integrity.
     print("==> Hashing %d files" % len(files))
