@@ -88,8 +88,8 @@ android {
         // already on your device.
         // Scheme: versionCode = major*10000 + minor*100 + patch, so the
         // number always sorts the same way as versionName (1.2.0 -> 10200).
-        versionCode (project.hasProperty('androidVersionCode') ? (project.androidVersionCode as Integer) : 10508)
-        versionName (project.hasProperty('androidVersionName') ? project.androidVersionName : '1.5.8')
+        versionCode (project.hasProperty('androidVersionCode') ? (project.androidVersionCode as Integer) : 10509)
+        versionName (project.hasProperty('androidVersionName') ? project.androidVersionName : '1.5.9')
         ndk {
             abiFilters 'arm64-v8a'
         }
@@ -102,6 +102,8 @@ android {
             // receives org/libsdl/app/*.java from the in-tree SDL3 source so the
             // shell always matches the exact SDL version the game linked.
             java.srcDirs += 'src/main/java-sdl'
+            // App Monitor SDK (usage, errors, crashes; ZHTelemetry.java), vendored as is.
+            java.srcDirs += '../../third_party/app-monitor/android/java'
             jniLibs.srcDirs = ['src/main/jniLibs']
             // Small runtime files bundled into the APK, staged by the packaging
             // script: assets/gamedata/ (fonts/, dxvk.conf, DefaultOptions.ini)

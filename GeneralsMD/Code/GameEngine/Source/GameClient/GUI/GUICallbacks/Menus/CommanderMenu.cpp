@@ -84,10 +84,10 @@ namespace
 		Int initial;
 	};
 
-	enum { ROW_SIM_HZ, ROW_RENDERER, ROW_UPSCALE, ROW_UI_SCALE, ROW_TEXT_SIZE, ROW_COUNT };
+	enum { ROW_SIM_HZ, ROW_RENDERER, ROW_UPSCALE, ROW_UI_SCALE, ROW_TEXT_SIZE, ROW_TELEMETRY, ROW_COUNT };
 
 	Row s_rows[ROW_COUNT] = {
-		{ "SimHz" }, { "Renderer" }, { "Upscale" }, { "UiScale" }, { "TextSize" },
+		{ "SimHz" }, { "Renderer" }, { "Upscale" }, { "UiScale" }, { "TextSize" }, { "Telemetry" },
 	};
 
 	GameWindow *s_buttonReport = nullptr;
@@ -142,6 +142,7 @@ namespace
 				else
 					text.format(L"%d%%", r.value);
 				break;
+			case ROW_TELEMETRY: text = r.value ? L"ON" : L"OFF"; break;
 		}
 		GadgetButtonSetText(r.button, text);
 	}
@@ -162,6 +163,12 @@ namespace
 					r.value = TEXT_SIZE_MIN;
 				else
 					r.value = r.value >= TEXT_SIZE_MAX ? -1 : r.value + TEXT_SIZE_STEP;
+				break;
+			case ROW_TELEMETRY:
+				// Takes effect at once and needs no restart, so it is not one of Apply's changes.
+				r.value = !r.value;
+				r.initial = r.value;
+				ZHCommander::hooks().setSetting("telemetry", r.value ? "on" : "off");
 				break;
 		}
 		showRowValue(row);
@@ -254,6 +261,7 @@ void CommanderMenuInit(WindowLayout *layout, void *userData)
 	setLabel(s_rows[ROW_UPSCALE].label, L"Upscaling (OpenGL ES)");
 	setLabel(s_rows[ROW_UI_SCALE].label, L"Interface size");
 	setLabel(s_rows[ROW_TEXT_SIZE].label, L"Text size");
+	setLabel(s_rows[ROW_TELEMETRY].label, L"Usage data (anonymous)");
 	setLabel(find("LabelSupport"), L"SUPPORT");
 	setLabel(find("LabelStatus"), L"Changes take effect when the game starts again.");
 
@@ -263,11 +271,13 @@ void CommanderMenuInit(WindowLayout *layout, void *userData)
 	{
 		s_rows[ROW_SIM_HZ].value = h.getSetting("sim_hz", value, sizeof(value)) ? indexOf(SIM_HZ, value) : 0;
 		s_rows[ROW_RENDERER].value = h.getSetting("render_backend", value, sizeof(value)) ? indexOf(RENDERERS, value) : 0;
+		s_rows[ROW_TELEMETRY].value = h.getSetting("telemetry", value, sizeof(value)) && strcmp(value, "off") != 0;
 	}
 	else
 	{
 		hideRow(ROW_SIM_HZ);
 		hideRow(ROW_RENDERER);
+		hideRow(ROW_TELEMETRY);
 		// Upscaling is done by the OpenGL ES backend, which only the Android build has.
 		hideRow(ROW_UPSCALE);
 	}

@@ -92,7 +92,7 @@ echo "==> Building z_generals (libmain.so) + DXVK d3d8/d3d9"
 # another because of it. One touch is cheaper than that ambiguity.
 touch "${PROJECT_ROOT}/GeneralsMD/Code/Main/AndroidCrashHandler.cpp"
 
-cmake --build "${BUILD_DIR}" --target z_generals dxvk_d3d8_install \
+cmake --build "${BUILD_DIR}" --target z_generals app_monitor_ndk dxvk_d3d8_install \
     main_hook file_redirect_hook gsl_alloc_hook hook_impl
 
 # --- artifact verification ---------------------------------------------------

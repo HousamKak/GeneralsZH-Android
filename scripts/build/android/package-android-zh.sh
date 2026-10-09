@@ -131,6 +131,14 @@ declare -a ADRENOTOOLS_HOOK_LIBS=(
     "libgsl_alloc_hook.so"
     "libhook_impl.so"
 )
+# App Monitor's native crash handler (third_party/app-monitor), loaded by the SDK's Java side.
+APP_MONITOR_LIB="$(find "${BUILD_DIR}" -maxdepth 6 -name libapp_monitor_ndk.so 2>/dev/null | head -1)"
+if [[ -z "${APP_MONITOR_LIB}" ]]; then
+    echo "ERROR: libapp_monitor_ndk.so not found under ${BUILD_DIR} -- build the app_monitor_ndk target."
+    exit 1
+fi
+cp "${APP_MONITOR_LIB}" "${JNILIBS}/"
+
 for name in "${ADRENOTOOLS_HOOK_LIBS[@]}"; do
     src="$(find "${BUILD_DIR}" -maxdepth 6 -name "${name}" 2>/dev/null | head -1)"
     if [[ -z "${src}" || ! -f "${src}" ]]; then

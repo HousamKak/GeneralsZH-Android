@@ -137,6 +137,21 @@ static void setSetting(const char *key, const char *value)
 	clearException(env, "setSetting");
 }
 
+static void event(const char *name)
+{
+	JNIEnv *env = bridgeEnv();
+	if (env == nullptr)
+		return;
+	jmethodID m = env->GetStaticMethodID(s_bridge, "event", "(Ljava/lang/String;)V");
+	if (m != nullptr)
+	{
+		jstring jname = env->NewStringUTF(name);
+		env->CallStaticVoidMethod(s_bridge, m, jname);
+		env->DeleteLocalRef(jname);
+	}
+	clearException(env, "event");
+}
+
 static void startAppUpdate() { callVoid("startAppUpdate"); }
 static void startDataUpdate() { callVoid("startDataUpdate"); }
 static void shareSupportReport() { callVoid("shareSupportReport"); }
@@ -169,5 +184,6 @@ void ZHAndroidInstallHooks()
 	h.getSetting = getSetting;
 	h.setSetting = setSetting;
 	h.restart = restart;
+	h.event = event;
 	fprintf(stderr, "INFO: ZH Commander %s\n", appVersion());
 }

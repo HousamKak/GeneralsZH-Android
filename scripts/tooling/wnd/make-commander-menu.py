@@ -117,18 +117,18 @@ def panel_children():
 
     # One row per setting: its name on the left, a button on the right that steps through the
     # values. CommanderMenu.cpp hides the rows a platform does not have.
-    rows = ["SimHz", "Renderer", "Upscale", "UiScale", "TextSize"]
+    rows = ["SimHz", "Renderer", "Upscale", "UiScale", "TextSize", "Telemetry"]
     y = 92
     for row in rows:
         kids.append(label(f"Label{row}", (160, y, 384, y + 32)))
         kids.append(button(f"Button{row}", (390, y, 635, y + 32), size=13))
-        y += 40
+        y += 36
 
-    kids.append(label("LabelSupport", (152, 300, 635, 324), size=14, template="MinorTitle"))
-    kids.append(button("ButtonReport", (152, 330, 390, 362), size=13))
-    kids.append(button("ButtonMore", (397, 330, 635, 362), size=13))
-    kids.append(button("ButtonUpdate", (152, 370, 635, 402), size=13))
-    kids.append(label("LabelStatus", (152, 420, 635, 500)))
+    kids.append(label("LabelSupport", (152, 312, 635, 336), size=14, template="MinorTitle"))
+    kids.append(button("ButtonReport", (152, 342, 390, 374), size=13))
+    kids.append(button("ButtonMore", (397, 342, 635, 374), size=13))
+    kids.append(button("ButtonUpdate", (152, 382, 635, 414), size=13))
+    kids.append(label("LabelStatus", (152, 424, 635, 504)))
 
     kids.append(button("ButtonAccept", (312, 528, 471, 560)))
     kids.append(button("ButtonBack", (476, 528, 635, 560)))

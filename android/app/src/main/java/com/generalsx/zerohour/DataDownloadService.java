@@ -74,6 +74,7 @@ public class DataDownloadService extends Service {
                 throw new java.io.IOException("nothing published");
             }
             sVersion = m.version;
+            ZHTelemetry.track("data_download", "stage", "start");
             List<DataPack.Entry> todo = DataPack.missing(this, m);
             sTotal = DataPack.bytesOf(todo);
             sDone = 0;
@@ -91,9 +92,11 @@ public class DataDownloadService extends Service {
             if (root != null) {
                 SetupActivity.copyBundledRuntimeIfMissing(root, DataPack.gameDataDir(this).getPath());
             }
+            ZHTelemetry.track("data_download", "stage", "complete");
             sFinished = true;
         } catch (java.io.IOException e) {
             sError = e.getMessage() != null ? e.getMessage() : "error";
+            ZHTelemetry.track("data_download", "stage", "fail", "error", sError);
         } finally {
             sRunning = false;
             if (wake.isHeld()) {

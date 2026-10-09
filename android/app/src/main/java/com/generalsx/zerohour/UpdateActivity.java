@@ -148,6 +148,7 @@ public class UpdateActivity extends Activity {
     }
 
     private void startDownload() {
+        ZHTelemetry.track("app_update", "stage", "download", "to", offer.versionName);
         downloading = true;
         updateButton.setEnabled(false);
         if (laterButton != null) {

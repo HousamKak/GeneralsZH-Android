@@ -57,6 +57,10 @@ namespace ZHCommander
 
 		// Closes the game and starts it again, through the shell's start-up checks.
 		void (*restart)();
+
+		// Something worth counting happened ("engine_boot"), for the app's usage monitor. Client
+		// side only: never called from game logic, which must stay deterministic.
+		void (*event)(const char *name);
 	};
 
 	inline Hooks &hooks()

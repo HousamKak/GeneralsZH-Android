@@ -53,6 +53,7 @@ final class SupportReport {
                 } else {
                     String ref = upload(app, zip);
                     message = "Support report sent. Your reference: " + ref;
+                    ZHTelemetry.track("support_report", "ref", ref);
                 }
             } catch (IOException e) {
                 failed = true;

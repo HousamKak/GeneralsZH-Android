@@ -129,6 +129,22 @@ target_sources(z_generals PRIVATE
     $<$<NOT:$<BOOL:${MSVC}>>:ReferenceFloatMath.cpp>
 )
 
+# GeneralsX @feature ZH Commander 09/10/2026 App Monitor's native crash handler
+# (third_party/app-monitor), its own libapp_monitor_ndk.so loaded by the SDK's Java side
+# (AppMonitorNative). Built here with the engine's toolchain rather than by Gradle, which has no
+# CMake of its own in this project; package-android-zh.sh copies it into jniLibs. Its signal
+# handlers chain to the previous ones, as AndroidCrashHandler.cpp's do, so both records are kept.
+if(ANDROID)
+    add_library(app_monitor_ndk SHARED
+        ${CMAKE_SOURCE_DIR}/third_party/app-monitor/android/cpp/app_monitor_ndk.c)
+    set_target_properties(app_monitor_ndk PROPERTIES LINKER_LANGUAGE C)
+    target_compile_options(app_monitor_ndk PRIVATE -O2 -fno-omit-frame-pointer -funwind-tables)
+    target_link_options(app_monitor_ndk PRIVATE "-Wl,-z,max-page-size=16384")
+    target_link_libraries(app_monitor_ndk PRIVATE dl log)
+    set_source_files_properties(${CMAKE_SOURCE_DIR}/third_party/app-monitor/android/cpp/app_monitor_ndk.c
+        PROPERTIES SKIP_PRECOMPILE_HEADERS ON)
+endif()
+
 # GeneralsX @feature ZH Commander 09/10/2026 iOS activation, game-data download and Support
 # button (UIKit), run by SDL3Main before the engine starts. ARC; no precompiled header (the
 # target's PCH is C++ only).

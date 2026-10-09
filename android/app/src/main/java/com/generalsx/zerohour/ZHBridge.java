@@ -88,6 +88,11 @@ final class ZHBridge {
             .putExtra(SetupActivity.EXTRA_SHARE_REPORT, true));
     }
 
+    /** Something the engine did, for App Monitor (ZHTelemetry), e.g. "engine_boot". */
+    static void event(String name) {
+        ZHTelemetry.track(name);
+    }
+
     static void openMoreSettings() {
         Activity a = game();
         a.startActivity(new Intent(a, SetupActivity.class).putExtra(SetupActivity.EXTRA_SUPPORT, true));
@@ -100,6 +105,8 @@ final class ZHBridge {
                 return String.valueOf(SetupActivity.getSimHz(a));
             case "render_backend":
                 return SetupActivity.renderBackendChoice(a);
+            case "telemetry":
+                return ZHTelemetry.isEnabled() ? "on" : "off";
             default:
                 return null;
         }
@@ -110,6 +117,9 @@ final class ZHBridge {
         switch (key) {
             case "sim_hz":
                 SetupActivity.setSimHz(a, "60".equals(value) ? SetupActivity.SIM_HZ_CROSSPLAY : SetupActivity.SIM_HZ_RETAIL);
+                break;
+            case "telemetry":
+                ZHTelemetry.setEnabled("on".equals(value));
                 break;
             case "render_backend":
                 try (FileWriter w = new FileWriter(new File(a.getFilesDir(), "render_backend.cfg"), false)) {

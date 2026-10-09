@@ -889,6 +889,14 @@ void MainMenuInit( WindowLayout *layout, void *userData )
 
 	initLabelVersion();
 	createSupportButton();
+	// GeneralsX @feature ZH Commander 09/10/2026 The engine got as far as the menu: counted once per
+	// run by the app's usage monitor, so starts that never get here show up as the difference.
+	static Bool s_bootReported = FALSE;
+	if (!s_bootReported && ZHCommander::hooks().event != nullptr)
+	{
+		s_bootReported = TRUE;
+		ZHCommander::hooks().event( "engine_boot" );
+	}
 	// A required release is asked again each time the menu comes back (zhCommanderUpdate).
 	if (s_appOfferMandatory)
 		s_appOfferAsked = FALSE;

@@ -102,6 +102,7 @@ public class ActivationActivity extends Activity {
         statusText.setText(R.string.activation_working);
         new Thread(() -> {
             LicenseGate.Result result = LicenseGate.activate(getApplicationContext(), key);
+            ZHTelemetry.track("activation", "result", result.error == null ? "ok" : result.error);
             runOnUiThread(() -> {
                 if (isFinishing()) {
                     return;
