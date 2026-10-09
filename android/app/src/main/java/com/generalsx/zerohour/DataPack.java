@@ -49,9 +49,22 @@ final class DataPack {
         String key;
     }
 
+    /** An optional pack (a mod): the player turns it on in ModsActivity; off, its files go. */
+    static final class Pack {
+        String id;
+        String titleEn;
+        String titleAr;
+        String descriptionEn;
+        String descriptionAr;
+        boolean gameplay;  // changes what the simulation reads: online players must match
+        long size;
+        List<Entry> files = new ArrayList<>();
+    }
+
     static final class Manifest {
         String version;
-        List<Entry> files = new ArrayList<>();
+        List<Entry> files = new ArrayList<>();  // the base: every player gets these
+        List<Pack> packs = new ArrayList<>();
 
         long totalSize() {
             long sum = 0;
@@ -60,6 +73,80 @@ final class DataPack {
             }
             return sum;
         }
+    }
+
+    private static final String KEY_ENABLED_PACKS = "enabled_packs";
+    private static final String KEY_MANIFEST = "manifest_json";
+
+    /** The packs the player turned on (ModsActivity). */
+    static java.util.Set<String> enabledPacks(Context ctx) {
+        return new java.util.TreeSet<>(ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .getStringSet(KEY_ENABLED_PACKS, new java.util.HashSet<>()));
+    }
+
+    static void setEnabledPacks(Context ctx, java.util.Set<String> ids) {
+        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+            .putStringSet(KEY_ENABLED_PACKS, new java.util.HashSet<>(ids)).apply();
+    }
+
+    /** The base files plus those of every pack the player turned on. */
+    static List<Entry> wanted(Context ctx, Manifest m) {
+        List<Entry> out = new ArrayList<>(m.files);
+        java.util.Set<String> on = enabledPacks(ctx);
+        for (Pack p : m.packs) {
+            if (on.contains(p.id)) {
+                out.addAll(p.files);
+            }
+        }
+        return out;
+    }
+
+    /** The last manifest seen, for screens that list the packs offline; null before the first check. */
+    static Manifest lastManifest(Context ctx) {
+        String json = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY_MANIFEST, null);
+        try {
+            return json != null ? parseManifest(new JSONObject(json)) : null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /** True when an installed pack the player has on changes gameplay: online matches need the same. */
+    static boolean gameplayPacksOn(Context ctx) {
+        Manifest m = lastManifest(ctx);
+        java.util.Set<String> installed = installedPacks(ctx);
+        if (m == null) {
+            return false;
+        }
+        for (Pack p : m.packs) {
+            if (p.gameplay && installed.contains(p.id)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** The packs the installed data includes (written by commit()). */
+    static java.util.Set<String> installedPacks(Context ctx) {
+        java.util.Set<String> out = new java.util.TreeSet<>();
+        JSONObject state = readState(ctx);
+        JSONArray packs = state != null ? state.optJSONArray("packs") : null;
+        for (int i = 0; packs != null && i < packs.length(); i++) {
+            out.add(packs.optString(i));
+        }
+        return out;
+    }
+
+    /** True when the installed data is not what the manifest and the player's packs ask for. */
+    static boolean outOfDate(Context ctx, Manifest m) {
+        java.util.Set<String> want = new java.util.TreeSet<>();
+        java.util.Set<String> on = enabledPacks(ctx);
+        for (Pack p : m.packs) {
+            if (on.contains(p.id)) {
+                want.add(p.id);
+            }
+        }
+        return !m.version.equals(installedVersion(ctx)) || !want.equals(installedPacks(ctx));
     }
 
     interface Progress {
@@ -86,7 +173,12 @@ final class DataPack {
     static boolean updateAvailable(Context ctx) {
         String latest = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY_LATEST, null);
         String installed = installedVersion(ctx);
-        return latest != null && installed != null && !latest.equals(installed);
+        if (latest == null || installed == null) {
+            return false;
+        }
+        // A new data version, or packs turned on or off since the last install.
+        Manifest m = lastManifest(ctx);
+        return m != null ? outOfDate(ctx, m) : !latest.equals(installed);
     }
 
     /** Blocking. Fetches the manifest and remembers its version for updateAvailable(). */
@@ -104,28 +196,53 @@ final class DataPack {
             if (status != 200) {
                 throw new IOException("HTTP " + status);
             }
-            JSONObject json = new JSONObject(readAll(conn.getInputStream()));
-            Manifest m = new Manifest();
-            m.version = json.getString("version");
-            JSONArray files = json.getJSONArray("files");
-            for (int i = 0; i < files.length(); i++) {
-                JSONObject f = files.getJSONObject(i);
-                Entry e = new Entry();
-                e.path = f.getString("path");
-                e.size = f.getLong("size");
-                e.sha256 = f.getString("sha256").toLowerCase(Locale.ROOT);
-                e.key = f.getString("key");
-                if (e.path.contains("..") || e.path.startsWith("/")) {
-                    throw new IOException("bad path in manifest: " + e.path);
-                }
-                m.files.add(e);
-            }
-            ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString(KEY_LATEST, m.version).apply();
+            String raw = readAll(conn.getInputStream());
+            Manifest m = parseManifest(new JSONObject(raw));
+            ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+                .putString(KEY_LATEST, m.version).putString(KEY_MANIFEST, raw).apply();
             return m;
         } catch (org.json.JSONException e) {
             throw new IOException("bad manifest", e);
         } finally {
             conn.disconnect();
+        }
+    }
+
+    private static Manifest parseManifest(JSONObject json) throws org.json.JSONException, IOException {
+        Manifest m = new Manifest();
+        m.version = json.getString("version");
+        parseFiles(json.getJSONArray("files"), m.files);
+        JSONArray packs = json.optJSONArray("packs");
+        for (int i = 0; packs != null && i < packs.length(); i++) {
+            JSONObject p = packs.getJSONObject(i);
+            Pack pack = new Pack();
+            pack.id = p.getString("id");
+            JSONObject title = p.optJSONObject("title");
+            JSONObject description = p.optJSONObject("description");
+            pack.titleEn = title != null ? title.optString("en", pack.id) : pack.id;
+            pack.titleAr = title != null ? title.optString("ar", pack.titleEn) : pack.titleEn;
+            pack.descriptionEn = description != null ? description.optString("en", "") : "";
+            pack.descriptionAr = description != null ? description.optString("ar", pack.descriptionEn) : pack.descriptionEn;
+            pack.gameplay = p.optBoolean("gameplay", false);
+            pack.size = p.optLong("size", 0);
+            parseFiles(p.getJSONArray("files"), pack.files);
+            m.packs.add(pack);
+        }
+        return m;
+    }
+
+    private static void parseFiles(JSONArray files, List<Entry> out) throws org.json.JSONException, IOException {
+        for (int i = 0; i < files.length(); i++) {
+            JSONObject f = files.getJSONObject(i);
+            Entry e = new Entry();
+            e.path = f.getString("path");
+            e.size = f.getLong("size");
+            e.sha256 = f.getString("sha256").toLowerCase(Locale.ROOT);
+            e.key = f.getString("key");
+            if (e.path.contains("..") || e.path.startsWith("/")) {
+                throw new IOException("bad path in manifest: " + e.path);
+            }
+            out.add(e);
         }
     }
 
@@ -138,7 +255,7 @@ final class DataPack {
         Map<String, String> finished = finishedFiles(ctx, m.version);
         File dir = gameDataDir(ctx);
         List<Entry> out = new ArrayList<>();
-        for (Entry e : m.files) {
+        for (Entry e : wanted(ctx, m)) {
             File local = dir != null ? new File(dir, e.path) : null;
             boolean same = local != null && local.isFile() && local.length() == e.size
                 && (e.sha256.equals(installed.get(e.path)) || e.sha256.equals(finished.get(e.path)));
@@ -204,13 +321,29 @@ final class DataPack {
             writeProgress(ctx, m.version, finished);
             done += e.size;
         }
+        commit(ctx, m);
+    }
 
+    /**
+     * Makes {@code m} the installed version: deletes what the previous version installed and
+     * {@code m} no longer lists (only files this app put there; a mod or asset withdrawn from the
+     * published data leaves the phone too), then records {@code m}. Also what a release that only
+     * removes files needs, since it has nothing to download.
+     */
+    static void commit(Context ctx, Manifest m) throws IOException {
+        File dir = gameDataDir(ctx);
+        if (dir == null) {
+            throw new IOException("no storage");
+        }
         Map<String, String> before = installedFiles(ctx);
-        for (Entry e : m.files) {
+        for (Entry e : wanted(ctx, m)) {
             before.remove(e.path);
         }
         for (String obsolete : before.keySet()) {
-            new File(dir, obsolete).delete();
+            File f = new File(dir, obsolete);
+            if (f.isFile() && !f.delete()) {
+                android.util.Log.w("GXDataPack", "could not remove " + obsolete);
+            }
         }
         writeState(ctx, m);
         new File(dir, PROGRESS_FILE).delete();
@@ -387,10 +520,18 @@ final class DataPack {
             JSONObject state = new JSONObject();
             state.put("version", m.version);
             JSONArray files = new JSONArray();
-            for (Entry e : m.files) {
+            for (Entry e : wanted(ctx, m)) {
                 files.put(new JSONObject().put("path", e.path).put("sha256", e.sha256).put("size", e.size));
             }
             state.put("files", files);
+            JSONArray packs = new JSONArray();
+            java.util.Set<String> on = enabledPacks(ctx);
+            for (Pack p : m.packs) {
+                if (on.contains(p.id)) {
+                    packs.put(p.id);
+                }
+            }
+            state.put("packs", packs);
             try (OutputStream out = new FileOutputStream(new File(gameDataDir(ctx), STATE_FILE))) {
                 out.write(state.toString().getBytes(StandardCharsets.UTF_8));
             }

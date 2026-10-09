@@ -104,6 +104,26 @@ final class ZHBridge {
             .putExtra(SetupActivity.EXTRA_SHARE_REPORT, true));
     }
 
+    /** The mods screen (optional packs of the game data). */
+    static void openMods() {
+        Activity a = game();
+        a.startActivity(new Intent(a, ModsActivity.class));
+    }
+
+    /** "3 on of 5", or null when no packs are published. */
+    static String modsSummary() {
+        DataPack.Manifest m = DataPack.lastManifest(game());
+        if (m == null || m.packs.isEmpty()) {
+            return null;
+        }
+        return DataPack.installedPacks(game()).size() + " of " + m.packs.size() + " on";
+    }
+
+    /** True while an installed pack changes gameplay: online players must have the same data. */
+    static String gameplayMods() {
+        return DataPack.gameplayPacksOn(game()) ? "yes" : null;
+    }
+
     /** The GeneralsOnline display name this device is signed in as, or null. */
     static String onlineAccount() {
         return GeneralsOnlineActivity.getSignedInDisplayName(game());
@@ -173,7 +193,7 @@ final class ZHBridge {
         restartInto(SetupActivity.class);
     }
 
-    private static void restartInto(Class<? extends Activity> target) {
+    static void restartInto(Class<? extends Activity> target) {
         Activity a = game();
         a.startActivity(new Intent(a, RestartActivity.class)
             .putExtra(RestartActivity.EXTRA_PID, android.os.Process.myPid())

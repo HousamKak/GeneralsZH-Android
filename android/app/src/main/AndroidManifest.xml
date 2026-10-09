@@ -185,6 +185,13 @@
             android:noHistory="true"
             android:theme="@android:style/Theme.Translucent.NoTitleBar" />
 
+        <!-- Optional packs (mods) of the game data, opened from the game's ZH COMMANDER screen. -->
+        <activity
+            android:name=".ModsActivity"
+            android:exported="false"
+            android:theme="@style/Theme.GeneralsZHSettings"
+            android:configChanges="orientation|screenSize|keyboardHidden" />
+
         <service
             android:name=".DataDownloadService"
             android:exported="false"

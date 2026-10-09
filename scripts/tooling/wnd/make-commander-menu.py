@@ -132,7 +132,8 @@ def panel_children():
     row("Telemetry", 356)
     kids.append(button("ButtonReport", (152, 392, 390, 422), size=13))
     kids.append(button("ButtonMore", (397, 392, 635, 422), size=13))
-    kids.append(button("ButtonUpdate", (152, 428, 635, 458), size=13))
+    kids.append(button("ButtonMods", (152, 428, 390, 458), size=13))
+    kids.append(button("ButtonUpdate", (397, 428, 635, 458), size=13))
     kids.append(label("LabelStatus", (152, 464, 635, 524)))
 
     kids.append(button("ButtonAccept", (312, 528, 471, 560)))

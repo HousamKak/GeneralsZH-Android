@@ -29,6 +29,23 @@ static NSString *const kLicensePublicKey =
 	@"MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEAhE861NJAUCPcAoeya8LDyNmUux2QKucHdX3ndZ+IjYbkPYVqQU/GXBmn5tsuKg1Wp3b70Xx6aLSbsvJEfjOmg==";
 static NSString *const kLicenseKey = @"zh.license";
 static NSString *const kStateFile = @".zh-data.json";
+// Optional packs (mods): the last manifest seen, and the ids the player turned on.
+static NSString *const kManifestDefaultsKey = @"zh.manifest";
+static NSString *const kPacksDefaultsKey = @"zh.enabledPacks";
+
+static NSSet *enabledPacks(void)
+{
+	NSArray *ids = [NSUserDefaults.standardUserDefaults arrayForKey:kPacksDefaultsKey];
+	return [NSSet setWithArray:ids ?: @[]];
+}
+
+static NSArray *publishedPacks(void)
+{
+	NSData *data = [NSUserDefaults.standardUserDefaults dataForKey:kManifestDefaultsKey];
+	NSDictionary *json = data ? [NSJSONSerialization JSONObjectWithData:data options:0 error:nil] : nil;
+	NSArray *packs = [json isKindOfClass:NSDictionary.class] ? json[@"packs"] : nil;
+	return [packs isKindOfClass:NSArray.class] ? packs : @[];
+}
 
 // ---------------------------------------------------------------- helpers
 
@@ -327,6 +344,7 @@ static NSDictionary<NSString *, NSString *> *installedFiles(void)
 	NSString *_dataVersion;
 	NSArray<ZHDataFile *> *_manifestFiles;
 	NSArray<ZHDataFile *> *_todo;
+	NSArray<NSString *> *_packsOn;  // the packs this install will include
 }
 
 // The landing site's look: sand ground, a canvas "crate label" card with an ink border and an
@@ -635,8 +653,21 @@ static UIColor *zhColor(uint32_t rgb)
 		_primary.tag = 3;
 		return;
 	}
+	// The base files, then those of every optional pack (mod) the player turned on (ZHMods).
+	[NSUserDefaults.standardUserDefaults setObject:data forKey:kManifestDefaultsKey];
+	NSSet *enabled = enabledPacks();
+	NSMutableArray *wanted = [NSMutableArray arrayWithArray:json[@"files"] ?: @[]];
+	NSMutableArray *packsOn = [NSMutableArray array];
+	for (NSDictionary *pack in json[@"packs"]) {
+		if ([pack isKindOfClass:NSDictionary.class] && [enabled containsObject:pack[@"id"]]
+			&& [pack[@"files"] isKindOfClass:NSArray.class]) {
+			[wanted addObjectsFromArray:pack[@"files"]];
+			[packsOn addObject:pack[@"id"]];
+		}
+	}
+	_packsOn = packsOn;
 	NSMutableArray *files = [NSMutableArray array];
-	for (NSDictionary *f in json[@"files"]) {
+	for (NSDictionary *f in wanted) {
 		ZHDataFile *e = [ZHDataFile new];
 		e.path = f[@"path"];
 		e.sha256 = [f[@"sha256"] lowercaseString];
@@ -673,6 +704,11 @@ static UIColor *zhColor(uint32_t rgb)
 		return;
 	}
 	if (todo.count == 0) {
+		NSArray *installedPacks = readState()[@"packs"] ?: @[];
+		if (![_dataVersion isEqual:readState()[@"version"]]
+			|| ![[NSSet setWithArray:installedPacks] isEqualToSet:[NSSet setWithArray:_packsOn ?: @[]]]) {
+			[self commitData];  // a release that only withdraws files
+		}
 		self.finished = YES;
 		return;
 	}
@@ -741,7 +777,16 @@ static UIColor *zhColor(uint32_t rgb)
 		doneBytes += e.size;
 	}
 	[UIApplication.sharedApplication setIdleTimerDisabled:NO];
-	// Files the previous data version had and this one does not.
+	[self commitData];
+}
+
+// Makes the manifest's version the installed one: removes what the previous version installed
+// and this one no longer lists (a withdrawn mod or asset), records the version. Also what a
+// release that only removes files needs, with nothing to download.
+- (void)commitData
+{
+	NSFileManager *fm = NSFileManager.defaultManager;
+	NSString *docs = documentsDir();
 	NSMutableDictionary *previous = [installedFiles() mutableCopy];
 	for (ZHDataFile *e in _manifestFiles) {
 		[previous removeObjectForKey:e.path];
@@ -753,7 +798,8 @@ static UIColor *zhColor(uint32_t rgb)
 	for (ZHDataFile *e in _manifestFiles) {
 		[state addObject:@{@"path": e.path, @"sha256": e.sha256, @"size": @(e.size)}];
 	}
-	NSData *json = [NSJSONSerialization dataWithJSONObject:@{@"version": _dataVersion ?: @"", @"files": state} options:0 error:nil];
+	NSData *json = [NSJSONSerialization dataWithJSONObject:@{@"version": _dataVersion ?: @"", @"files": state,
+		@"packs": _packsOn ?: @[]} options:0 error:nil];
 	[json writeToFile:[docs stringByAppendingPathComponent:kStateFile] atomically:YES];
 	[fm removeItemAtPath:progressPath() error:nil];
 	self.finished = YES;
@@ -856,6 +902,7 @@ extern "C" bool ZHIOSRunGate(void)
 // support report through ZHCommander.h. The engine runs on the main thread, as these do.
 
 @interface ZHSupport : NSObject
++ (UIWindow *)gameWindow;  // also used by the mods screen
 @end
 
 @implementation ZHSupport
@@ -1017,6 +1064,151 @@ static bool iosWhatsNew(char *title, int titleSize, char *body, int bodySize)
 		&& notesInto(notes, title, titleSize, body, bodySize);
 }
 
+// ---------------------------------------------------------------- mods (optional packs)
+
+// One switch per published pack. iOS apps cannot restart themselves, so a change is saved and
+// the next start (ZHIOSRunGate's checkData) downloads the packs turned on and removes the rest.
+@interface ZHModsController : UIViewController
+@end
+
+@implementation ZHModsController {
+	NSMutableDictionary<NSString *, UISwitch *> *_switches;
+}
+
+- (void)viewDidLoad
+{
+	[super viewDidLoad];
+	self.view.backgroundColor = [UIColor colorWithRed:0xD2 / 255.0 green:0xC1 / 255.0 blue:0x92 / 255.0 alpha:1];
+	_switches = [NSMutableDictionary dictionary];
+	UIStackView *stack = [UIStackView new];
+	stack.axis = UILayoutConstraintAxisVertical;
+	stack.spacing = 14;
+	stack.translatesAutoresizingMaskIntoConstraints = NO;
+	UIScrollView *scroll = [UIScrollView new];
+	scroll.translatesAutoresizingMaskIntoConstraints = NO;
+	[self.view addSubview:scroll];
+	[scroll addSubview:stack];
+	UILayoutGuide *safe = self.view.safeAreaLayoutGuide;
+	[NSLayoutConstraint activateConstraints:@[
+		[scroll.topAnchor constraintEqualToAnchor:safe.topAnchor],
+		[scroll.bottomAnchor constraintEqualToAnchor:safe.bottomAnchor],
+		[scroll.leadingAnchor constraintEqualToAnchor:safe.leadingAnchor constant:20],
+		[scroll.trailingAnchor constraintEqualToAnchor:safe.trailingAnchor constant:-20],
+		[stack.topAnchor constraintEqualToAnchor:scroll.topAnchor constant:20],
+		[stack.bottomAnchor constraintEqualToAnchor:scroll.bottomAnchor constant:-20],
+		[stack.leadingAnchor constraintEqualToAnchor:scroll.leadingAnchor],
+		[stack.widthAnchor constraintEqualToAnchor:scroll.widthAnchor],
+	]];
+
+	UILabel *title = [UILabel new];
+	title.text = @"MODS";
+	title.font = zhFont(@"zh_display.ttf", 34, [UIFont boldSystemFontOfSize:34]);
+	[stack addArrangedSubview:title];
+	NSArray *packs = publishedPacks();
+	BOOL arabic = [NSLocale.preferredLanguages.firstObject hasPrefix:@"ar"];
+	NSSet *on = enabledPacks();
+	UILabel *help = [UILabel new];
+	help.numberOfLines = 0;
+	help.text = packs.count == 0 ? @"No mods have been published yet."
+		: @"Turn a pack on to download it, off to remove its files. Changes apply the next time you open the game.";
+	[stack addArrangedSubview:help];
+	for (NSDictionary *pack in packs) {
+		UIStackView *row = [UIStackView new];
+		row.axis = UILayoutConstraintAxisHorizontal;
+		row.alignment = UIStackViewAlignmentCenter;
+		row.spacing = 12;
+		UILabel *label = [UILabel new];
+		label.numberOfLines = 0;
+		NSString *lang = arabic ? @"ar" : @"en";
+		NSString *name = [pack[@"title"] isKindOfClass:NSDictionary.class] ? pack[@"title"][lang] : pack[@"id"];
+		NSString *about = [pack[@"description"] isKindOfClass:NSDictionary.class] ? pack[@"description"][lang] : @"";
+		BOOL gameplay = [pack[@"gameplay"] boolValue];
+		label.text = [NSString stringWithFormat:@"%@\n%@\n%lld MB%@", name ?: pack[@"id"], about ?: @"",
+			MAX(1LL, [pack[@"size"] longLongValue] >> 20),
+			gameplay ? @" · Changes gameplay: online, every player needs the same" : @""];
+		UISwitch *sw = [UISwitch new];
+		sw.on = [on containsObject:pack[@"id"]];
+		_switches[pack[@"id"]] = sw;
+		[row addArrangedSubview:label];
+		[row addArrangedSubview:sw];
+		[stack addArrangedSubview:row];
+	}
+	UIButton *apply = [UIButton buttonWithType:UIButtonTypeSystem];
+	[apply setTitle:@"APPLY" forState:UIControlStateNormal];
+	[apply addTarget:self action:@selector(onApply) forControlEvents:UIControlEventTouchUpInside];
+	UIButton *back = [UIButton buttonWithType:UIButtonTypeSystem];
+	[back setTitle:@"BACK" forState:UIControlStateNormal];
+	[back addTarget:self action:@selector(onBack) forControlEvents:UIControlEventTouchUpInside];
+	[stack addArrangedSubview:apply];
+	[stack addArrangedSubview:back];
+}
+
+- (void)onApply
+{
+	NSMutableArray *ids = [NSMutableArray array];
+	[_switches enumerateKeysAndObjectsUsingBlock:^(NSString *packId, UISwitch *sw, BOOL *stop) {
+		if (sw.on) {
+			[ids addObject:packId];
+		}
+	}];
+	BOOL changed = ![[NSSet setWithArray:ids] isEqualToSet:enabledPacks()];
+	[NSUserDefaults.standardUserDefaults setObject:ids forKey:kPacksDefaultsKey];
+	if (!changed) {
+		[self onBack];
+		return;
+	}
+	UIAlertController *done = [UIAlertController alertControllerWithTitle:@"Mods saved"
+		message:@"Close the game and open it again: the packs you turned on download, and the files of those you turned off are removed."
+		preferredStyle:UIAlertControllerStyleAlert];
+	[done addAction:[UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:^(UIAlertAction *a) {
+		[self onBack];
+	}]];
+	[self presentViewController:done animated:YES completion:nil];
+}
+
+- (void)onBack
+{
+	[self dismissViewControllerAnimated:YES completion:nil];
+}
+
+@end
+
+static void iosOpenMods(void)
+{
+	dispatch_async(dispatch_get_main_queue(), ^{
+		UIViewController *host = [ZHSupport gameWindow].rootViewController;
+		ZHModsController *mods = [ZHModsController new];
+		mods.modalPresentationStyle = UIModalPresentationFullScreen;
+		[host presentViewController:mods animated:YES completion:nil];
+	});
+}
+
+static bool iosModsSummary(char *summary, int size)
+{
+	NSArray *packs = publishedPacks();
+	if (packs.count == 0) {
+		return false;
+	}
+	NSArray *installed = readState()[@"packs"];
+	snprintf(summary, size, "%lu of %lu on", (unsigned long)([installed isKindOfClass:NSArray.class] ? installed.count : 0),
+		(unsigned long)packs.count);
+	return true;
+}
+
+static bool iosGameplayMods(void)
+{
+	NSArray *installed = readState()[@"packs"];
+	if (![installed isKindOfClass:NSArray.class]) {
+		return false;
+	}
+	for (NSDictionary *pack in publishedPacks()) {
+		if ([pack[@"gameplay"] boolValue] && [installed containsObject:pack[@"id"]]) {
+			return true;
+		}
+	}
+	return false;
+}
+
 static bool iosReleaseNotes(const char *version, char *title, int titleSize, char *body, int bodySize)
 {
 	return s_latestNotes != nil && [s_latestNotes[@"version"] isEqual:@(version)]
@@ -1127,5 +1319,8 @@ extern "C" void ZHIOSInstallHooks(void)
 	h.shareSupportReport = iosShareSupportReport;
 	h.whatsNew = iosWhatsNew;
 	h.releaseNotes = iosReleaseNotes;
+	h.openMods = iosOpenMods;
+	h.modsSummary = iosModsSummary;
+	h.gameplayMods = iosGameplayMods;
 	checkForUpdatesInBackground();
 }

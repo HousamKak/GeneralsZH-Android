@@ -147,6 +147,15 @@ public class DataDownloadActivity extends Activity {
                     return;
                 }
                 if (todo.isEmpty()) {
+                    // Nothing new to fetch, but a release can still withdraw files, and the new
+                    // version must be recorded or it would be offered again on every start.
+                    if (DataPack.outOfDate(this, result)) {
+                        try {
+                            DataPack.commit(this, result);
+                        } catch (java.io.IOException e) {
+                            statusText.setText(getString(R.string.data_failed));
+                        }
+                    }
                     bodyText.setText(getString(R.string.data_up_to_date, result.version));
                     if (!fromSupport) {
                         goToGame();

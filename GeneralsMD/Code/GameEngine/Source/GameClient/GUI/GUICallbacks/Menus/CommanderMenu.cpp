@@ -93,6 +93,7 @@ namespace
 	GameWindow *s_buttonReport = nullptr;
 	GameWindow *s_buttonMore = nullptr;
 	GameWindow *s_buttonUpdate = nullptr;
+	GameWindow *s_buttonMods = nullptr;
 	GameWindow *s_buttonAccept = nullptr;
 	GameWindow *s_buttonBack = nullptr;
 
@@ -255,11 +256,36 @@ namespace
 		GadgetButtonSetText(s_buttonOnline, UnicodeString(s_signedIn ? L"SIGN OUT" : L"SIGN IN"));
 	}
 
+	// MODS, with how many packs are on ("MODS: 2 OF 5 ON"); hidden where the platform has none.
+	void refreshMods()
+	{
+		ZHCommander::Hooks &h = ZHCommander::hooks();
+		if (s_buttonMods == nullptr)
+			return;
+		if (h.openMods == nullptr)
+		{
+			s_buttonMods->winHide(TRUE);
+			return;
+		}
+		char summary[48];
+		UnicodeString text;
+		if (h.modsSummary != nullptr && h.modsSummary(summary, sizeof(summary)))
+		{
+			for (char *c = summary; *c; ++c)
+				*c = (char)toupper((unsigned char)*c);
+			text.format(L"MODS: %hs", summary);
+		}
+		else
+			text = L"MODS";
+		GadgetButtonSetText(s_buttonMods, text);
+	}
+
 	void signOutNow()
 	{
 		if (ZHCommander::hooks().onlineSignOut)
 			ZHCommander::hooks().onlineSignOut();
 		refreshOnline();
+		refreshMods();
 	}
 }
 
@@ -278,6 +304,7 @@ void CommanderMenuInit(WindowLayout *layout, void *userData)
 	s_buttonReport = find("ButtonReport");
 	s_buttonMore = find("ButtonMore");
 	s_buttonUpdate = find("ButtonUpdate");
+	s_buttonMods = find("ButtonMods");
 	s_buttonAccept = find("ButtonAccept");
 	s_buttonBack = find("ButtonBack");
 
@@ -310,6 +337,7 @@ void CommanderMenuInit(WindowLayout *layout, void *userData)
 	}
 	s_onlinePollFrames = 0;
 	refreshOnline();
+	refreshMods();
 	setLabel(find("LabelStatus"), L"Changes take effect when the game starts again.");
 
 	// Values on entry, from the same places the game reads them at startup.
@@ -358,12 +386,12 @@ void CommanderMenuInit(WindowLayout *layout, void *userData)
 		UnicodeString text;
 		if (h.appUpdateOffer != nullptr && h.appUpdateOffer(offer, sizeof(offer), &mandatory))
 		{
-			text.format(L"INSTALL ZH COMMANDER %hs", offer);
+			text.format(L"INSTALL %hs", offer);
 			s_buttonUpdate->winEnable(TRUE);
 		}
 		else
 		{
-			text = L"NO UPDATE WAITING";
+			text = L"UP TO DATE";
 			s_buttonUpdate->winEnable(FALSE);
 		}
 		GadgetButtonSetText(s_buttonUpdate, text);
@@ -385,6 +413,7 @@ void CommanderMenuUpdate(WindowLayout *layout, void *userData)
 	{
 		s_onlinePollFrames = 0;
 		refreshOnline();
+		refreshMods();
 	}
 }
 
@@ -396,7 +425,7 @@ void CommanderMenuShutdown(WindowLayout *layout, void *userData)
 		s_rows[i].label = nullptr;
 		s_rows[i].button = nullptr;
 	}
-	s_buttonReport = s_buttonMore = s_buttonUpdate = s_buttonAccept = s_buttonBack = nullptr;
+	s_buttonReport = s_buttonMore = s_buttonUpdate = s_buttonMods = s_buttonAccept = s_buttonBack = nullptr;
 	s_labelOnline = s_buttonOnline = nullptr;
 
 	layout->hide(TRUE);
@@ -440,6 +469,8 @@ WindowMsgHandledType CommanderMenuSystem(GameWindow *window, UnsignedInt msg,
 			}
 			else if (control == s_buttonMore && h.openMoreSettings)
 				h.openMoreSettings();
+			else if (control == s_buttonMods && s_buttonMods != nullptr && h.openMods)
+				h.openMods();
 			else if (control == s_buttonUpdate && h.startAppUpdate)
 				h.startAppUpdate();
 			else if (control == s_buttonBack)

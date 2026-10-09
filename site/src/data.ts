@@ -24,9 +24,11 @@ export interface DataManifest {
 	version: string;
 	published?: string;
 	files: DataFile[];
+	// Optional packs (upload-data.py): mods a player turns on in the game.
+	packs?: { id: string; title: { en: string; ar: string }; description?: { en: string; ar: string }; gameplay?: boolean; size?: number; files: DataFile[] }[];
 }
 
-export const DATA_KEY_RE = /^data\/[A-Za-z0-9._-]{1,64}\/(?:[A-Za-z0-9._ !-]{1,120}\/){0,4}[A-Za-z0-9._ !-]{1,120}$/;
+export const DATA_KEY_RE = /^data\/[A-Za-z0-9._-]{1,64}\/(?:[A-Za-z0-9._ !-]{1,120}\/){0,6}[A-Za-z0-9._ !-]{1,120}$/; // deep enough for _packs/<id>/...
 const MANIFEST_KEY = "data/manifest.json";
 
 export async function dataManifest(request: Request, env: DataEnv): Promise<Response> {
@@ -68,7 +70,16 @@ export async function publishData(request: Request, env: DataEnv): Promise<Respo
 	if (!manifest?.version || !Array.isArray(manifest.files) || manifest.files.length === 0) {
 		return Response.json({ error: "bad_manifest" }, { status: 400 });
 	}
-	for (const file of manifest.files) {
+	// Optional packs (mods a player turns on in the game): each lists its own files, kept apart
+	// from "files" so app versions from before packs never download them.
+	const packs = Array.isArray(manifest.packs) ? manifest.packs : [];
+	for (const pack of packs) {
+		if (!/^[a-z0-9][a-z0-9-]{0,39}$/.test(pack?.id ?? "") || !Array.isArray(pack.files) || pack.files.length === 0
+			|| !pack.title?.en || !pack.title?.ar) {
+			return Response.json({ error: "bad_pack", message: "each pack needs an id, an en/ar title and files" }, { status: 400 });
+		}
+	}
+	for (const file of [...manifest.files, ...packs.flatMap((p) => p.files)]) {
 		if (!DATA_KEY_RE.test(file.key ?? "") || file.key.includes("..") || !/^[0-9a-f]{64}$/.test(file.sha256 ?? "")) {
 			return Response.json({ error: "bad_file", file: file.path }, { status: 400 });
 		}

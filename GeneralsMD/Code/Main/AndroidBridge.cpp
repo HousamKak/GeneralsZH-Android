@@ -186,6 +186,19 @@ static bool onlineAccount(char *name, int size)
 	return callString("onlineAccount", nullptr, name, size) && name[0] != '\0';
 }
 
+static void openMods() { callVoid("openMods"); }
+
+static bool modsSummary(char *summary, int size)
+{
+	return callString("modsSummary", nullptr, summary, size) && summary[0] != '\0';
+}
+
+static bool gameplayMods()
+{
+	char yes[8];
+	return callString("gameplayMods", nullptr, yes, sizeof(yes));
+}
+
 static void onlineSignIn() { callVoid("onlineSignIn"); }
 static void onlineSignOut() { callVoid("onlineSignOut"); }
 static void startAppUpdate() { callVoid("startAppUpdate"); }
@@ -224,6 +237,9 @@ void ZHAndroidInstallHooks()
 	h.onlineAccount = onlineAccount;
 	h.onlineSignIn = onlineSignIn;
 	h.onlineSignOut = onlineSignOut;
+	h.openMods = openMods;
+	h.modsSummary = modsSummary;
+	h.gameplayMods = gameplayMods;
 	h.whatsNew = whatsNew;
 	h.releaseNotes = releaseNotes;
 	fprintf(stderr, "INFO: ZH Commander %s\n", appVersion());

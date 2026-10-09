@@ -69,6 +69,13 @@ namespace ZHCommander
 		bool (*whatsNew)(char *title, int titleSize, char *body, int bodySize);
 		bool (*releaseNotes)(const char *version, char *title, int titleSize, char *body, int bodySize);
 
+		// Optional packs (mods) of the game data: the shell's mods screen, a one-line summary
+		// ("2 of 5 on"; false when none are published), and whether an installed pack changes
+		// gameplay (online players must all have the same data).
+		void (*openMods)();
+		bool (*modsSummary)(char *summary, int size);
+		bool (*gameplayMods)();
+
 		// Something worth counting happened ("engine_boot"), for the app's usage monitor. Client
 		// side only: never called from game logic, which must stay deterministic.
 		void (*event)(const char *name);

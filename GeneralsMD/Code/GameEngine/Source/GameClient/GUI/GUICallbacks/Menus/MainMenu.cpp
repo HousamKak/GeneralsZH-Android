@@ -664,6 +664,12 @@ static UnicodeString utf8ToUnicode( const char *s )
 
 static Bool s_whatsNewAsked = FALSE;
 
+static void openMods()
+{
+	if (ZHCommander::hooks().openMods)
+		ZHCommander::hooks().openMods();
+}
+
 static void onlineSignIn()
 {
 	if (ZHCommander::hooks().onlineSignIn)
@@ -1937,6 +1943,18 @@ WindowMsgHandledType MainMenuSystem( GameWindow *window, UnsignedInt msg,
 						UnicodeString( L"Sign in to GeneralsOnline to play online. The sign-in opens in your "
 							L"browser and brings you back here; then press Online again." ),
 						onlineSignIn, nullptr );
+					break;
+				}
+				// GeneralsX @feature ZH Commander 10/10/2026 A mod that changes gameplay (an optional
+				// pack with INI or scripts) makes this game compute differently from players without
+				// it: an online match would refuse to start or fall out of sync. Say so first.
+				if (ZHCommander::hooks().gameplayMods != nullptr && ZHCommander::hooks().gameplayMods())
+				{
+					MessageBoxOkCancel( UnicodeString( L"GENERALSONLINE" ),
+						UnicodeString( L"A mod that changes gameplay is on. Online, every player needs the same "
+							L"game data, so matches with players who do not have it will not work. Open MODS "
+							L"to turn it off?" ),
+						openMods, nullptr );
 					break;
 				}
 				dontAllowTransitions = TRUE;
