@@ -131,9 +131,8 @@ final class ZHBridge {
 
     /** Opens the sign-in straight into the browser; back to the game when it is done. */
     static void onlineSignIn() {
-        Activity a = game();
-        a.startActivity(new Intent(a, GeneralsOnlineActivity.class)
-            .putExtra(GeneralsOnlineActivity.EXTRA_FROM_GAME, true));
+        // Browser and back, straight into the game: no account screen in between (GameSignIn).
+        GameSignIn.start(game());
     }
 
     /** Opens GameReplays, the easiest account to sign in to GeneralsOnline with. */
