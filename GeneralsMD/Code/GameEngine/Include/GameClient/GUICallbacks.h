@@ -170,6 +170,13 @@ extern void ExtrasMenuShutdown( WindowLayout *layout, void *userData );
 extern WindowMsgHandledType ExtrasMenuSystem( GameWindow *window, UnsignedInt msg, WindowMsgData mData1, WindowMsgData mData2 );
 extern WindowMsgHandledType ExtrasMenuInput( GameWindow *window, UnsignedInt msg, WindowMsgData mData1, WindowMsgData mData2 );
 
+// ZH Commander settings (Options menu) ---------------------------------------------------------------------------
+extern void CommanderMenuInit( WindowLayout *layout, void *userData );
+extern void CommanderMenuUpdate( WindowLayout *layout, void *userData );
+extern void CommanderMenuShutdown( WindowLayout *layout, void *userData );
+extern WindowMsgHandledType CommanderMenuSystem( GameWindow *window, UnsignedInt msg, WindowMsgData mData1, WindowMsgData mData2 );
+extern WindowMsgHandledType CommanderMenuInput( GameWindow *window, UnsignedInt msg, WindowMsgData mData1, WindowMsgData mData2 );
+
 // Popup host Game Internet -----------------------------------------------------------------------------------
 extern void DifficultySelectInit( WindowLayout *layout, void *userData );
 extern WindowMsgHandledType DifficultySelectSystem( GameWindow *window, UnsignedInt msg, WindowMsgData mData1, WindowMsgData mData2 );

@@ -436,16 +436,21 @@ static void TryLoadCustomVulkanDriver(const char *internalPath)
 }
 #endif // __ANDROID__
 
+#if defined(__ANDROID__)
+void ZHAndroidInstallHooks();  // AndroidBridge.cpp
+#endif
+
 #if defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE
 #include <dirent.h>
 
-// IOSGate.mm: activation and game-data download before the engine starts, and the Support
-// button over the game.
+// IOSGate.mm: activation and game-data download before the engine starts, and the hooks the
+// game's menus use for the app version, updates and the support report (ZHCommander.h).
 extern "C" bool ZHIOSRunGate(void);
-extern "C" void ZHIOSInstallSupportButton(void);
+extern "C" void ZHIOSInstallHooks(void);
 
-// GeneralsX @feature ZH Commander 09/10/2026 Copy every file under src (one level of
-// subfolders, enough for fonts/) to dest, skipping files dest already has.
+// GeneralsX @feature ZH Commander 09/10/2026 Copy every file under src to dest, skipping files
+// dest already has -- except our own screens under Window/, which nobody edits and which must
+// change with each release (the same rule as GeneralsZHActivity's ALWAYS_OVERWRITE_PREFIX).
 static void copyRuntimeIfMissing(const char *src, const char *dest)
 {
 	DIR *dir = opendir(src);
@@ -469,7 +474,7 @@ static void copyRuntimeIfMissing(const char *src, const char *dest)
 			copyRuntimeIfMissing(from, to);
 			continue;
 		}
-		if (access(to, F_OK) == 0) {
+		if (access(to, F_OK) == 0 && strstr(from, "/Runtime/Window/") == nullptr) {
 			continue;
 		}
 		FILE *in = fopen(from, "rb");
@@ -649,7 +654,7 @@ int main(int argc, char* argv[])
 			// GeneralsX @feature ZH Commander 09/10/2026 Without bundled assets the game data is
 			// downloaded into Documents after activation; the gate returns once both are in place.
 			ZHIOSRunGate();
-			ZHIOSInstallSupportButton();
+			ZHIOSInstallHooks();
 		}
 
 		if (home != nullptr) {
@@ -1463,6 +1468,12 @@ int main(int argc, char* argv[])
 		}
 #endif
 		}
+
+#if defined(__ANDROID__)
+		// GeneralsX @feature ZH Commander 09/10/2026 The app version, updates, settings and the
+		// support report for the game's own menus (ZHCommander.h, AndroidBridge.cpp).
+		ZHAndroidInstallHooks();
+#endif
 
 		// Call cross-platform game entry point
 		exitcode = GameMain();

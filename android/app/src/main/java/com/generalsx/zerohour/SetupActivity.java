@@ -150,6 +150,11 @@ public class SetupActivity extends Activity {
         // the game's corner button (EXTRA_SUPPORT), or what a device without game data lands on.
         supportFromGame = getIntent().getBooleanExtra(EXTRA_SUPPORT, false);
         noGameData = getIntent().getBooleanExtra(EXTRA_NO_GAME_DATA, false);
+        if (supportFromGame && getIntent().getBooleanExtra(EXTRA_SHARE_REPORT, false)) {
+            SupportReport.share(this, buildSupportSummary());
+            finish();
+            return;
+        }
         if (!supportFromGame && savedInstanceState == null) {
             // No game data yet: it is downloaded after activation (DataPack), not bundled.
             if (!hasGameData() || DataPack.downloadIncomplete(this)) {
@@ -169,14 +174,13 @@ public class SetupActivity extends Activity {
                     }
                 }, "GXUpdateCheck").start();
             }
-            // What an earlier check found is offered before the game starts -- a newer APK first,
-            // then newer game data; each goes on to the game itself when the player picks Later.
+            // A required release is installed before the game starts. Everything else that a
+            // check finds (an optional release, newer game data) the game offers itself, on its
+            // main menu (MainMenu.cpp, through ZHBridge).
             Class<?> next = GeneralsZHActivity.class;
             UpdateManager.AppOffer offer = UpdateManager.appOffer(this);
-            if (offer != null && (offer.mandatory || !UpdateActivity.sLaterThisProcess)) {
+            if (offer != null && offer.mandatory) {
                 next = UpdateActivity.class;
-            } else if (!DataDownloadActivity.sLaterThisProcess && DataPack.updateAvailable(this)) {
-                next = DataDownloadActivity.class;
             }
             startActivity(new Intent(this, next));
             finish();
@@ -304,6 +308,8 @@ public class SetupActivity extends Activity {
     // the folder pickers; the game-data check now only feeds the report.
     static final String EXTRA_SUPPORT = "com.housamkak.zhcommander.SUPPORT";
     static final String EXTRA_NO_GAME_DATA = "com.housamkak.zhcommander.NO_GAME_DATA";
+    // The game's Support button (ZHBridge): straight to the share sheet, then back to the game.
+    static final String EXTRA_SHARE_REPORT = "com.housamkak.zhcommander.SHARE_REPORT";
     private static final String STATE_TAB = "gzh_tab";
     private static final int TAB_GRAPHICS = 2;
     private static final int TAB_INTERFACE = 3;
@@ -1364,7 +1370,12 @@ public class SetupActivity extends Activity {
     // here: preserves today's actual behavior for existing installs instead
     // of silently switching anyone's renderer the next time Setup runs.
     private String getRenderBackendChoice() {
-        File cfg = new File(getFilesDir(), RENDER_BACKEND_CFG_NAME);
+        return renderBackendChoice(this);
+    }
+
+    // Also what the game's own settings screen shows (ZHBridge).
+    static String renderBackendChoice(android.content.Context ctx) {
+        File cfg = new File(ctx.getFilesDir(), RENDER_BACKEND_CFG_NAME);
         if (!cfg.isFile()) {
             return RENDER_BACKEND_GLES;
         }

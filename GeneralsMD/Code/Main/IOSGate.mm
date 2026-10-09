@@ -9,8 +9,8 @@
 //   2. the game data is in Documents (the engine's working directory on iOS) -- downloaded from
 //      the site with the license, resumed over HTTP Range, every file checked against the
 //      manifest's SHA-256, an update offered when a newer data version is published.
-// Then the window goes away and the engine starts. ZHIOSInstallSupportButton() puts a small
-// button over the game's window that shares a support report (device, versions, logs).
+// Then the window goes away and the engine starts. ZHIOSInstallHooks() gives the game's own
+// menus the app version, update offers and the support report (ZHCommander.h).
 //
 // Updates of the app itself come through AltStore/SideStore (the site's /altstore.json), so
 // there is no in-app updater here.
@@ -19,6 +19,8 @@
 #import <Security/Security.h>
 #import <CommonCrypto/CommonDigest.h>
 #import <CoreText/CoreText.h>
+
+#include "Common/ZHCommander.h"
 
 static NSString *const kActivateURL = @"https://gzh-license.housam-kak20.workers.dev/v1/activate";
 static NSString *const kSite = @"https://zerohour.housamkak.com";
@@ -829,10 +831,12 @@ extern "C" bool ZHIOSRunGate(void)
 	return true;
 }
 
-// ---------------------------------------------------------------- support button
+// ---------------------------------------------------------------- hooks for the game's menus
+
+// The game's own menus (MainMenu.cpp, CommanderMenu.cpp) show the version, offer updates and the
+// support report through ZHCommander.h. The engine runs on the main thread, as these do.
 
 @interface ZHSupport : NSObject
-+ (void)attach;
 @end
 
 @implementation ZHSupport
@@ -847,48 +851,6 @@ extern "C" bool ZHIOSRunGate(void)
 	return nil;
 }
 
-+ (void)attach
-{
-	UIWindow *window = [self gameWindow];
-	if (window == nil) {
-		// The engine creates its window a moment after the gate closes.
-		dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-			[ZHSupport attach];
-		});
-		return;
-	}
-	UIButton *button = [UIButton buttonWithType:UIButtonTypeSystem];
-	[button setImage:[UIImage systemImageNamed:@"wrench.and.screwdriver"] forState:UIControlStateNormal];
-	button.tintColor = UIColor.whiteColor;
-	button.backgroundColor = [UIColor colorWithWhite:0 alpha:0.5];
-	button.layer.cornerRadius = 18;
-	button.alpha = 0.7;
-	button.accessibilityLabel = @"Support";
-	button.translatesAutoresizingMaskIntoConstraints = NO;
-	[button addTarget:self action:@selector(onTap:) forControlEvents:UIControlEventTouchUpInside];
-	UIView *host = window.rootViewController.view;
-	[host addSubview:button];
-	[NSLayoutConstraint activateConstraints:@[
-		[button.widthAnchor constraintEqualToConstant:36],
-		[button.heightAnchor constraintEqualToConstant:36],
-		[button.topAnchor constraintEqualToAnchor:host.safeAreaLayoutGuide.topAnchor constant:10],
-		[button.trailingAnchor constraintEqualToAnchor:host.safeAreaLayoutGuide.trailingAnchor constant:-10],
-	]];
-}
-
-+ (void)onTap:(UIButton *)button
-{
-	UIViewController *host = [self gameWindow].rootViewController;
-	UIAlertController *sheet = [UIAlertController alertControllerWithTitle:@"Support"
-		message:[self versionLine] preferredStyle:UIAlertControllerStyleActionSheet];
-	[sheet addAction:[UIAlertAction actionWithTitle:@"Create and send report" style:UIAlertActionStyleDefault
-		handler:^(UIAlertAction *a) { [self shareReportFrom:button]; }]];
-	[sheet addAction:[UIAlertAction actionWithTitle:@"Back to the game" style:UIAlertActionStyleCancel handler:nil]];
-	sheet.popoverPresentationController.sourceView = button;  // iPad presents sheets as popovers
-	sheet.popoverPresentationController.sourceRect = button.bounds;
-	[host presentViewController:sheet animated:YES completion:nil];
-}
-
 + (NSString *)versionLine
 {
 	NSDictionary *info = NSBundle.mainBundle.infoDictionary;
@@ -896,8 +858,12 @@ extern "C" bool ZHIOSRunGate(void)
 		info[@"CFBundleShortVersionString"], info[@"CFBundleVersion"], readState()[@"version"] ?: @"none"];
 }
 
-+ (void)shareReportFrom:(UIButton *)button
++ (void)shareReport
 {
+	UIViewController *host = [self gameWindow].rootViewController;
+	if (host == nil) {
+		return;
+	}
 	NSMutableString *report = [NSMutableString stringWithString:@"ZH Commander support report\n\n"];
 	[report appendFormat:@"%@\n", [self versionLine]];
 	UIDevice *d = UIDevice.currentDevice;
@@ -922,16 +888,114 @@ extern "C" bool ZHIOSRunGate(void)
 	[report writeToFile:reportPath atomically:YES encoding:NSUTF8StringEncoding error:nil];
 	[items insertObject:[NSURL fileURLWithPath:reportPath] atIndex:0];
 	UIActivityViewController *share = [[UIActivityViewController alloc] initWithActivityItems:items applicationActivities:nil];
-	share.popoverPresentationController.sourceView = button;
-	share.popoverPresentationController.sourceRect = button.bounds;
-	[[self gameWindow].rootViewController presentViewController:share animated:YES completion:nil];
+	// iPad presents the sheet as a popover, which needs an anchor: the middle of the screen.
+	UIView *view = host.view;
+	share.popoverPresentationController.sourceView = view;
+	share.popoverPresentationController.sourceRect = CGRectMake(CGRectGetMidX(view.bounds), CGRectGetMidY(view.bounds), 1, 1);
+	share.popoverPresentationController.permittedArrowDirections = 0;
+	[host presentViewController:share animated:YES completion:nil];
 }
 
 @end
 
-extern "C" void ZHIOSInstallSupportButton(void)
+// What the checks below found while the game runs: the gate already made sure the app and the
+// data were current when it started, so these only change when something is published mid-game.
+static NSString *s_latestApp;
+static NSString *s_latestData;
+
+static void checkForUpdatesInBackground(void)
+{
+	NSMutableURLRequest *source = [NSMutableURLRequest requestWithURL:
+		[NSURL URLWithString:[kSite stringByAppendingString:@"/altstore.json"]]];
+	source.cachePolicy = NSURLRequestReloadIgnoringLocalCacheData;
+	[[NSURLSession.sharedSession dataTaskWithRequest:source
+		completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
+			NSDictionary *json = data ? [NSJSONSerialization JSONObjectWithData:data options:0 error:nil] : nil;
+			NSArray *apps = [json isKindOfClass:NSDictionary.class] ? json[@"apps"] : nil;
+			NSDictionary *app = [apps isKindOfClass:NSArray.class] ? apps.firstObject : nil;
+			NSArray *versions = [app isKindOfClass:NSDictionary.class] ? app[@"versions"] : nil;
+			NSString *latest = [versions isKindOfClass:NSArray.class] && versions.count > 0 ? versions.firstObject[@"version"] : nil;
+			if ([latest isKindOfClass:NSString.class]) {
+				dispatch_async(dispatch_get_main_queue(), ^{ s_latestApp = latest; });
+			}
+		}] resume];
+
+	NSString *license = storedLicense();
+	if (license == nil) {
+		return;
+	}
+	NSMutableURLRequest *manifest = [NSMutableURLRequest requestWithURL:
+		[NSURL URLWithString:[kSite stringByAppendingString:@"/api/data/manifest"]]];
+	[manifest setValue:license forHTTPHeaderField:@"X-ZH-License"];
+	[[NSURLSession.sharedSession dataTaskWithRequest:manifest
+		completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
+			NSDictionary *json = data ? [NSJSONSerialization JSONObjectWithData:data options:0 error:nil] : nil;
+			NSString *version = [json isKindOfClass:NSDictionary.class] ? json[@"version"] : nil;
+			if ([version isKindOfClass:NSString.class]) {
+				dispatch_async(dispatch_get_main_queue(), ^{ s_latestData = version; });
+			}
+		}] resume];
+}
+
+static const char *iosAppVersion(void)
+{
+	static char s_version[32];
+	if (s_version[0] == '\0') {
+		NSString *mine = NSBundle.mainBundle.infoDictionary[@"CFBundleShortVersionString"];
+		snprintf(s_version, sizeof(s_version), "%s", mine.UTF8String ?: "?");
+	}
+	return s_version;
+}
+
+// Releases are required on iOS (see updateRequired above): the next start will not go past the gate.
+static bool iosAppUpdateOffer(char *version, int size, bool *mandatory)
+{
+	NSString *mine = NSBundle.mainBundle.infoDictionary[@"CFBundleShortVersionString"];
+	if (s_latestApp == nil || mine == nil || [mine compare:s_latestApp options:NSNumericSearch] != NSOrderedAscending) {
+		return false;
+	}
+	snprintf(version, size, "%s", s_latestApp.UTF8String);
+	*mandatory = true;
+	return true;
+}
+
+static void iosStartAppUpdate(void)
+{
+	// SideStore first, then AltStore; whichever the player installed answers.
+	UIApplication *app = UIApplication.sharedApplication;
+	[app openURL:[NSURL URLWithString:@"sidestore://"] options:@{} completionHandler:^(BOOL opened) {
+		if (!opened) {
+			[app openURL:[NSURL URLWithString:@"altstore://"] options:@{} completionHandler:nil];
+		}
+	}];
+}
+
+// Downloaded by the gate on the next start; iOS apps cannot restart themselves, so there is no
+// startDataUpdate and the game asks the player to close and reopen it.
+static bool iosDataUpdateOffer(char *version, int size)
+{
+	NSString *installed = readState()[@"version"];
+	if (s_latestData == nil || installed == nil || [s_latestData isEqual:installed]) {
+		return false;
+	}
+	snprintf(version, size, "%s", s_latestData.UTF8String);
+	return true;
+}
+
+static void iosShareSupportReport(void)
 {
 	dispatch_async(dispatch_get_main_queue(), ^{
-		[ZHSupport attach];
+		[ZHSupport shareReport];
 	});
+}
+
+extern "C" void ZHIOSInstallHooks(void)
+{
+	ZHCommander::Hooks &h = ZHCommander::hooks();
+	h.appVersion = iosAppVersion;
+	h.appUpdateOffer = iosAppUpdateOffer;
+	h.startAppUpdate = iosStartAppUpdate;
+	h.dataUpdateOffer = iosDataUpdateOffer;
+	h.shareSupportReport = iosShareSupportReport;
+	checkForUpdatesInBackground();
 }

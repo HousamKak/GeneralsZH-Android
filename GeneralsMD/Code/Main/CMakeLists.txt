@@ -121,6 +121,9 @@ target_sources(z_generals PRIVATE
     # dlopen'd (ELF constructor), before any engine code — captures crashes that
     # happen before SDL3Main.cpp's own logging is ready.
     $<$<BOOL:${ANDROID}>:AndroidCrashHandler.cpp>
+    # GeneralsX @feature ZH Commander 09/10/2026 JNI half of ZHCommander.h (the game's own menus
+    # asking the app for its version, updates, settings and the support report).
+    $<$<BOOL:${ANDROID}>:AndroidBridge.cpp>
     # GeneralsX @bugfix Android port 22/09/2026 Float transcendentals with the reference
     # client's semantics (double, rounded once), bound inside this binary. See the file.
     $<$<NOT:$<BOOL:${MSVC}>>:ReferenceFloatMath.cpp>

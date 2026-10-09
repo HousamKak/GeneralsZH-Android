@@ -77,6 +77,11 @@ final class DataPack {
         return state != null ? state.optString("version", null) : null;
     }
 
+    /** The data version the last check saw published, or null before the first check. */
+    static String latestVersion(Context ctx) {
+        return ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY_LATEST, null);
+    }
+
     /** True when the last check saw a data version other than the installed one. */
     static boolean updateAvailable(Context ctx) {
         String latest = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY_LATEST, null);

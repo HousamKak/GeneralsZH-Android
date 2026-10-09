@@ -74,6 +74,9 @@
 #include "WWDownload/Registry.h"
 #include "GameClient/MessageBox.h"
 #include "GameNetwork/GeneralsOnline/OnlineServices_Init.h"
+#include "Common/ZHCommander.h"
+#include "GameClient/GadgetPushButton.h"
+#include "GameClient/GXButtonLook.h"
 
 #include "ww3d.h"
 #include "texturefilter.h"
@@ -218,6 +221,8 @@ static Bool ignoreSelected = FALSE;
 WindowLayout *OptionsLayout = nullptr;
 
 static OptionPreferences *pref = nullptr;
+// GeneralsX @feature ZH Commander 09/10/2026 Opens CommanderMenu.wnd; see OptionsMenuSystem().
+static GameWindow *commanderButton = nullptr;
 
 static void setDefaults()
 {
@@ -961,7 +966,14 @@ static void initLabelVersion()
 
 	if (labelVersion)
 	{
-		if (TheVersion && TheGlobalData)
+		// GeneralsX @feature ZH Commander 09/10/2026 The app's release is what a player reports.
+		if (ZHCommander::appVersion() != nullptr)
+		{
+			UnicodeString text;
+			text.format(L"ZH Commander %hs", ZHCommander::appVersion());
+			GadgetStaticTextSetText( labelVersion, text );
+		}
+		else if (TheVersion && TheGlobalData)
 		{
 			UnicodeString text = TheVersion->getUnicodeProductVersionHashString();
 			GadgetStaticTextSetText( labelVersion, text );
@@ -1576,8 +1588,41 @@ WindowMsgHandledType OptionsMenuSystem( GameWindow *window, UnsignedInt msg,
 			buttonAccept = TheNameKeyGenerator->nameToKey( "OptionsMenu.wnd:ButtonAccept" );
 			buttonKeyboardOptionsMenu = TheNameKeyGenerator->nameToKey( "OptionsMenu.wnd:ButtonKeyboardOptions" );
 
-			// GeneralsX @feature fbraz3 08/06/2026 Create Extras button dynamically
-			// (OptionsMenu.wnd in WindowZH.big has no ButtonExtras, so we add it at runtime)
+			// GeneralsX @feature ZH Commander 09/10/2026 Where the app wraps the game (Android, iOS),
+			// its own settings, the support report and updates open from a ZH COMMANDER button in the
+			// panel's top right, beside the title, styled as the panel's own buttons. Not during a
+			// match: the screen it opens replaces the shell, which a match is not part of. It takes
+			// the place of Extras, whose layout is not shipped with the mobile builds.
+			commanderButton = nullptr;
+			if (ZHCommander::appVersion() != nullptr)
+			{
+				GameWindow *backBtn = TheWindowManager->winGetWindowFromId(window, buttonBack);
+				const Bool inMatch = TheGameLogic->isInGame() && !TheGameLogic->isInShellGame();
+				if (backBtn && !inMatch) {
+					GameWindow *parent = backBtn->winGetParent();
+					Int bx, by, bw, bh, px = 0, py = 0;
+					backBtn->winGetScreenPosition(&bx, &by);
+					backBtn->winGetSize(&bw, &bh);
+					if (parent)
+						parent->winGetScreenPosition(&px, &py);
+					// The layout's Back sits at y 528 of 600 and the title row at 22: same column,
+					// the same distance up, in the layout's own scale.
+					const Int y = by - (528 - 22) * bh / 32;
+
+					WinInstanceData instData;
+					instData.init();
+					BitSet(instData.m_style, GWS_PUSH_BUTTON | GWS_MOUSE_TRACK);
+					commanderButton = TheWindowManager->gogoGadgetPushButton(
+						parent, WIN_STATUS_ENABLED | WIN_STATUS_IMAGE,
+						bx - px, y - py, bw, bh, &instData, nullptr, TRUE);
+					if (commanderButton) {
+						commanderButton->winSetWindowId(TheNameKeyGenerator->nameToKey("OptionsMenu.wnd:ButtonZHCommander"));
+						GXCopyButtonLook(commanderButton, backBtn);
+						GadgetButtonSetText(commanderButton, UnicodeString(L"ZH COMMANDER"));
+					}
+				}
+			}
+			else
 			{
 				GameWindow *backBtn = TheWindowManager->winGetWindowFromId(window, buttonBack);
 				if (backBtn) {
@@ -1722,6 +1767,18 @@ WindowMsgHandledType OptionsMenuSystem( GameWindow *window, UnsignedInt msg,
 			else if ( controlID == buttonExtrasMenu )
 			{
 				TheShell->push( "Menus/ExtrasMenu.wnd" );
+			}
+			else if ( commanderButton != nullptr && control == commanderButton )
+			{
+				// Closed as Back closes it (unsaved changes here are dropped), so this menu's
+				// preferences cannot later overwrite what the ZH Commander screen saves.
+				delete pref;
+				pref = nullptr;
+				comboBoxLANIP = nullptr;
+				comboBoxOnlineIP = nullptr;
+				commanderButton = nullptr;
+				DestroyOptionsLayout();
+				TheShell->push( "Menus/CommanderMenu.wnd" );
 			}
 			else if(controlID == checkDrawAnchorID )
       {

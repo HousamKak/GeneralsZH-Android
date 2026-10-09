@@ -85,6 +85,8 @@
 #ifdef SAGE_UPDATE_CHECK
 #include "Common/UpdateChecker.h"
 #include "GameClient/GadgetPushButton.h"
+#include "GameClient/GXButtonLook.h"
+#include "Common/ZHCommander.h"
 #include <SDL3/SDL.h>
 #endif
 
@@ -200,6 +202,13 @@ static Bool startGame = FALSE;
 static Int	initialGadgetDelay = 210;
 // GeneralsX @bugfix BenderAI 31/03/2026 Keep fallback credit label tied to main menu lifecycle so it does not leak into gameplay.
 static GameWindow *fallbackCreditLabel = nullptr;
+// GeneralsX @feature ZH Commander 09/10/2026 SUPPORT under the main buttons, and what the app
+// offers (a newer release, newer game data) asked once the menu is up. See zhCommanderUpdate().
+static GameWindow *supportButton = nullptr;
+static Bool s_appOfferAsked = FALSE;
+static Bool s_appOfferMandatory = FALSE;
+static Bool s_dataOfferAsked = FALSE;
+static Int s_offerPollFrames = 0;
 
 enum
 {
@@ -515,6 +524,9 @@ static void initLabelVersion()
 #else
 	creditText.translate("GeneralsX - Multiplatform C&C Generals");
 #endif
+	// GeneralsX @feature ZH Commander 09/10/2026 The app's own release, the number players quote.
+	if (ZHCommander::appVersion() != nullptr)
+		creditText.format(L"ZH Commander %hs - C&C Generals Zero Hour", ZHCommander::appVersion());
 
 	if (labelVersion)
 	{
@@ -562,6 +574,139 @@ static void initLabelVersion()
 				GadgetStaticTextSetText(fallbackCreditLabel, creditText);
 				fitCreditLabel(fallbackCreditLabel, creditText);
 			}
+		}
+	}
+}
+
+// GeneralsX @feature ZH Commander 09/10/2026 SUPPORT, one more button under Exit in the main
+// column, drawn from Exit's own art and font. The column's two frames (MapBorder2 and EarthMap2,
+// which take the taps for the buttons inside them) grow by one button step to hold it. Taps reach
+// MainMenuSystem through EarthMap2's PassSelectedButtonsToParentSystem, like the other buttons.
+static Int s_supportStep = 0;
+
+static void growSupportFrames( Int by )
+{
+	// EarthMap2, then MapBorder2.
+	GameWindow *frame = buttonExit ? buttonExit->winGetParent() : nullptr;
+	for (Int level = 0; level < 2 && frame != nullptr && frame != parentMainMenu; ++level, frame = frame->winGetParent())
+	{
+		Int w, h;
+		frame->winGetSize( &w, &h );
+		frame->winSetSize( w, h + by );
+	}
+}
+
+static void createSupportButton()
+{
+	if (ZHCommander::hooks().shareSupportReport == nullptr || buttonExit == nullptr || buttonCredits == nullptr
+		|| supportButton != nullptr)
+		return;
+	GameWindow *column = buttonExit->winGetParent();
+	if (column == nullptr)
+		return;
+	Int exitX, exitY, exitW, exitH, creditsX, creditsY, columnX, columnY;
+	buttonExit->winGetScreenPosition( &exitX, &exitY );
+	buttonExit->winGetSize( &exitW, &exitH );
+	buttonCredits->winGetScreenPosition( &creditsX, &creditsY );
+	column->winGetScreenPosition( &columnX, &columnY );
+	const Int step = exitY - creditsY;
+	if (step <= 0)
+		return;
+
+	WinInstanceData instData;
+	instData.init();
+	BitSet( instData.m_style, GWS_PUSH_BUTTON | GWS_MOUSE_TRACK );
+	supportButton = TheWindowManager->gogoGadgetPushButton( column, WIN_STATUS_ENABLED | WIN_STATUS_IMAGE,
+		exitX - columnX, exitY + step - columnY, exitW, exitH, &instData, nullptr, TRUE );
+	if (supportButton == nullptr)
+		return;
+	GXCopyButtonLook( supportButton, buttonExit );
+	GadgetButtonSetText( supportButton, UnicodeString( L"SUPPORT" ) );
+
+	growSupportFrames( step );
+	s_supportStep = step;
+}
+
+static void destroySupportButton()
+{
+	if (supportButton == nullptr)
+		return;
+	growSupportFrames( -s_supportStep );
+	s_supportStep = 0;
+	TheWindowManager->winDestroy( supportButton );
+	supportButton = nullptr;
+}
+
+static void shareSupportReport()
+{
+	if (ZHCommander::hooks().shareSupportReport)
+		ZHCommander::hooks().shareSupportReport();
+}
+
+static void startAppUpdate()
+{
+	if (ZHCommander::hooks().startAppUpdate)
+		ZHCommander::hooks().startAppUpdate();
+}
+
+static void startDataUpdate()
+{
+	if (ZHCommander::hooks().startDataUpdate)
+		ZHCommander::hooks().startDataUpdate();
+}
+
+// GeneralsX @feature ZH Commander 09/10/2026 What the app found newer than this install, asked
+// in the game's own dialog once the menu is up and quiet: a release first, then game data. The
+// app checks in the background as the game starts, so this looks every couple of seconds while
+// the menu is open rather than once. Each is asked once per run, except a required release,
+// which is asked every time the menu comes back and has no "not now".
+static void zhCommanderUpdate()
+{
+	ZHCommander::Hooks &h = ZHCommander::hooks();
+	if (h.appUpdateOffer == nullptr || TheWindowManager == nullptr || parentMainMenu == nullptr)
+		return;
+	if (++s_offerPollFrames < 60)
+		return;
+	s_offerPollFrames = 0;
+	if (TheGlobalData->m_playIntro || TheGlobalData->m_afterIntro || buttonPushed || dontAllowTransitions
+		|| justEntered || !TheTransitionHandler->isFinished() || parentMainMenu->winIsHidden())
+		return;
+
+	char version[32];
+	bool mandatory = false;
+	if (!s_appOfferAsked && h.appUpdateOffer(version, sizeof(version), &mandatory))
+	{
+		s_appOfferAsked = TRUE;
+		s_appOfferMandatory = mandatory;
+		UnicodeString body;
+		if (mandatory)
+		{
+			body.format(L"ZH Commander %hs is required to keep playing. Install it now, then open the game "
+				L"again.", version);
+			MessageBoxOk( UnicodeString( L"UPDATE REQUIRED" ), body, startAppUpdate );
+		}
+		else
+		{
+			body.format(L"ZH Commander %hs is ready. Install it now?", version);
+			MessageBoxYesNo( UnicodeString( L"UPDATE AVAILABLE" ), body, startAppUpdate, nullptr );
+		}
+		return;
+	}
+	if (!s_dataOfferAsked && h.dataUpdateOffer != nullptr && h.dataUpdateOffer(version, sizeof(version)))
+	{
+		s_dataOfferAsked = TRUE;
+		UnicodeString body;
+		if (h.startDataUpdate != nullptr)
+		{
+			body.format(L"New game data (%hs) is available. Download it now? The game closes for the "
+				L"download and starts again when it is done.", version);
+			MessageBoxYesNo( UnicodeString( L"NEW GAME DATA" ), body, startDataUpdate, nullptr );
+		}
+		else
+		{
+			body.format(L"New game data (%hs) is available. Close the game and open it again to download it.",
+				version);
+			MessageBoxOk( UnicodeString( L"NEW GAME DATA" ), body, nullptr );
 		}
 	}
 }
@@ -742,6 +887,10 @@ void MainMenuInit( WindowLayout *layout, void *userData )
 #endif
 
 	initLabelVersion();
+	createSupportButton();
+	// A required release is asked again each time the menu comes back (zhCommanderUpdate).
+	if (s_appOfferMandatory)
+		s_appOfferAsked = FALSE;
 
 	//TheShell->registerWithAnimateManager(buttonCampaign, WIN_ANIMATION_SLIDE_LEFT, TRUE, 800);
 	//TheShell->registerWithAnimateManager(buttonSkirmish, WIN_ANIMATION_SLIDE_LEFT, TRUE, 600);
@@ -862,6 +1011,9 @@ void MainMenuShutdown( WindowLayout *layout, void *userData )
 		TheWindowManager->winDestroy(fallbackCreditLabel);
 		fallbackCreditLabel = nullptr;
 	}
+	// GeneralsX @feature ZH Commander 09/10/2026 The layout stays loaded under the next screen and
+	// MainMenuInit runs on it again, so the button and the frames it grew go back to how they were.
+	destroySupportButton();
 
 #ifdef SAGE_UPDATE_CHECK
 	// GeneralsX @bugfix BenderAI 21/04/2026 Destroy the update notification button on
@@ -1016,6 +1168,8 @@ void MainMenuUpdate( WindowLayout *layout, void *userData )
 	}
 	if(DontShowMainMenu && justEntered)
 		justEntered = FALSE;
+
+	zhCommanderUpdate();
 
 	// GeneralsX @feature BenderAI 21/04/2026 Poll background update check; create dynamic button when update found
 #ifdef SAGE_UPDATE_CHECK
@@ -1556,6 +1710,16 @@ WindowMsgHandledType MainMenuSystem( GameWindow *window, UnsignedInt msg,
 				launchChallengeMenu = FALSE;
 			}
 
+			// GeneralsX @feature ZH Commander 09/10/2026 See createSupportButton().
+			if( supportButton != nullptr && control == supportButton )
+			{
+				MessageBoxOkCancel( UnicodeString( L"SUPPORT" ),
+					UnicodeString( L"Send a support report? It collects this device's details and the game's logs "
+						L"into one file and opens the share menu, so you can send it to the developer "
+						L"(on WhatsApp, for example)." ),
+					shareSupportReport, nullptr );
+				break;
+			}
 
 			if( controlID == buttonSinglePlayerID )
 			{

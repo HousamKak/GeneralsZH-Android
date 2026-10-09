@@ -167,6 +167,10 @@ if [[ "${RUNTIME_ONLY}" == "1" ]]; then
     cp "${FONTS_SRC}"/*.ttf "${APP}/Runtime/fonts/"
     cp "${CONFIG_SRC}/dxvk.conf" "${APP}/Runtime/dxvk.conf"
     cp "${CONFIG_SRC}/Options.ini" "${APP}/Runtime/DefaultOptions.ini"
+    # The ZH Commander screen of the game's Options menu (CommanderMenu.cpp); shared with Android.
+    mkdir -p "${APP}/Runtime/Window/Menus"
+    cp "${PROJECT_ROOT}/android/app/src/main/assets/gamedata/Window/Menus/CommanderMenu.wnd" \
+        "${APP}/Runtime/Window/Menus/CommanderMenu.wnd"
 fi
 if [[ "${DEV_MODE}" != "1" ]]; then
     echo "==> Bundling game assets into the app"
