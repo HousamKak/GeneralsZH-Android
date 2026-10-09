@@ -321,6 +321,20 @@ ENGINE_BUILD="$(( $(git -C "${PROJECT_ROOT}" rev-list --count HEAD 2>/dev/null |
 echo "${ENGINE_BUILD}" > "${ANDROID_DIR}/app/src/main/assets/engine_build.txt"
 echo "==> Engine build number: ${ENGINE_BUILD}"
 
+# --- 3c. release notes -----------------------------------------------------------
+# GeneralsX @feature ZH Commander 09/10/2026 This version's notes (release-notes/<versionName>.md,
+# English and Arabic) inside the APK: the game's "What's new" after an update reads them from here,
+# with no network. A build without notes (not a release) ships none, and the game shows nothing.
+VERSION_NAME_FOR_NOTES="$(sed -n "s/.*androidVersionName : '\([^']*\)'.*/\1/p" "${ANDROID_DIR}/app/build.gradle")"
+NOTES_ASSET="${ANDROID_DIR}/app/src/main/assets/whatsnew.json"
+PYTHON_FOR_NOTES="$(command -v python3 || command -v python)"
+if "${PYTHON_FOR_NOTES}" "${PROJECT_ROOT}/scripts/release/release-notes.py" json "${VERSION_NAME_FOR_NOTES}" "${NOTES_ASSET}" 2>/dev/null; then
+    echo "==> Release notes ${VERSION_NAME_FOR_NOTES} bundled"
+else
+    rm -f "${NOTES_ASSET}"
+    echo "==> No release notes for ${VERSION_NAME_FOR_NOTES}; none bundled"
+fi
+
 # --- 4. gradle ---------------------------------------------------------------
 cd "${ANDROID_DIR}"
 GRADLE_CMD=""

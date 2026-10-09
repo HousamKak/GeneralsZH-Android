@@ -10,6 +10,7 @@
 import { DATA_KEY_RE, dataFile, dataManifest, publishData, type DataEnv } from "./data";
 import { IPA_KEY_RE, altstoreSource, readReleases, recordBuild, serveIpa } from "./ios";
 import { listReports, receiveReport, reportRoute } from "./support";
+import { notesApi, publishNotes, readAllNotes } from "./notes";
 
 interface Env extends DataEnv {
 	ASSETS: Fetcher;
@@ -101,6 +102,16 @@ export default {
 			const target = new URL(request.url);
 			target.pathname = `/v1/paypal/${pathname.slice("/api/paypal/".length)}`;
 			return env.LICENSE.fetch(new Request(target, request));
+		}
+		// Release notes (notes.ts): read by the /changes page and the app; published by CI.
+		if (pathname === "/api/notes" || pathname.startsWith("/api/notes/")) {
+			return notesApi(env, pathname === "/api/notes" ? null : decodeURIComponent(pathname.slice("/api/notes/".length)));
+		}
+		if (pathname === "/admin/notes" && request.method === "POST") {
+			if (!(await isUploader(request, env))) {
+				return Response.json({ error: "unauthorized", message: "missing or wrong token" }, { status: 401 });
+			}
+			return publishNotes(request, env);
 		}
 		if (pathname === "/api/latest") {
 			const latest = await readLatest(env);
@@ -201,8 +212,11 @@ function releaseEntry(r: Latest, urlPrefix: string) {
 // GET /admin/releases: the admin console's Releases tab (read only; releasing stays in CI).
 async function releases(env: Env): Promise<Response> {
 	const site = "https://zerohour.housamkak.com/download/";
-	const android = (await readAndroidHistory(env)).map((r) => releaseEntry(r, site));
-	const ios = (await readReleases(env)).map((r) => releaseEntry(r as Latest, site));
+	// Each release with its notes (both languages), when they were published.
+	const notes = new Map((await readAllNotes(env)).map((n) => [n.version, { en: n.en, ar: n.ar }]));
+	const withNotes = (r: Latest) => ({ ...releaseEntry(r, site), notes: notes.get(r.version) ?? null });
+	const android = (await readAndroidHistory(env)).map(withNotes);
+	const ios = (await readReleases(env)).map((r) => withNotes(r as Latest));
 	return Response.json({
 		android: { current: android[0] ?? null, history: android },
 		// iOS releases are always required: the app does not start below the newest one.

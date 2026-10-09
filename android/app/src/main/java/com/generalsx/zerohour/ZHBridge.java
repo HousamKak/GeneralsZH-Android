@@ -60,7 +60,23 @@ final class ZHBridge {
         if (offer == null) {
             return null;
         }
+        // Held back until the offered version's notes are fetched (a second or two), so the
+        // game's dialog can say what the update brings (releaseNotes below).
+        ReleaseNotes.prefetch(game(), offer.versionName);
+        if (!ReleaseNotes.fetched(game(), offer.versionName)) {
+            return null;
+        }
         return (offer.mandatory ? "!" : "") + offer.versionName;
+    }
+
+    /** A version's notes as "title\u0001body", in the game's language, or null. */
+    static String releaseNotes(String version) {
+        return ReleaseNotes.forVersion(game(), version);
+    }
+
+    /** This version's notes once after an update ("title\u0001body"), or null. */
+    static String whatsNew() {
+        return ReleaseNotes.whatsNew(game());
     }
 
     static void startAppUpdate() {

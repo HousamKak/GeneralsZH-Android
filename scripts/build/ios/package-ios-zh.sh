@@ -172,6 +172,11 @@ if [[ "${RUNTIME_ONLY}" == "1" ]]; then
     cp "${PROJECT_ROOT}/android/app/src/main/assets/gamedata/Window/Menus/CommanderMenu.wnd" \
         "${APP}/Runtime/Window/Menus/CommanderMenu.wnd"
 fi
+# This version's release notes (English and Arabic) for the game's "What's new" after an update
+# (IOSGate.mm reads <app>/whatsnew.json). Not a release: none, and the game shows nothing.
+NOTES_VERSION="${GX_VERSION_NAME:-$(sed -n "s/.*androidVersionName : '\([^']*\)'.*/\1/p" "${PROJECT_ROOT}/android/app/build.gradle")}"
+python3 "${PROJECT_ROOT}/scripts/release/release-notes.py" json "${NOTES_VERSION}" "${APP}/whatsnew.json" 2>/dev/null \
+    || rm -f "${APP}/whatsnew.json"
 if [[ "${DEV_MODE}" != "1" ]]; then
     echo "==> Bundling game assets into the app"
     mkdir -p "${APP}/GameData"

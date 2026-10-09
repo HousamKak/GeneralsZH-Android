@@ -64,6 +64,11 @@ namespace ZHCommander
 		void (*onlineSignIn)();
 		void (*onlineSignOut)();
 
+		// Release notes (UTF-8, in the game's text language): this version's, once after an update
+		// ("What's new"), and an offered version's, for the update dialog. Body lines start "• ".
+		bool (*whatsNew)(char *title, int titleSize, char *body, int bodySize);
+		bool (*releaseNotes)(const char *version, char *title, int titleSize, char *body, int bodySize);
+
 		// Something worth counting happened ("engine_boot"), for the app's usage monitor. Client
 		// side only: never called from game logic, which must stay deterministic.
 		void (*event)(const char *name);

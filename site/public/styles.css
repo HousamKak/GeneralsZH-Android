@@ -412,3 +412,48 @@ code, bdi.phone { font-family: var(--mono); font-size: 0.92em; white-space: nowr
 @media (prefers-reduced-motion: reduce) {
 	.download { transition: none; }
 }
+
+/* ---- /changes: release notes ---- */
+
+.changes {
+	max-width: 820px;
+	margin: 0 auto;
+	padding: clamp(2.5rem, 6vw, 4.5rem) var(--gutter);
+}
+.changes-lede { margin: -0.75rem 0 2rem; color: var(--dust); }
+.changes-status:empty { display: none; }
+.changes-status { color: var(--dust); }
+.release-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 1.5rem; }
+.release {
+	background: var(--canvas);
+	border: 2px solid var(--ink);
+	box-shadow: 6px 6px 0 var(--drab);
+	padding: 1.25rem clamp(1rem, 3vw, 1.75rem) 1.4rem;
+	scroll-margin-top: 5rem;
+}
+:root[dir="rtl"] .release { box-shadow: -6px 6px 0 var(--drab); }
+.release-head {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: 0.4rem 0.9rem;
+	font: 600 0.8rem/1.4 var(--mono);
+	text-transform: uppercase;
+	letter-spacing: 0.08em;
+	color: var(--drab);
+}
+:root[lang="ar"] .release-head { font-family: var(--body); letter-spacing: 0; text-transform: none; font-size: 0.9rem; }
+.release-tag { color: var(--ink); }
+.release-latest { background: var(--signal); color: var(--canvas); padding: 0 0.45rem; }
+.release time { margin-inline-start: auto; }
+.release h2 {
+	margin: 0.5rem 0 0.75rem;
+	font: 700 clamp(1.4rem, 3.5vw, 1.9rem)/1.1 var(--display);
+	text-transform: uppercase;
+	letter-spacing: 0.02em;
+}
+:root[lang="ar"] .release h2 { line-height: 1.4; letter-spacing: 0; text-transform: none; }
+.release ul { margin: 0; padding-inline-start: 1.2rem; display: grid; gap: 0.35rem; }
+.release ul li::marker { color: var(--signal); }
+.changes-back { margin-top: 2.5rem; }
+.whats-new { display: inline-block; margin-top: 0.35rem; font-size: 0.9rem; }

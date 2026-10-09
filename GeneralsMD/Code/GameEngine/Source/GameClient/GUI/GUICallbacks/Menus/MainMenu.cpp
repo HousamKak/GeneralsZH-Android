@@ -644,6 +644,26 @@ static void shareSupportReport()
 		ZHCommander::hooks().shareSupportReport();
 }
 
+// UTF-8 (what the app hands over: release notes, in Arabic too) to the engine's wide string. The
+// engine shapes Arabic and lays it out right to left when it draws (render2dsentence.cpp).
+static UnicodeString utf8ToUnicode( const char *s )
+{
+	UnicodeString out;
+	const unsigned char *p = (const unsigned char *)s;
+	while (*p)
+	{
+		unsigned int c = *p++;
+		int extra = c >= 0xF0 ? 3 : c >= 0xE0 ? 2 : c >= 0xC0 ? 1 : 0;
+		c &= extra == 3 ? 0x07 : extra == 2 ? 0x0F : extra == 1 ? 0x1F : 0x7F;
+		for (; extra > 0 && (*p & 0xC0) == 0x80; --extra)
+			c = (c << 6) | (*p++ & 0x3F);
+		out.concat( (WideChar)c );
+	}
+	return out;
+}
+
+static Bool s_whatsNewAsked = FALSE;
+
 static void onlineSignIn()
 {
 	if (ZHCommander::hooks().onlineSignIn)
@@ -679,6 +699,20 @@ static void zhCommanderUpdate()
 		|| justEntered || !TheTransitionHandler->isFinished() || parentMainMenu->winIsHidden())
 		return;
 
+	// GeneralsX @feature ZH Commander 09/10/2026 What this version brought, once, after an update
+	// (release-notes/<version>.md, bundled in the app), before anything newer is offered.
+	static char notesTitle[256];
+	static char notesBody[4096];
+	if (!s_whatsNewAsked && h.whatsNew != nullptr)
+	{
+		s_whatsNewAsked = TRUE;
+		if (h.whatsNew(notesTitle, sizeof(notesTitle), notesBody, sizeof(notesBody)))
+		{
+			MessageBoxOk( utf8ToUnicode( notesTitle ), utf8ToUnicode( notesBody ), nullptr );
+			return;
+		}
+	}
+
 	char version[32];
 	bool mandatory = false;
 	if (!s_appOfferAsked && h.appUpdateOffer(version, sizeof(version), &mandatory))
@@ -687,16 +721,21 @@ static void zhCommanderUpdate()
 		s_appOfferMandatory = mandatory;
 		UnicodeString body;
 		if (mandatory)
-		{
 			body.format(L"ZH Commander %hs is required to keep playing. Install it now, then open the game "
 				L"again.", version);
-			MessageBoxOk( UnicodeString( L"UPDATE REQUIRED" ), body, startAppUpdate );
-		}
 		else
-		{
 			body.format(L"ZH Commander %hs is ready. Install it now?", version);
-			MessageBoxYesNo( UnicodeString( L"UPDATE AVAILABLE" ), body, startAppUpdate, nullptr );
+		// What the update brings, from its release notes, when the site had them.
+		if (h.releaseNotes != nullptr
+			&& h.releaseNotes(version, notesTitle, sizeof(notesTitle), notesBody, sizeof(notesBody)))
+		{
+			body.concat( L"\n\n" );
+			body.concat( utf8ToUnicode( notesBody ) );
 		}
+		if (mandatory)
+			MessageBoxOk( UnicodeString( L"UPDATE REQUIRED" ), body, startAppUpdate );
+		else
+			MessageBoxYesNo( UnicodeString( L"UPDATE AVAILABLE" ), body, startAppUpdate, nullptr );
 		return;
 	}
 	if (!s_dataOfferAsked && h.dataUpdateOffer != nullptr && h.dataUpdateOffer(version, sizeof(version)))

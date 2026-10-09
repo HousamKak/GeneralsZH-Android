@@ -6,6 +6,8 @@
 // as a source once; AltStore signs the app with their Apple ID and offers each new release as an
 // update. /download/ipa/<name> serves the files themselves.
 
+import { notesText, readAllNotes } from "./notes";
+
 export interface IosEnv {
 	APKS: R2Bucket;
 }
@@ -60,6 +62,8 @@ export async function serveIpa(env: IosEnv, key: string): Promise<Response> {
 
 export async function altstoreSource(env: IosEnv): Promise<Response> {
 	const releases = await readReleases(env);
+	// What each version brings, English then Arabic, shown in the store's update screen.
+	const notes = new Map((await readAllNotes(env)).map((n) => [n.version, `${notesText(n, "en")}\n\n${notesText(n, "ar")}`]));
 	const source = {
 		name: "ZH Commander",
 		identifier: "com.housamkak.zhcommander.source",
@@ -84,7 +88,7 @@ export async function altstoreSource(env: IosEnv): Promise<Response> {
 					version: r.version,
 					...(r.build !== undefined ? { buildVersion: String(r.build) } : {}),
 					date: r.published,
-					localizedDescription: `ZH Commander ${r.version}`,
+					localizedDescription: notes.get(r.version) ?? `ZH Commander ${r.version}`,
 					downloadURL: `${SITE}/download/${r.key}`,
 					size: r.size,
 					minOSVersion: "16.4",

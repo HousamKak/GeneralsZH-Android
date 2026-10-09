@@ -152,6 +152,35 @@ static void event(const char *name)
 	clearException(env, "event");
 }
 
+// "title\u0001body" (ReleaseNotes.java) split into the two buffers.
+static bool splitNotes(const char *raw, char *title, int titleSize, char *body, int bodySize)
+{
+	const char *sep = strchr(raw, '\x01');
+	if (sep == nullptr)
+		return false;
+	snprintf(title, titleSize, "%.*s", (int)(sep - raw), raw);
+	snprintf(body, bodySize, "%s", sep + 1);
+	return body[0] != '\0';
+}
+
+static bool whatsNew(char *title, int titleSize, char *body, int bodySize)
+{
+	static char raw[8192];
+	return callString("whatsNew", nullptr, raw, sizeof(raw)) && splitNotes(raw, title, titleSize, body, bodySize);
+}
+
+static bool releaseNotes(const char *version, char *title, int titleSize, char *body, int bodySize)
+{
+	JNIEnv *env = bridgeEnv();
+	if (env == nullptr)
+		return false;
+	static char raw[8192];
+	jstring jversion = env->NewStringUTF(version);
+	const bool found = callString("releaseNotes", jversion, raw, sizeof(raw));
+	env->DeleteLocalRef(jversion);
+	return found && splitNotes(raw, title, titleSize, body, bodySize);
+}
+
 static bool onlineAccount(char *name, int size)
 {
 	return callString("onlineAccount", nullptr, name, size) && name[0] != '\0';
@@ -195,5 +224,7 @@ void ZHAndroidInstallHooks()
 	h.onlineAccount = onlineAccount;
 	h.onlineSignIn = onlineSignIn;
 	h.onlineSignOut = onlineSignOut;
+	h.whatsNew = whatsNew;
+	h.releaseNotes = releaseNotes;
 	fprintf(stderr, "INFO: ZH Commander %s\n", appVersion());
 }

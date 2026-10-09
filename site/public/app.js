@@ -28,6 +28,7 @@
 		spec_platform: "المنصّة",
 		spec_platform_v: "أندرويد 9 أو أحدث، 64 بت (arm64)",
 		spec_version: "الإصدار",
+		whats_new: "ما الجديد",
 		spec_requires: "المتطلبات",
 		spec_requires_v: "نسختك الخاصة من Zero Hour، ومفتاح تفعيل",
 		download: "تحميل التطبيق",

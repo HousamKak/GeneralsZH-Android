@@ -100,6 +100,19 @@ jobs:
           fetch-depth: 0
           submodules: false
 
+      # GeneralsX @feature ZH Commander 09/10/2026 A release needs its notes, English and Arabic
+      # (release-notes/<versionName>.md): checked before anything is built, so a missing file
+      # costs seconds, not a whole build.
+      - name: Check release notes
+        if: ${{ inputs.release }}
+        run: |
+          set -euo pipefail
+          VERSION_NAME="${{ inputs.version_name }}"
+          if [ -z "$VERSION_NAME" ]; then
+            VERSION_NAME="$(sed -n "s/.*androidVersionName : '\([^']*\)'.*/\1/p" android/app/build.gradle)"
+          fi
+          python3 scripts/release/release-notes.py check "$VERSION_NAME"
+
       - name: Checkout DXVK fork submodule
         run: |
           set -euo pipefail
@@ -572,6 +585,21 @@ jobs:
       # by anyone. Every build is uploaded to the site's R2 bucket instead, privately (recorded as
       # the newest build, which bundle-game-data.sh fetches with the upload token); only a
       # release (input above) makes it the site's public download.
+      # Before the APK goes live, so the site's /changes, the app's update offer and the admin
+      # console already have this release's notes when it is offered.
+      - name: Publish release notes
+        if: ${{ inputs.release }}
+        env:
+          GZH_UPLOAD_TOKEN: ${{ secrets.SITE_UPLOAD_TOKEN }}
+          GZH_SITE_URL: https://zh-commander.housam-kak20.workers.dev
+        run: |
+          set -euo pipefail
+          VERSION_NAME="${{ inputs.version_name }}"
+          if [ -z "$VERSION_NAME" ]; then
+            VERSION_NAME="$(sed -n "s/.*androidVersionName : '\([^']*\)'.*/\1/p" android/app/build.gradle)"
+          fi
+          python3 site/upload-notes.py "$VERSION_NAME"
+
       - name: Upload APK to R2
         env:
           GZH_UPLOAD_TOKEN: ${{ secrets.SITE_UPLOAD_TOKEN }}

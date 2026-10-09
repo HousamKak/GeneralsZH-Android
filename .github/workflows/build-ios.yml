@@ -33,6 +33,15 @@ jobs:
           fetch-depth: 0
           submodules: false
 
+      # GeneralsX @feature ZH Commander 09/10/2026 A release needs its notes (English and Arabic,
+      # release-notes/<versionName>.md); iOS follows the Android version.
+      - name: Check release notes
+        if: ${{ inputs.release }}
+        run: |
+          set -euo pipefail
+          VERSION_NAME="$(sed -n "s/.*androidVersionName : '\([^']*\)'.*/\1/p" android/app/build.gradle)"
+          python3 scripts/release/release-notes.py check "$VERSION_NAME"
+
       - name: Checkout DXVK fork submodule
         run: |
           set -euo pipefail
@@ -123,6 +132,10 @@ jobs:
           GZH_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           set -euo pipefail
+          # The notes first: the AltStore source shows them for each version (site/src/ios.ts).
+          if [ "${{ inputs.release }}" = "true" ]; then
+            python3 site/upload-notes.py "${IOS_VERSION}"
+          fi
           python3 site/upload-ipa.py "${IPA_PATH}" "${IOS_VERSION}" "${IOS_BUILD}" ${{ inputs.release && '--release' || '' }}
 
       - name: Upload build logs

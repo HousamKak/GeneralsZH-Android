@@ -978,6 +978,50 @@ extern "C" bool ZHIOSRunGate(void)
 // data were current when it started, so these only change when something is published mid-game.
 static NSDictionary *s_latestApp;  // the newest entry of the AltStore source
 static NSString *s_latestData;
+static NSDictionary *s_latestNotes;  // the newest release's notes (/api/notes/<version>)
+
+// Release notes as the game shows them: the English section, "• " before each line.
+static bool notesInto(NSDictionary *notes, char *title, int titleSize, char *body, int bodySize)
+{
+	NSDictionary *section = [notes isKindOfClass:NSDictionary.class] ? notes[@"en"] : nil;
+	NSArray *items = [section isKindOfClass:NSDictionary.class] ? section[@"items"] : nil;
+	if (![items isKindOfClass:NSArray.class] || items.count == 0) {
+		return false;
+	}
+	NSMutableArray *lines = [NSMutableArray array];
+	for (id item in items) {
+		[lines addObject:[@"• " stringByAppendingString:[item description]]];
+	}
+	snprintf(title, titleSize, "%s", [[section[@"title"] description] UTF8String] ?: "");
+	snprintf(body, bodySize, "%s", [[lines componentsJoinedByString:@"\n"] UTF8String]);
+	return true;
+}
+
+// This version's notes (bundled as <app>/whatsnew.json by package-ios-zh.sh), once after an update.
+static bool iosWhatsNew(char *title, int titleSize, char *body, int bodySize)
+{
+	NSString *mine = NSBundle.mainBundle.infoDictionary[@"CFBundleShortVersionString"];
+	NSUserDefaults *defaults = NSUserDefaults.standardUserDefaults;
+	NSString *seen = [defaults stringForKey:@"zh.lastVersion"];
+	if (mine == nil || [mine isEqual:seen]) {
+		return false;
+	}
+	[defaults setObject:mine forKey:@"zh.lastVersion"];
+	if (seen == nil) {
+		return false;  // first run of this install, or of a version before notes existed
+	}
+	NSString *path = [NSBundle.mainBundle pathForResource:@"whatsnew" ofType:@"json"];
+	NSData *data = path ? [NSData dataWithContentsOfFile:path] : nil;
+	NSDictionary *notes = data ? [NSJSONSerialization JSONObjectWithData:data options:0 error:nil] : nil;
+	return [notes isKindOfClass:NSDictionary.class] && [notes[@"version"] isEqual:mine]
+		&& notesInto(notes, title, titleSize, body, bodySize);
+}
+
+static bool iosReleaseNotes(const char *version, char *title, int titleSize, char *body, int bodySize)
+{
+	return s_latestNotes != nil && [s_latestNotes[@"version"] isEqual:@(version)]
+		&& notesInto(s_latestNotes, title, titleSize, body, bodySize);
+}
 
 static void checkForUpdatesInBackground(void)
 {
@@ -993,6 +1037,15 @@ static void checkForUpdatesInBackground(void)
 			NSDictionary *latest = [versions isKindOfClass:NSArray.class] && versions.count > 0 ? versions.firstObject : nil;
 			if ([latest isKindOfClass:NSDictionary.class] && [latest[@"version"] isKindOfClass:NSString.class]) {
 				dispatch_async(dispatch_get_main_queue(), ^{ s_latestApp = latest; });
+				// Its release notes, for the update dialog (iosReleaseNotes).
+				NSString *notesURL = [NSString stringWithFormat:@"%@/api/notes/%@", kSite, latest[@"version"]];
+				[[NSURLSession.sharedSession dataTaskWithURL:[NSURL URLWithString:notesURL]
+					completionHandler:^(NSData *notesData, NSURLResponse *r, NSError *e) {
+						NSDictionary *notes = notesData ? [NSJSONSerialization JSONObjectWithData:notesData options:0 error:nil] : nil;
+						if ([notes isKindOfClass:NSDictionary.class]) {
+							dispatch_async(dispatch_get_main_queue(), ^{ s_latestNotes = notes; });
+						}
+					}] resume];
 			}
 		}] resume];
 
@@ -1072,5 +1125,7 @@ extern "C" void ZHIOSInstallHooks(void)
 	h.startAppUpdate = iosStartAppUpdate;
 	h.dataUpdateOffer = iosDataUpdateOffer;
 	h.shareSupportReport = iosShareSupportReport;
+	h.whatsNew = iosWhatsNew;
+	h.releaseNotes = iosReleaseNotes;
 	checkForUpdatesInBackground();
 }
