@@ -95,7 +95,6 @@ public class GeneralsOnlineActivity extends Activity {
     private String detectedDataMod;
     private TextView dataPackChip;
     private boolean dataPackBusy;
-    private boolean dataPackPrompted;
     // The automatic version check runs once per process, like the Updates card's.
     private static boolean sDataPackCheckedThisProcess;
     private TextView networkSettingsStatus;
@@ -448,31 +447,6 @@ public class GeneralsOnlineActivity extends Activity {
         }
     }
 
-    /**
-     * Asks once per sign-in, and only when there is nothing installed. The
-     * card already states it permanently; this is for the case the card is
-     * below the fold on a phone, which is most of them.
-     */
-    private void maybePromptForDataPacks() {
-        if (dataPackPrompted || dataPackBusy) {
-            return;
-        }
-        if (getSignedInDisplayName(this) == null) {
-            return;
-        }
-        if (DataPackInstaller.installedVersion(this) != null) {
-            return;
-        }
-        dataPackPrompted = true;
-        new android.app.AlertDialog.Builder(this)
-            .setTitle(R.string.online_card_datapacks)
-            .setMessage(R.string.online_datapacks_prompt)
-            .setPositiveButton(R.string.online_button_datapacks_update,
-                (dialog, which) -> onUpdateDataPacks())
-            .setNegativeButton(R.string.online_datapacks_prompt_later, null)
-            .show();
-    }
-
     private void onDeleteDataPacks() {
         new android.app.AlertDialog.Builder(this)
             .setTitle(R.string.online_button_datapacks_delete)
@@ -487,8 +461,6 @@ public class GeneralsOnlineActivity extends Activity {
                         getString(R.string.online_datapacks_deleted, removed),
                         Toast.LENGTH_LONG).show();
                 }
-                // Asking again is right after a deliberate delete only if the
-                // player signs in afresh, so leave dataPackPrompted set.
                 refreshDataPackCard();
             })
             .setNegativeButton(R.string.common_cancel, null)
@@ -795,10 +767,8 @@ public class GeneralsOnlineActivity extends Activity {
             Toast.makeText(this, getString(R.string.online_toast_signed_in_as, result.displayName),
                 Toast.LENGTH_LONG).show();
             ZHTelemetry.track("online_sign_in", "result", "ok");
-            // The game is right underneath; its Online button now goes online. Unless the
-            // community data still has to be offered (maybePromptForDataPacks, from
-            // refreshStatus above): then the player answers that here first, and Back returns.
-            if (fromGame && DataPackInstaller.installedVersion(this) != null) {
+            // The game is right underneath; its Online button now goes online.
+            if (fromGame) {
                 finish();
             }
             return;
@@ -904,8 +874,10 @@ public class GeneralsOnlineActivity extends Activity {
             signOutButton.setEnabled(false);
         }
 
+        // GeneralsX @tweak ZH Commander 10/10/2026 No longer offered on its own after sign-in (owner's
+        // call): the community data only matters for matches against PC players, and the prompt
+        // stood between a new player and online play. The card below still offers it.
         refreshDataPackCard();
-        maybePromptForDataPacks();
     }
 
     // Static helper so other screens (SetupActivity) can show a one-line
