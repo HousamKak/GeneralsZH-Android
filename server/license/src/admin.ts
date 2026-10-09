@@ -98,10 +98,12 @@ export async function listKeys(url: URL, env: AdminEnv): Promise<Response> {
 	const device = url.searchParams.get("device")?.toLowerCase();
 	if (device) {
 		if (!DEVICE_PREFIX_RE.test(device)) return fail("bad_device", "device must be at least 8 hex characters", 400);
-		binds.push(`${device}%`);
-		where.push(`device LIKE ?${binds.length}`);
+		// A prefix compare, not LIKE: D1 caps LIKE patterns at 50 bytes, under a full 64-hex id.
+		binds.push(device);
+		where.push(`substr(device, 1, ${device.length}) = ?${binds.length}`);
 	}
-	const q = url.searchParams.get("q")?.trim();
+	// Capped: D1 refuses LIKE patterns over 50 bytes, and the pattern adds two wildcards.
+	const q = url.searchParams.get("q")?.trim().slice(0, 40);
 	if (q) {
 		const code = normalizeCode(q);
 		binds.push(`%${q.toLowerCase()}%`);
