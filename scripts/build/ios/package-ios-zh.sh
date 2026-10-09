@@ -149,6 +149,14 @@ fi
 GAME_DATA_SRC="${GX_GAME_DATA:-${HOME}/GeneralsX/GeneralsZH}"
 FONTS_SRC="${GX_FONTS:-${HOME}/GeneralsX/ios-staging/fonts}"
 CONFIG_SRC="${GX_CONFIG:-${IOS_DIR}/config}"
+
+# ZH Commander's own screens (IOSGate.mm) use the landing site's fonts, the same files the
+# Android app ships; their SIL OFL licences travel with them.
+UI_FONTS_SRC="${PROJECT_ROOT}/android/app/src/main/res/font"
+mkdir -p "${APP}/UIFonts"
+cp "${UI_FONTS_SRC}"/zh_*.ttf "${APP}/UIFonts/"
+cp "${PROJECT_ROOT}/android/app/src/main/assets/licenses/"OFL-*.txt "${APP}/UIFonts/"
+
 if [[ "${RUNTIME_ONLY}" == "1" ]]; then
     echo "==> Runtime files only (no game assets)"
     if ! ls "${FONTS_SRC}"/*.ttf >/dev/null 2>&1; then

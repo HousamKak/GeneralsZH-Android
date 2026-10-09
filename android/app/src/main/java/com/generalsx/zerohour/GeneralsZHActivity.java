@@ -425,11 +425,12 @@ public class GeneralsZHActivity extends SDLActivity {
 
         android.widget.ImageButton button = new android.widget.ImageButton(this);
         button.setImageResource(R.drawable.ic_gzh_wrench);
-        button.setImageTintList(android.content.res.ColorStateList.valueOf(0xFFFFFFFF));
+        button.setImageTintList(android.content.res.ColorStateList.valueOf(0xFFD2C192));  // sand
         button.setContentDescription(getString(R.string.support_button));
         android.graphics.drawable.GradientDrawable background = new android.graphics.drawable.GradientDrawable();
         background.setShape(android.graphics.drawable.GradientDrawable.OVAL);
-        background.setColor(0x80000000);
+        background.setColor(0xCC1D1F14);  // gunmetal ink, with a hazard-orange ring
+        background.setStroke(Math.round(2 * density), 0xFFC2461B);
         button.setBackground(background);
         int pad = Math.round(8 * density);
         button.setPadding(pad, pad, pad, pad);

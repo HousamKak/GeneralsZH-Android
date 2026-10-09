@@ -134,7 +134,8 @@ if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
     set_source_files_properties(IOSGate.mm PROPERTIES
         COMPILE_OPTIONS "-fobjc-arc"
         SKIP_PRECOMPILE_HEADERS ON)
-    target_link_libraries(z_generals PRIVATE "-framework UIKit" "-framework Security" "-framework Foundation")
+    target_link_libraries(z_generals PRIVATE "-framework UIKit" "-framework Security" "-framework Foundation"
+        "-framework CoreText" "-framework CoreGraphics")
 endif()
 
 if(NOT MSVC)

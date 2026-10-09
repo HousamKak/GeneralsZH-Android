@@ -66,6 +66,20 @@ final class UiKit {
 
     // ---------------------------------------------------------------- tokens
 
+    // GeneralsX @feature ZH Commander 09/10/2026 The landing site's faces: Big Shoulders Stencil
+    // for headings and buttons, IBM Plex Sans SemiBold for emphasis (Plex Regular is the theme's
+    // default text face). Both SIL OFL, licences in assets/licenses/. Glyphs they lack (Arabic,
+    // CJK, Cyrillic in the stencil face) fall back to the system font.
+    static Typeface display(Context c) {
+        Typeface t = androidx.core.content.res.ResourcesCompat.getFont(c, R.font.zh_display);
+        return t != null ? t : Typeface.DEFAULT_BOLD;
+    }
+
+    static Typeface strong(Context c) {
+        Typeface t = androidx.core.content.res.ResourcesCompat.getFont(c, R.font.zh_body_semibold);
+        return t != null ? t : Typeface.DEFAULT_BOLD;
+    }
+
     static int dp(Context c, float value) {
         return Math.round(value * c.getResources().getDisplayMetrics().density);
     }
@@ -155,7 +169,8 @@ final class UiKit {
         titleView.setText(title);
         titleView.setTextSize(TypedValue.COMPLEX_UNIT_PX, dim(c, R.dimen.gzh_text_display));
         titleView.setTextColor(color(c, R.color.gzh_on_surface));
-        titleView.setTypeface(Typeface.DEFAULT_BOLD);
+        titleView.setTypeface(display(c));
+        titleView.setAllCaps(true);
         titleView.setLineSpacing(0f, 1.05f);
         text.addView(titleView);
 
@@ -247,7 +262,9 @@ final class UiKit {
         titleView.setText(title);
         titleView.setTextSize(TypedValue.COMPLEX_UNIT_PX, dim(c, R.dimen.gzh_text_title));
         titleView.setTextColor(color(c, R.color.gzh_on_surface));
-        titleView.setTypeface(Typeface.DEFAULT_BOLD);
+        titleView.setTypeface(display(c));
+        titleView.setAllCaps(true);
+        titleView.setLetterSpacing(0.02f);
         row.addView(titleView, new LinearLayout.LayoutParams(0,
             ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
 
@@ -256,7 +273,7 @@ final class UiKit {
             value = new TextView(c);
             value.setTextSize(TypedValue.COMPLEX_UNIT_PX, dim(c, R.dimen.gzh_text_title));
             value.setTextColor(color(c, R.color.gzh_primary));
-            value.setTypeface(Typeface.DEFAULT_BOLD);
+            value.setTypeface(strong(c));
             value.setGravity(Gravity.END);
             LinearLayout.LayoutParams vlp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
@@ -345,11 +362,12 @@ final class UiKit {
         Context c = parent.getContext();
         MaterialButton b = new MaterialButton(c);
         b.setText(label);
-        b.setAllCaps(false);
-        b.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f);
-        b.setTypeface(Typeface.DEFAULT_BOLD);
-        b.setLetterSpacing(0f);
-        b.setCornerRadius(dp(c, 26));
+        // The site's buttons: stencil capitals on a squared, crate-stamp shape.
+        b.setAllCaps(true);
+        b.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f);
+        b.setTypeface(display(c));
+        b.setLetterSpacing(0.05f);
+        b.setCornerRadius(dp(c, 3));
         b.setInsetTop(0);
         b.setInsetBottom(0);
         b.setMinHeight(dim(c, R.dimen.gzh_button_height));
@@ -471,7 +489,7 @@ final class UiKit {
             b.setText(labels[i]);
             b.setAllCaps(false);
             b.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f);
-            b.setTypeface(Typeface.DEFAULT_BOLD);
+            b.setTypeface(strong(c));
             b.setMaxLines(1);
             b.setEllipsize(android.text.TextUtils.TruncateAt.END);
             b.setCornerRadius(dp(c, 22));
@@ -534,7 +552,7 @@ final class UiKit {
         titleView.setText(title);
         titleView.setTextSize(TypedValue.COMPLEX_UNIT_PX, dim(c, R.dimen.gzh_text_body));
         titleView.setTextColor(color(c, R.color.gzh_on_surface));
-        titleView.setTypeface(Typeface.DEFAULT_BOLD);
+        titleView.setTypeface(strong(c));
         textColumn.addView(titleView);
 
         TextView descView = new TextView(c);
@@ -627,7 +645,7 @@ final class UiKit {
         titleView.setText(title);
         titleView.setTextSize(TypedValue.COMPLEX_UNIT_PX, dim(c, R.dimen.gzh_text_body));
         titleView.setTextColor(color(c, R.color.gzh_on_surface));
-        titleView.setTypeface(Typeface.DEFAULT_BOLD);
+        titleView.setTypeface(strong(c));
         textColumn.addView(titleView);
 
         TextView supportingView = new TextView(c);
@@ -669,7 +687,7 @@ final class UiKit {
         chip.setText(label);
         chip.setTextSize(TypedValue.COMPLEX_UNIT_PX, dim(c, R.dimen.gzh_text_caption));
         chip.setTextColor(color(c, textColorRes));
-        chip.setTypeface(Typeface.DEFAULT_BOLD);
+        chip.setTypeface(strong(c));
         chip.setGravity(Gravity.CENTER_VERTICAL);
         chip.setPadding(dp(c, 12), dp(c, 7), dp(c, 12), dp(c, 7));
         chip.setMaxLines(2);

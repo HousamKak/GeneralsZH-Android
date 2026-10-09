@@ -18,6 +18,7 @@
 #import <UIKit/UIKit.h>
 #import <Security/Security.h>
 #import <CommonCrypto/CommonDigest.h>
+#import <CoreText/CoreText.h>
 
 static NSString *const kActivateURL = @"https://gzh-license.housam-kak20.workers.dev/v1/activate";
 static NSString *const kSite = @"https://zerohour.housamkak.com";
@@ -65,6 +66,34 @@ static NSString *sha256OfFile(NSString *path)
 	unsigned char digest[CC_SHA256_DIGEST_LENGTH];
 	CC_SHA256_Final(digest, &ctx);
 	return hexOf(digest, sizeof(digest));
+}
+
+// The site's fonts (SIL OFL), shipped in <app>/UIFonts by package-ios-zh.sh: loaded straight
+// from the file, so nothing needs registering in Info.plist. Falls back when a file is missing.
+static UIFont *zhFont(NSString *file, CGFloat size, UIFont *fallback)
+{
+	static NSMutableDictionary<NSString *, id> *cache;
+	if (cache == nil) {
+		cache = [NSMutableDictionary dictionary];
+	}
+	CGFontRef graphicsFont = (__bridge CGFontRef)cache[file];
+	if (graphicsFont == NULL) {
+		NSString *path = [[NSBundle.mainBundle.resourcePath stringByAppendingPathComponent:@"UIFonts"]
+			stringByAppendingPathComponent:file];
+		NSData *data = [NSData dataWithContentsOfFile:path];
+		if (data == nil) {
+			return fallback;
+		}
+		CGDataProviderRef provider = CGDataProviderCreateWithCFData((__bridge CFDataRef)data);
+		graphicsFont = CGFontCreateWithDataProvider(provider);
+		CGDataProviderRelease(provider);
+		if (graphicsFont == NULL) {
+			return fallback;
+		}
+		cache[file] = (__bridge_transfer id)graphicsFont;
+	}
+	CTFontRef font = CTFontCreateWithGraphicsFont(graphicsFont, size, NULL, NULL);
+	return font != NULL ? (__bridge_transfer UIFont *)font : fallback;
 }
 
 static NSString *documentsDir(void)
@@ -279,23 +308,42 @@ static NSDictionary<NSString *, NSString *> *installedFiles(void)
 	NSArray<ZHDataFile *> *_todo;
 }
 
+// The landing site's look: sand ground, a canvas "crate label" card with an ink border and an
+// olive offset shadow, stencil capitals for titles and buttons, IBM Plex Sans for text.
+static UIColor *zhColor(uint32_t rgb)
+{
+	return [UIColor colorWithRed:((rgb >> 16) & 0xFF) / 255.0 green:((rgb >> 8) & 0xFF) / 255.0
+		blue:(rgb & 0xFF) / 255.0 alpha:1];
+}
+
 - (void)viewDidLoad
 {
 	[super viewDidLoad];
-	UIColor *sand = [UIColor colorWithRed:0.82 green:0.76 blue:0.57 alpha:1];
-	UIColor *ink = [UIColor colorWithRed:0.11 green:0.12 blue:0.08 alpha:1];
-	UIColor *signal = [UIColor colorWithRed:0.76 green:0.27 blue:0.11 alpha:1];
+	UIColor *sand = zhColor(0xD2C192);
+	UIColor *canvas = zhColor(0xE4D8B3);
+	UIColor *ink = zhColor(0x1D1F14);
+	UIColor *drab = zhColor(0x4A5228);
+	UIColor *signal = zhColor(0xC2461B);
 	self.view.backgroundColor = sand;
 
 	_title = [UILabel new];
-	_title.font = [UIFont boldSystemFontOfSize:26];
+	_title.font = zhFont(@"zh_display.ttf", 34, [UIFont boldSystemFontOfSize:28]);
 	_title.textColor = ink;
+	_title.numberOfLines = 0;
 	_body = [UILabel new];
 	_body.numberOfLines = 0;
 	_body.textColor = ink;
-	_body.font = [UIFont systemFontOfSize:16];
+	_body.font = zhFont(@"zh_body.ttf", 16, [UIFont systemFontOfSize:16]);
 	_field = [UITextField new];
-	_field.borderStyle = UITextBorderStyleRoundedRect;
+	_field.borderStyle = UITextBorderStyleNone;
+	_field.backgroundColor = zhColor(0xF0E8D0);
+	_field.layer.borderColor = drab.CGColor;
+	_field.layer.borderWidth = 2;
+	_field.layer.cornerRadius = 3;
+	_field.leftView = [[UIView alloc] initWithFrame:CGRectMake(0, 0, 12, 1)];
+	_field.leftViewMode = UITextFieldViewModeAlways;
+	_field.font = zhFont(@"zh_body_semibold.ttf", 18, [UIFont boldSystemFontOfSize:18]);
+	_field.textColor = ink;
 	_field.placeholder = @"GZH-XXXX-XXXX-XXXX";
 	_field.autocapitalizationType = UITextAutocapitalizationTypeAllCharacters;
 	_field.autocorrectionType = UITextAutocorrectionTypeNo;
@@ -303,33 +351,61 @@ static NSDictionary<NSString *, NSString *> *installedFiles(void)
 	_field.delegate = self;
 	_primary = [UIButton buttonWithType:UIButtonTypeSystem];
 	_primary.backgroundColor = signal;
-	[_primary setTitleColor:UIColor.whiteColor forState:UIControlStateNormal];
-	_primary.titleLabel.font = [UIFont boldSystemFontOfSize:18];
-	_primary.layer.cornerRadius = 8;
+	[_primary setTitleColor:zhColor(0xFFF8EC) forState:UIControlStateNormal];
+	_primary.titleLabel.font = zhFont(@"zh_display.ttf", 24, [UIFont boldSystemFontOfSize:20]);
+	_primary.layer.cornerRadius = 3;
+	_primary.layer.borderColor = ink.CGColor;
+	_primary.layer.borderWidth = 3;
 	[_primary addTarget:self action:@selector(onPrimary) forControlEvents:UIControlEventTouchUpInside];
 	_secondary = [UIButton buttonWithType:UIButtonTypeSystem];
+	_secondary.backgroundColor = canvas;
 	[_secondary setTitleColor:ink forState:UIControlStateNormal];
+	_secondary.titleLabel.font = zhFont(@"zh_display.ttf", 20, [UIFont boldSystemFontOfSize:18]);
+	_secondary.layer.cornerRadius = 3;
+	_secondary.layer.borderColor = drab.CGColor;
+	_secondary.layer.borderWidth = 2;
 	[_secondary addTarget:self action:@selector(onSecondary) forControlEvents:UIControlEventTouchUpInside];
 	_status = [UILabel new];
 	_status.numberOfLines = 0;
-	_status.textColor = ink;
-	_status.font = [UIFont systemFontOfSize:14];
+	_status.textColor = drab;
+	_status.font = zhFont(@"zh_body.ttf", 14, [UIFont systemFontOfSize:14]);
 	_progress = [[UIProgressView alloc] initWithProgressViewStyle:UIProgressViewStyleDefault];
 	_progress.progressTintColor = signal;
+	_progress.trackTintColor = zhColor(0xCBC392);
 
 	UIStackView *stack = [[UIStackView alloc] initWithArrangedSubviews:@[_title, _body, _field, _progress, _primary, _secondary, _status]];
 	stack.axis = UILayoutConstraintAxisVertical;
 	stack.spacing = 14;
 	stack.translatesAutoresizingMaskIntoConstraints = NO;
-	[self.view addSubview:stack];
+
+	// The card: canvas, ink border, and the site's hard olive offset shadow (no blur).
+	UIView *card = [UIView new];
+	card.backgroundColor = canvas;
+	card.layer.borderColor = ink.CGColor;
+	card.layer.borderWidth = 3;
+	card.layer.shadowColor = drab.CGColor;
+	card.layer.shadowOffset = CGSizeMake(8, 8);
+	card.layer.shadowOpacity = 1;
+	card.layer.shadowRadius = 0;
+	card.translatesAutoresizingMaskIntoConstraints = NO;
+	[card addSubview:stack];
+	[self.view addSubview:card];
 	UILayoutGuide *g = self.view.safeAreaLayoutGuide;
 	[NSLayoutConstraint activateConstraints:@[
-		[stack.centerXAnchor constraintEqualToAnchor:g.centerXAnchor],
-		[stack.centerYAnchor constraintEqualToAnchor:g.centerYAnchor],
+		[card.centerXAnchor constraintEqualToAnchor:g.centerXAnchor],
+		[card.centerYAnchor constraintEqualToAnchor:g.centerYAnchor],
+		[card.leadingAnchor constraintGreaterThanOrEqualToAnchor:g.leadingAnchor constant:24],
+		[card.trailingAnchor constraintLessThanOrEqualToAnchor:g.trailingAnchor constant:-32],
+		[card.topAnchor constraintGreaterThanOrEqualToAnchor:g.topAnchor constant:16],
+		[card.bottomAnchor constraintLessThanOrEqualToAnchor:g.bottomAnchor constant:-24],
+		[stack.topAnchor constraintEqualToAnchor:card.topAnchor constant:24],
+		[stack.bottomAnchor constraintEqualToAnchor:card.bottomAnchor constant:-24],
+		[stack.leadingAnchor constraintEqualToAnchor:card.leadingAnchor constant:24],
+		[stack.trailingAnchor constraintEqualToAnchor:card.trailingAnchor constant:-24],
 		[stack.widthAnchor constraintLessThanOrEqualToConstant:520],
-		[stack.leadingAnchor constraintGreaterThanOrEqualToAnchor:g.leadingAnchor constant:24],
-		[stack.trailingAnchor constraintLessThanOrEqualToAnchor:g.trailingAnchor constant:-24],
-		[_primary.heightAnchor constraintEqualToConstant:50],
+		[_field.heightAnchor constraintEqualToConstant:48],
+		[_primary.heightAnchor constraintEqualToConstant:54],
+		[_secondary.heightAnchor constraintEqualToConstant:46],
 	]];
 	NSLayoutConstraint *wide = [stack.widthAnchor constraintEqualToConstant:520];
 	wide.priority = UILayoutPriorityDefaultHigh;
@@ -396,26 +472,39 @@ static NSDictionary<NSString *, NSString *> *installedFiles(void)
 
 - (void)show:(NSString *)title body:(NSString *)body primary:(NSString *)primary secondary:(NSString *)secondary field:(BOOL)field
 {
-	_title.text = title;
+	_title.text = title.uppercaseString;  // stencil capitals, like the site
 	_body.text = body;
 	_primary.tag = 0;  // each screen sets the actions it wants after calling show
 	_secondary.tag = 0;
 	_field.hidden = !field;
 	_progress.hidden = YES;
 	_primary.hidden = primary == nil;
-	[_primary setTitle:primary forState:UIControlStateNormal];
+	[_primary setTitle:primary.uppercaseString forState:UIControlStateNormal];
 	_primary.enabled = YES;
 	_secondary.hidden = secondary == nil;
-	[_secondary setTitle:secondary forState:UIControlStateNormal];
+	[_secondary setTitle:secondary.uppercaseString forState:UIControlStateNormal];
 	_status.text = @"";
 }
 
 - (void)showActivation
 {
 	[self show:@"Activate this device"
-		  body:@"Enter the activation key you were given. It works on one device only; this device is checked once, online, and then plays offline."
-	   primary:@"Activate" secondary:nil field:YES];
+		  body:@"Copy the activation key you were given, then tap Paste key. It works on one device only; this device is checked once, online, and then plays offline."
+	   primary:@"Activate" secondary:@"Paste key" field:YES];
 	_primary.tag = 1;
+	_secondary.tag = 5;
+}
+
+// Activation without the on-screen keyboard: the key straight from the clipboard.
+- (void)pasteKey
+{
+	NSString *pasted = UIPasteboard.generalPasteboard.string;
+	if (pasted.length == 0) {
+		_status.text = @"Nothing to paste: copy your activation key first.";
+		return;
+	}
+	_field.text = [pasted stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceAndNewlineCharacterSet];
+	[self activate];
 }
 
 - (BOOL)textFieldShouldReturn:(UITextField *)textField
@@ -439,6 +528,10 @@ static NSDictionary<NSString *, NSString *> *installedFiles(void)
 {
 	if (_secondary.tag == 4) {
 		[self step];  // "Check again" after updating in SideStore
+		return;
+	}
+	if (_secondary.tag == 5) {
+		[self pasteKey];
 		return;
 	}
 	self.finished = YES;  // "Later" on a data update: go on to the game

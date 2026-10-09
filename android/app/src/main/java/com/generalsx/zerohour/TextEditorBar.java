@@ -2,7 +2,6 @@ package com.generalsx.zerohour;
 
 import android.app.Activity;
 import android.content.Context;
-import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Build;
 import android.text.Editable;
@@ -143,7 +142,9 @@ final class TextEditorBar {
         bar = new LinearLayout(activity);
         bar.setOrientation(LinearLayout.HORIZONTAL);
         bar.setGravity(Gravity.CENTER_VERTICAL);
-        bar.setBackgroundColor(0xE6101418);
+        // GeneralsX @tweak ZH Commander 09/10/2026 In the landing site's look: a gunmetal-ink bar,
+        // a canvas field with ink text, the hazard-orange OK.
+        bar.setBackgroundColor(0xF01D1F14);
         int pad = dp(6);
         bar.setPadding(pad, pad, pad, pad);
         // The bar is a separate surface over the game: taps on it must not reach the game.
@@ -154,14 +155,15 @@ final class TextEditorBar {
         // Its own background: the launcher's light theme gave the field a white box, and the text
         // (white, for the dark bar) vanished in it.
         GradientDrawable field = new GradientDrawable();
-        field.setColor(0xFF2A2F36);
-        field.setStroke(dp(1), 0xFF5C6670);
-        field.setCornerRadius(dp(6));
+        field.setColor(0xFFE4D8B3);
+        field.setStroke(dp(2), 0xFF4A5228);
+        field.setCornerRadius(dp(3));
         edit.setBackground(field);
         int fieldPad = dp(8);
         edit.setPadding(fieldPad, fieldPad, fieldPad, fieldPad);
-        edit.setTextColor(Color.WHITE);
-        edit.setHintTextColor(0xFF9AA0A6);
+        edit.setTextColor(0xFF1D1F14);
+        edit.setHintTextColor(0xFF5A5641);
+        edit.setTypeface(UiKit.strong(activity));
         edit.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
         // The keyboard's full-screen landscape editor would hide the game behind it.
         edit.setImeOptions(EditorInfo.IME_ACTION_DONE
@@ -190,6 +192,12 @@ final class TextEditorBar {
 
         Button done = new Button(activity);
         done.setText(android.R.string.ok);
+        done.setTypeface(UiKit.display(activity));
+        done.setTextColor(0xFFFFF8EC);
+        GradientDrawable doneShape = new GradientDrawable();
+        doneShape.setColor(0xFFC2461B);
+        doneShape.setCornerRadius(dp(3));
+        done.setBackground(doneShape);
         done.setOnClickListener(v -> finish(true));
         LinearLayout.LayoutParams doneParams = new LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
