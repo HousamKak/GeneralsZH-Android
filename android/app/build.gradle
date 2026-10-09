@@ -89,8 +89,8 @@ android {
         // Scheme (09/10/2026): versionName is 0.1.N, N = how many releases have shipped;
         // versionCode only ever goes up by one per release (it continued from 10508, the
         // last 1.5.x), since it is what installs and in-app updates compare, not the name.
-        versionCode (project.hasProperty('androidVersionCode') ? (project.androidVersionCode as Integer) : 10516)
-        versionName (project.hasProperty('androidVersionName') ? project.androidVersionName : '0.1.16')
+        versionCode (project.hasProperty('androidVersionCode') ? (project.androidVersionCode as Integer) : 10517)
+        versionName (project.hasProperty('androidVersionName') ? project.androidVersionName : '0.1.17')
         ndk {
             abiFilters 'arm64-v8a'
         }

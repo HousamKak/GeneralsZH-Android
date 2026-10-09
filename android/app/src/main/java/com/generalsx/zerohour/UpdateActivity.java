@@ -15,12 +15,6 @@ import androidx.core.content.FileProvider;
 import com.google.android.material.button.MaterialButton;
 
 import java.io.File;
-import java.io.FileOutputStream;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.security.MessageDigest;
 
 /**
  * Offers a newer APK announced by the signed update manifest (UpdateManager.appOffer), downloads
@@ -106,10 +100,11 @@ public class UpdateActivity extends Activity {
 
     @Override
     public void onBackPressed() {
-        if (downloading) {
-            return;
-        }
-        if (laterButton == null) {
+        // Leaving is fine while downloading: AppUpdateService carries on, with its notification,
+        // and the next Update tap installs what it fetched.
+        if (laterButton == null && downloading) {
+            moveTaskToBack(true);  // required update still downloading: out of the way, not into the game
+        } else if (laterButton == null) {
             finishAffinity();  // required update: leaving closes the app instead of starting the game
         } else {
             onLater();
@@ -147,101 +142,65 @@ public class UpdateActivity extends Activity {
         }
     }
 
+    // GeneralsX @feature ZH Commander 10/10/2026 The download runs in AppUpdateService (foreground,
+    // resumable, retried, often already done in the background on Wi-Fi); this screen only shows
+    // where it is and installs the APK once it is complete and checked.
+    private final android.os.Handler poll = new android.os.Handler(android.os.Looper.getMainLooper());
+
     private void startDownload() {
+        File ready = AppUpdateService.readyApk(this, offer);
+        if (ready != null) {
+            statusText.setText(R.string.update_installing);
+            install(ready);
+            return;
+        }
         ZHTelemetry.track("app_update", "stage", "download", "to", offer.versionName);
         downloading = true;
         updateButton.setEnabled(false);
         if (laterButton != null) {
             laterButton.setEnabled(false);
         }
-        progress.setProgress(0);
         progress.setVisibility(android.view.View.VISIBLE);
-        statusText.setText(getString(R.string.update_downloading, 0));
-        final UpdateManager.AppOffer target = offer;
-        final File dir = new File(getCacheDir(), "update");
-        new Thread(() -> {
-            File apk = new File(dir, "zh-commander-" + target.versionCode + ".apk");
-            int error = download(target, dir, apk);
-            runOnUiThread(() -> {
-                if (isFinishing()) {
-                    return;
-                }
-                downloading = false;
-                updateButton.setEnabled(true);
-                if (laterButton != null) {
-                    laterButton.setEnabled(true);
-                }
-                if (error != 0) {
-                    progress.setVisibility(android.view.View.GONE);
-                    statusText.setText(error);
-                    return;
-                }
-                statusText.setText(R.string.update_installing);
-                install(apk);
-            });
-        }, "GXAppUpdate").start();
+        AppUpdateService.start(this);
+        poll.post(this::showProgress);
     }
 
-    /** 0 on success, else the message to show. Blocking. */
-    private int download(UpdateManager.AppOffer target, File dir, File apk) {
-        if (!dir.isDirectory() && !dir.mkdirs()) {
-            return R.string.update_failed;
+    private void showProgress() {
+        if (isFinishing()) {
+            return;
         }
-        // Only the APK being fetched stays: earlier downloads are dead weight.
-        File[] old = dir.listFiles();
-        if (old != null) {
-            for (File f : old) {
-                f.delete();
+        File ready = AppUpdateService.readyApk(this, offer);
+        if (ready != null) {
+            downloading = false;
+            progress.setProgress(100);
+            statusText.setText(R.string.update_installing);
+            updateButton.setEnabled(true);
+            if (laterButton != null) {
+                laterButton.setEnabled(true);
             }
+            install(ready);
+            return;
         }
-        HttpURLConnection conn = null;
-        try {
-            conn = (HttpURLConnection) new URL(target.url).openConnection();
-            conn.setConnectTimeout(20000);
-            conn.setReadTimeout(30000);
-            conn.setRequestProperty("User-Agent", "ZHCommander-Updater");
-            if (conn.getResponseCode() != 200) {
-                return R.string.update_failed;
+        if (!AppUpdateService.sRunning && AppUpdateService.sError != null) {
+            downloading = false;
+            progress.setVisibility(android.view.View.GONE);
+            statusText.setText(getString(R.string.update_failed) + " (" + AppUpdateService.sError + ")");
+            updateButton.setEnabled(true);
+            if (laterButton != null) {
+                laterButton.setEnabled(true);
             }
-            MessageDigest sha = MessageDigest.getInstance("SHA-256");
-            long received = 0;
-            int lastPercent = -1;
-            try (InputStream in = conn.getInputStream(); OutputStream out = new FileOutputStream(apk)) {
-                byte[] buf = new byte[256 * 1024];
-                int n;
-                while ((n = in.read(buf)) > 0) {
-                    out.write(buf, 0, n);
-                    sha.update(buf, 0, n);
-                    received += n;
-                    if (received > target.size) {
-                        return R.string.update_verify_failed;
-                    }
-                    final int percent = (int) (received * 100 / Math.max(1, target.size));
-                    if (percent != lastPercent) {
-                        lastPercent = percent;
-                        runOnUiThread(() -> {
-                            progress.setProgress(percent);
-                            statusText.setText(getString(R.string.update_downloading, percent));
-                        });
-                    }
-                }
-            }
-            StringBuilder hex = new StringBuilder();
-            for (byte b : sha.digest()) {
-                hex.append(String.format(java.util.Locale.ROOT, "%02x", b));
-            }
-            if (received != target.size || !hex.toString().equals(target.sha256)) {
-                apk.delete();
-                return R.string.update_verify_failed;
-            }
-            return 0;
-        } catch (Exception e) {
-            return R.string.update_failed;
-        } finally {
-            if (conn != null) {
-                conn.disconnect();
-            }
+            return;
         }
+        int percent = (int) (AppUpdateService.sDone * 100 / Math.max(1, offer.size));
+        progress.setProgress(percent);
+        statusText.setText(getString(R.string.update_downloading, percent));
+        poll.postDelayed(this::showProgress, 500);
+    }
+
+    @Override
+    protected void onDestroy() {
+        poll.removeCallbacksAndMessages(null);
+        super.onDestroy();
     }
 
     private void install(File apk) {

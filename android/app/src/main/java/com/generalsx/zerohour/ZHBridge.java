@@ -63,6 +63,7 @@ final class ZHBridge {
         // Held back until the offered version's notes are fetched (a second or two), so the
         // game's dialog can say what the update brings (releaseNotes below).
         ReleaseNotes.prefetch(game(), offer.versionName);
+        AppUpdateService.prefetch(game());  // on Wi-Fi: download now, so Update installs at once
         if (!ReleaseNotes.fetched(game(), offer.versionName)) {
             return null;
         }

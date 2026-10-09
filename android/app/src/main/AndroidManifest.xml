@@ -192,6 +192,12 @@
             android:theme="@style/Theme.GeneralsZHSettings"
             android:configChanges="orientation|screenSize|keyboardHidden" />
 
+        <!-- App updates: resumable, in the background, often fetched ahead on Wi-Fi. -->
+        <service
+            android:name=".AppUpdateService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
+
         <service
             android:name=".DataDownloadService"
             android:exported="false"

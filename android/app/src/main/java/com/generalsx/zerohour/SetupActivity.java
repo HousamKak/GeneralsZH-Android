@@ -168,6 +168,7 @@ public class SetupActivity extends Activity {
                 final android.content.Context app = getApplicationContext();
                 new Thread(() -> {
                     UpdateManager.check(app, true);
+                    AppUpdateService.prefetch(app);  // a new release found: fetch it now on Wi-Fi
                     try {
                         DataPack.fetchManifest(app);  // remembers the latest data version
                     } catch (java.io.IOException e) {
