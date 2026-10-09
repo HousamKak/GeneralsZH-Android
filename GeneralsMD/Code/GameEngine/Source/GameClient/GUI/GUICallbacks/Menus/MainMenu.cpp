@@ -644,6 +644,12 @@ static void shareSupportReport()
 		ZHCommander::hooks().shareSupportReport();
 }
 
+static void onlineSignIn()
+{
+	if (ZHCommander::hooks().onlineSignIn)
+		ZHCommander::hooks().onlineSignIn();
+}
+
 static void startAppUpdate()
 {
 	if (ZHCommander::hooks().startAppUpdate)
@@ -1881,6 +1887,19 @@ WindowMsgHandledType MainMenuSystem( GameWindow *window, UnsignedInt msg,
 			{
 				if(dontAllowTransitions)
 					break;
+				// GeneralsX @feature ZH Commander 09/10/2026 No GeneralsOnline account on this device:
+				// offer the sign-in here, where the player wants to go online, instead of letting the
+				// start fall through to the old GameSpy check and its "cannot connect".
+				char account[64];
+				if (ZHCommander::hooks().onlineAccount != nullptr
+					&& !ZHCommander::hooks().onlineAccount( account, sizeof(account) ))
+				{
+					MessageBoxOkCancel( UnicodeString( L"GENERALSONLINE" ),
+						UnicodeString( L"Sign in to GeneralsOnline to play online. The sign-in opens in your "
+							L"browser and brings you back here; then press Online again." ),
+						onlineSignIn, nullptr );
+					break;
+				}
 				dontAllowTransitions = TRUE;
 				buttonPushed = TRUE;
 				dropDownWindows[DROPDOWN_MULTIPLAYER]->winHide(FALSE);

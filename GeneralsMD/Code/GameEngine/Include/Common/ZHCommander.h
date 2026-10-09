@@ -58,6 +58,12 @@ namespace ZHCommander
 		// Closes the game and starts it again, through the shell's start-up checks.
 		void (*restart)();
 
+		// GeneralsOnline account: the name this device is signed in as (false when not signed in),
+		// the sign-in (opens the browser, returns to the game when done) and sign-out.
+		bool (*onlineAccount)(char *name, int size);
+		void (*onlineSignIn)();
+		void (*onlineSignOut)();
+
 		// Something worth counting happened ("engine_boot"), for the app's usage monitor. Client
 		// side only: never called from game logic, which must stay deterministic.
 		void (*event)(const char *name);

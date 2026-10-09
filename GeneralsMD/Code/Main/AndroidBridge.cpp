@@ -152,6 +152,13 @@ static void event(const char *name)
 	clearException(env, "event");
 }
 
+static bool onlineAccount(char *name, int size)
+{
+	return callString("onlineAccount", nullptr, name, size) && name[0] != '\0';
+}
+
+static void onlineSignIn() { callVoid("onlineSignIn"); }
+static void onlineSignOut() { callVoid("onlineSignOut"); }
 static void startAppUpdate() { callVoid("startAppUpdate"); }
 static void startDataUpdate() { callVoid("startDataUpdate"); }
 static void shareSupportReport() { callVoid("shareSupportReport"); }
@@ -185,5 +192,8 @@ void ZHAndroidInstallHooks()
 	h.setSetting = setSetting;
 	h.restart = restart;
 	h.event = event;
+	h.onlineAccount = onlineAccount;
+	h.onlineSignIn = onlineSignIn;
+	h.onlineSignOut = onlineSignOut;
 	fprintf(stderr, "INFO: ZH Commander %s\n", appVersion());
 }

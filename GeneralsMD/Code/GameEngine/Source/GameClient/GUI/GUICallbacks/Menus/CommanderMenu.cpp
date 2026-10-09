@@ -231,6 +231,36 @@ namespace
 	{
 		TheShell->pop();
 	}
+
+	// The ONLINE row: who this device is signed in as, and SIGN IN or SIGN OUT. Refreshed while the
+	// screen is open, since the sign-in finishes in the browser and comes back here.
+	GameWindow *s_labelOnline = nullptr;
+	GameWindow *s_buttonOnline = nullptr;
+	Bool s_signedIn = FALSE;
+	Int s_onlinePollFrames = 0;
+
+	void refreshOnline()
+	{
+		ZHCommander::Hooks &h = ZHCommander::hooks();
+		if (s_labelOnline == nullptr || s_buttonOnline == nullptr || h.onlineAccount == nullptr)
+			return;
+		char name[64];
+		s_signedIn = h.onlineAccount(name, sizeof(name));
+		UnicodeString text;
+		if (s_signedIn)
+			text.format(L"Signed in as %hs", name);
+		else
+			text = L"Not signed in";
+		GadgetStaticTextSetText(s_labelOnline, text);
+		GadgetButtonSetText(s_buttonOnline, UnicodeString(s_signedIn ? L"SIGN OUT" : L"SIGN IN"));
+	}
+
+	void signOutNow()
+	{
+		if (ZHCommander::hooks().onlineSignOut)
+			ZHCommander::hooks().onlineSignOut();
+		refreshOnline();
+	}
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -262,7 +292,24 @@ void CommanderMenuInit(WindowLayout *layout, void *userData)
 	setLabel(s_rows[ROW_UI_SCALE].label, L"Interface size");
 	setLabel(s_rows[ROW_TEXT_SIZE].label, L"Text size");
 	setLabel(s_rows[ROW_TELEMETRY].label, L"Usage data (anonymous)");
-	setLabel(find("LabelSupport"), L"SUPPORT");
+	setLabel(find("LabelSectionGame"), L"GAME");
+	setLabel(find("LabelSectionOnline"), L"ONLINE");
+	setLabel(find("LabelSupport"), L"SUPPORT AND APP");
+	s_labelOnline = find("LabelOnline");
+	s_buttonOnline = find("ButtonOnline");
+	if (h.onlineAccount == nullptr)
+	{
+		// No GeneralsOnline on this platform: the whole section goes.
+		if (find("LabelSectionOnline"))
+			find("LabelSectionOnline")->winHide(TRUE);
+		if (s_labelOnline)
+			s_labelOnline->winHide(TRUE);
+		if (s_buttonOnline)
+			s_buttonOnline->winHide(TRUE);
+		s_buttonOnline = nullptr;
+	}
+	s_onlinePollFrames = 0;
+	refreshOnline();
 	setLabel(find("LabelStatus"), L"Changes take effect when the game starts again.");
 
 	// Values on entry, from the same places the game reads them at startup.
@@ -301,7 +348,7 @@ void CommanderMenuInit(WindowLayout *layout, void *userData)
 	}
 	if (s_buttonMore)
 	{
-		GadgetButtonSetText(s_buttonMore, UnicodeString(L"MORE SETTINGS"));
+		GadgetButtonSetText(s_buttonMore, UnicodeString(L"ADVANCED"));
 		s_buttonMore->winHide(h.openMoreSettings == nullptr);
 	}
 	if (s_buttonUpdate)
@@ -334,6 +381,11 @@ void CommanderMenuInit(WindowLayout *layout, void *userData)
 //-------------------------------------------------------------------------------------------------
 void CommanderMenuUpdate(WindowLayout *layout, void *userData)
 {
+	if (++s_onlinePollFrames >= 30)
+	{
+		s_onlinePollFrames = 0;
+		refreshOnline();
+	}
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -345,6 +397,7 @@ void CommanderMenuShutdown(WindowLayout *layout, void *userData)
 		s_rows[i].button = nullptr;
 	}
 	s_buttonReport = s_buttonMore = s_buttonUpdate = s_buttonAccept = s_buttonBack = nullptr;
+	s_labelOnline = s_buttonOnline = nullptr;
 
 	layout->hide(TRUE);
 	TheShell->shutdownComplete(layout);
@@ -377,6 +430,14 @@ WindowMsgHandledType CommanderMenuSystem(GameWindow *window, UnsignedInt msg,
 			}
 			if (control == s_buttonReport && h.shareSupportReport)
 				h.shareSupportReport();
+			else if (control == s_buttonOnline && s_buttonOnline != nullptr)
+			{
+				if (!s_signedIn && h.onlineSignIn)
+					h.onlineSignIn();
+				else if (s_signedIn)
+					MessageBoxYesNo(UnicodeString(L"GENERALSONLINE"),
+						UnicodeString(L"Sign out of GeneralsOnline on this device?"), signOutNow, nullptr);
+			}
 			else if (control == s_buttonMore && h.openMoreSettings)
 				h.openMoreSettings();
 			else if (control == s_buttonUpdate && h.startAppUpdate)

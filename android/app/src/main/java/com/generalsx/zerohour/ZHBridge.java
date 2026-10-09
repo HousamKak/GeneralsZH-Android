@@ -88,6 +88,24 @@ final class ZHBridge {
             .putExtra(SetupActivity.EXTRA_SHARE_REPORT, true));
     }
 
+    /** The GeneralsOnline display name this device is signed in as, or null. */
+    static String onlineAccount() {
+        return GeneralsOnlineActivity.getSignedInDisplayName(game());
+    }
+
+    /** Opens the sign-in straight into the browser; back to the game when it is done. */
+    static void onlineSignIn() {
+        Activity a = game();
+        a.startActivity(new Intent(a, GeneralsOnlineActivity.class)
+            .putExtra(GeneralsOnlineActivity.EXTRA_FROM_GAME, true));
+    }
+
+    /** Forgets this device's GeneralsOnline session (local only, as the account screen does). */
+    static void onlineSignOut() {
+        GeneralsOnlineSession.clearSession(game());
+        ZHTelemetry.track("online_sign_out");
+    }
+
     /** Something the engine did, for App Monitor (ZHTelemetry), e.g. "engine_boot". */
     static void event(String name) {
         ZHTelemetry.track(name);

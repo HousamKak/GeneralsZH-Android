@@ -115,20 +115,25 @@ def panel_children():
     kids.append(label("LabelTitle", (152, 21, 450, 54), size=20, template="Title", font="Generals"))
     kids.append(label("LabelVersion", (152, 56, 635, 80)))
 
-    # One row per setting: its name on the left, a button on the right that steps through the
-    # values. CommanderMenu.cpp hides the rows a platform does not have.
-    rows = ["SimHz", "Renderer", "Upscale", "UiScale", "TextSize", "Telemetry"]
-    y = 92
-    for row in rows:
-        kids.append(label(f"Label{row}", (160, y, 384, y + 32)))
-        kids.append(button(f"Button{row}", (390, y, 635, y + 32), size=13))
-        y += 36
+    # Three sections, each under a heading. A row is a name on the left and a button on the right
+    # that steps through the values (or acts). CommanderMenu.cpp hides what a platform lacks.
+    def row(name, y):
+        kids.append(label(f"Label{name}", (160, y, 384, y + 30)))
+        kids.append(button(f"Button{name}", (390, y, 635, y + 30), size=13))
 
-    kids.append(label("LabelSupport", (152, 312, 635, 336), size=14, template="MinorTitle"))
-    kids.append(button("ButtonReport", (152, 342, 390, 374), size=13))
-    kids.append(button("ButtonMore", (397, 342, 635, 374), size=13))
-    kids.append(button("ButtonUpdate", (152, 382, 635, 414), size=13))
-    kids.append(label("LabelStatus", (152, 424, 635, 504)))
+    kids.append(label("LabelSectionGame", (152, 84, 635, 104), size=14, template="MinorTitle"))
+    for i, name in enumerate(["SimHz", "Renderer", "Upscale", "UiScale", "TextSize"]):
+        row(name, 106 + i * 33)
+
+    kids.append(label("LabelSectionOnline", (152, 274, 635, 294), size=14, template="MinorTitle"))
+    row("Online", 296)
+
+    kids.append(label("LabelSupport", (152, 334, 635, 354), size=14, template="MinorTitle"))
+    row("Telemetry", 356)
+    kids.append(button("ButtonReport", (152, 392, 390, 422), size=13))
+    kids.append(button("ButtonMore", (397, 392, 635, 422), size=13))
+    kids.append(button("ButtonUpdate", (152, 428, 635, 458), size=13))
+    kids.append(label("LabelStatus", (152, 464, 635, 524)))
 
     kids.append(button("ButtonAccept", (312, 528, 471, 560)))
     kids.append(button("ButtonBack", (476, 528, 635, 560)))

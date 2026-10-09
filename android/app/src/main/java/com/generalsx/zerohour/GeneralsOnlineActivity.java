@@ -137,10 +137,20 @@ public class GeneralsOnlineActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setTitle(R.string.online_window_title);
+        fromGame = getIntent().getBooleanExtra(EXTRA_FROM_GAME, false);
         buildUi();
         refreshStatus();
-        maybeSilentReauth();
+        // From the game's SIGN IN (ZHBridge.onlineSignIn): straight to the browser, and back to
+        // the game once it is done, so signing in is one tap where the player already is.
+        if (fromGame && savedInstanceState == null && getSignedInDisplayName(this) == null) {
+            onSignIn();
+        } else {
+            maybeSilentReauth();
+        }
     }
+
+    static final String EXTRA_FROM_GAME = "com.housamkak.zhcommander.ONLINE_FROM_GAME";
+    private boolean fromGame;
 
     @Override
     protected void onDestroy() {
@@ -771,6 +781,13 @@ public class GeneralsOnlineActivity extends Activity {
                 + " polls, user " + result.userId);
             Toast.makeText(this, getString(R.string.online_toast_signed_in_as, result.displayName),
                 Toast.LENGTH_LONG).show();
+            ZHTelemetry.track("online_sign_in", "result", "ok");
+            // The game is right underneath; its Online button now goes online. Unless the
+            // community data still has to be offered (maybePromptForDataPacks, from
+            // refreshStatus above): then the player answers that here first, and Back returns.
+            if (fromGame && DataPackInstaller.installedVersion(this) != null) {
+                finish();
+            }
             return;
         }
 

@@ -299,6 +299,8 @@ jobs:
           TOOLS="$(dirname "$(ls "${ANDROID_NDK_HOME}"/toolchains/llvm/prebuilt/*/bin/llvm-strip | head -1)")"
           "$TOOLS/llvm-nm" --defined-only --numeric-sort --print-size --demangle "$LIB" \
             | gzip -9 > "symbols/libmain60-run${{ github.run_number }}.symbols.txt.gz"
+          # Kept whole for App Monitor's symbol upload below; the 30 Hz build overwrites $LIB.
+          cp "$LIB" build/libmain60-unstripped.so
           "$TOOLS/llvm-strip" --strip-unneeded -o build/libmain60.so "$LIB"
           ls -la build/libmain60.so
 
@@ -389,6 +391,30 @@ jobs:
       # investigations actually used. The program headers travel with it so the
       # vaddr-vs-file-offset bias (the +0x1000 one, rediscovered by hand more
       # than once) is written down next to the symbols it applies to.
+      # GeneralsX @feature ZH Commander 09/10/2026 Both engines' debug info to App Monitor, so its
+      # crash reports name the function, file and line. Under the names the APK ships them as
+      # (libmain.so is 30 Hz, libmain60.so 60 Hz), which is what a crash's module path says, and
+      # under the versionName the app reports. DWARF is zlib-compressed first and large files go
+      # up in parts (third_party/app-monitor/scripts). The token can only upload. Releases only.
+      - name: Upload engine symbols to App Monitor
+        if: ${{ inputs.release }}
+        env:
+          MONITOR_URL: https://app-monitor-dash.housam-kak20.workers.dev
+          UPLOAD_TOKEN: ${{ secrets.APP_MONITOR_UPLOAD_TOKEN }}
+        run: |
+          set -euo pipefail
+          OBJCOPY="$(ls "${ANDROID_NDK_HOME}"/toolchains/llvm/prebuilt/*/bin/llvm-objcopy | head -1)"
+          VERSION_NAME="${{ inputs.version_name }}"
+          if [ -z "$VERSION_NAME" ]; then
+            VERSION_NAME="$(sed -n "s/.*androidVersionName : '\([^']*\)'.*/\1/p" android/app/build.gradle)"
+          fi
+          UP=third_party/app-monitor/scripts/upload-symbols.mjs
+          node "$UP" --app zh-commander --version "$VERSION_NAME" --platform android \
+            --symbols "build/${{ env.PRESET }}/GeneralsMD/Code/Main/libmain.so" --compress-debug "$OBJCOPY"
+          node "$UP" --app zh-commander --version "$VERSION_NAME" --platform android \
+            --symbols build/libmain60-unstripped.so --name libmain60.so --compress-debug "$OBJCOPY"
+          rm -f build/libmain60-unstripped.so
+
       - name: Collect symbol table (before stripping)
         run: |
           set -e
