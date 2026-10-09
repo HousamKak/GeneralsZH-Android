@@ -2598,8 +2598,14 @@ WindowMsgHandledType WOLLobbyMenuSystem( GameWindow *window, UnsignedInt msg,
 							{
 								if (Lobby.exe_crc != TheGlobalData->m_exeCRC)
 								{
+									// GeneralsX @tweak ZH Commander 10/10/2026 Between phones this is almost always
+									// a different game speed (30 or 60 Hz, part of this checksum since 0.1.15) or
+									// different game data; say which settings to compare, not only the PC case.
 									GSMessageBoxOk(TheGameText->fetch("GUI:JoinFailedDefault"),
-										UnicodeString(L"This Android build cannot join games hosted by the PC client: the two are different programs, so their EXE checksums never match. Games hosted from Android can be joined normally."));
+										UnicodeString(L"This game was set up differently from yours, so the match would fall out of sync. "
+											L"If the host is a phone: use the same Game speed (30 or 60 Hz, in Options, ZH COMMANDER) "
+											L"and accept the newest game data, then join again. "
+											L"If the host is a PC: Android joins PC games only at 60 Hz, with cross-play on in the GeneralsOnline account screen."));
 								}
 								else if (TheGlobalData->m_iniCRC != VANILLA_INI_CRC)
 								{

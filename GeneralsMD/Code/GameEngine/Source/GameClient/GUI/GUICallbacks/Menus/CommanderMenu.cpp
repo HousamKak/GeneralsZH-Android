@@ -54,8 +54,8 @@ namespace
 	};
 
 	const Choice SIM_HZ[] = {
-		{ "30", L"30 HZ" },
-		{ "60", L"60 HZ (PLAY WITH PC)" },
+		{ "30", L"30 HZ (WITH PHONES)" },
+		{ "60", L"60 HZ (WITH PC)" },
 	};
 	const Choice RENDERERS[] = {
 		{ "gles", L"OPENGL ES" },
@@ -313,7 +313,7 @@ void CommanderMenuInit(WindowLayout *layout, void *userData)
 	version.format(L"Version %hs", ZHCommander::appVersion() ? ZHCommander::appVersion() : "?");
 	if (find("LabelVersion"))
 		GadgetStaticTextSetText(find("LabelVersion"), version);
-	setLabel(s_rows[ROW_SIM_HZ].label, L"Game speed (simulation rate)");
+	setLabel(s_rows[ROW_SIM_HZ].label, L"Game speed (match online)");
 	setLabel(s_rows[ROW_RENDERER].label, L"Renderer");
 	setLabel(s_rows[ROW_UPSCALE].label, L"Upscaling (OpenGL ES)");
 	setLabel(s_rows[ROW_UI_SCALE].label, L"Interface size");

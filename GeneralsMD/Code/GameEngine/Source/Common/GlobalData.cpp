@@ -1542,6 +1542,17 @@ UnsignedInt GlobalData::generateExeCRC()
 		version = TheVersion->getVersionNumber();
 		exeCRC.computeCRC( &version, sizeof(UnsignedInt) );
 	}
+	// GeneralsX @bugfix ZH Commander 10/10/2026 The logic rate is part of what two players must
+	// share: a 60 Hz engine (SAGE_HIGH_FPS_SIM) and a 30 Hz one passed the lobby's checks, started
+	// the match together and fell out of sync at once ("mismatch" in a phone-to-phone custom game).
+	// Mixed in only at 60 Hz, so the 30 Hz checksum of earlier releases is unchanged and phones on
+	// those still play with this one. The PC-compatible checksum (gx_pc_compat.txt, below in
+	// GlobalData::init) replaces all of this for cross-play, which is 60 Hz by definition.
+	if (LOGICFRAMES_PER_SECOND != 30)
+	{
+		const UnsignedInt logicRate = LOGICFRAMES_PER_SECOND;
+		exeCRC.computeCRC( &logicRate, sizeof(UnsignedInt) );
+	}
 	// GeneralsX @bugfix Copilot 22/03/2026 Load shared script CRC inputs relative to the configured asset root.
 	// Add in MP scripts to the EXE CRC, since the game will go out of sync if they change
 	fp = TheFileSystem->openFile("Data\\Scripts\\SkirmishScripts.scb", File::READ | File::BINARY);
