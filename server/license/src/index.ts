@@ -7,11 +7,13 @@
 // cannot be forged and does not move to another phone. Activation is forever: nothing is
 // re-checked after it.
 
-import { formatCode, json, normalizeCode, randomCode, readJson } from "./codes";
+import { json, normalizeCode, readJson } from "./codes";
+import { fail, getKey, listKeys, mintKeys, resetDevice, revokeKey, stats, updateKey } from "./admin";
 import { paypalCapture, paypalConfig, paypalKeyLookup, paypalOrder, type PayPalEnv } from "./paypal";
 
 interface Env extends PayPalEnv {
 	ADMIN_TOKEN: string;
+	CONSOLE_TOKEN?: string; // App Monitor's Licenses tab (admin.ts)
 	// PKCS#8 DER, base64. See README.md for how it is generated.
 	LICENSE_PRIVATE_KEY: string;
 }
@@ -34,25 +36,45 @@ export default {
 			}
 			if (url.pathname.startsWith("/admin/")) {
 				if (!(await isAdmin(request, env))) {
-					return json({ error: "unauthorized" }, 401);
+					return fail("unauthorized", "missing or wrong admin token", 401);
 				}
-				if (request.method === "POST" && url.pathname === "/admin/keys") {
-					return await mintKeys(request, env);
-				}
-				if (request.method === "GET" && url.pathname === "/admin/keys") {
-					return await listKeys(env);
-				}
-				if (request.method === "POST" && url.pathname === "/admin/keys/revoke") {
-					return await revokeKey(request, env);
-				}
+				return await adminRoute(request, url, env);
 			}
-			return json({ error: "not_found" }, 404);
+			return fail("not_found", "no such endpoint", 404);
 		} catch (err) {
 			console.error(err);
-			return json({ error: "server_error" }, 500);
+			return fail("server_error", "the license server failed; see its logs", 500);
 		}
 	},
 } satisfies ExportedHandler<Env>;
+
+// The admin API (admin.ts): App Monitor's Licenses tab and gzh-key.sh.
+async function adminRoute(request: Request, url: URL, env: Env): Promise<Response> {
+	const path = url.pathname;
+	const m = request.method;
+	if (path === "/admin/keys") {
+		if (m === "GET") return listKeys(url, env);
+		if (m === "POST") return mintKeys(request, env);
+	}
+	if (path === "/admin/stats" && m === "GET") return stats(env);
+	// Older form, kept for gzh-key.sh: POST /admin/keys/revoke {key}.
+	if (path === "/admin/keys/revoke" && m === "POST") {
+		const body = await readJson(request);
+		return revokeKey(typeof body?.key === "string" ? body.key : "", typeof body?.reason === "string" ? body.reason : null, env);
+	}
+	const one = path.match(/^\/admin\/keys\/([^/]+)(\/reset-device|\/revoke)?$/);
+	if (one) {
+		const [, key, action] = one;
+		if (!action && m === "GET") return getKey(key, env);
+		if (!action && m === "PATCH") return updateKey(key, request, env);
+		if (action === "/reset-device" && m === "POST") return resetDevice(key, request, env);
+		if (action === "/revoke" && m === "POST") {
+			const reason = (await readJson(request))?.reason;
+			return revokeKey(key, typeof reason === "string" ? reason.slice(0, 200) : null, env);
+		}
+	}
+	return fail("not_found", "no such admin endpoint", 404);
+}
 
 async function activate(request: Request, env: Env): Promise<Response> {
 	const body = await readJson(request);
@@ -81,60 +103,33 @@ async function activate(request: Request, env: Env): Promise<Response> {
 		if (row.device !== device) return json({ error: "key_used" }, 409);
 	}
 
+	// For the admin console: when this device last asked, and the first activation in the history.
+	const statements = [env.DB.prepare("UPDATE keys SET last_seen = ?1 WHERE code = ?2").bind(now, code)];
+	if (claim.meta.changes > 0) {
+		statements.push(
+			env.DB.prepare("INSERT INTO key_history (code, ts, action, detail) VALUES (?1, ?2, 'activated', ?3)")
+				.bind(code, now, `device ${device.slice(0, 12)}`),
+		);
+	}
+	await env.DB.batch(statements);
+
 	const payload = JSON.stringify({ v: 1, device, key: code.slice(-4), iat: Math.floor(now / 1000) });
 	return json({ license: `${toBase64(new TextEncoder().encode(payload))}.${await sign(env, payload)}` });
 }
 
-async function mintKeys(request: Request, env: Env): Promise<Response> {
-	const body = await readJson(request);
-	const count = Math.min(Math.max(Number(body?.count ?? 1) | 0, 1), 50);
-	const note = typeof body?.note === "string" ? body.note.slice(0, 200) : null;
-	const now = Date.now();
-	const codes: string[] = [];
-	const insert = env.DB.prepare("INSERT INTO keys (code, note, created_at) VALUES (?1, ?2, ?3)");
-	const statements = [];
-	for (let i = 0; i < count; i++) {
-		const code = randomCode();
-		codes.push(code);
-		statements.push(insert.bind(code, note, now));
-	}
-	await env.DB.batch(statements);
-	return json({ keys: codes.map(formatCode), note });
-}
-
-async function listKeys(env: Env): Promise<Response> {
-	const { results } = await env.DB.prepare(
-		"SELECT code, note, created_at, device, activated_at, revoked_at FROM keys ORDER BY created_at DESC",
-	).all<{ code: string; note: string | null; created_at: number; device: string | null; activated_at: number | null; revoked_at: number | null }>();
-	return json({
-		keys: results.map((r) => ({
-			key: formatCode(r.code),
-			note: r.note,
-			created: new Date(r.created_at).toISOString(),
-			status: r.revoked_at !== null ? "revoked" : r.device ? "activated" : "unused",
-			device: r.device ? r.device.slice(0, 12) : null,
-			activated: r.activated_at ? new Date(r.activated_at).toISOString() : null,
-		})),
-	});
-}
-
-// Stops an unused key from ever being redeemed. A phone that already activated keeps working:
-// activation is permanent by design.
-async function revokeKey(request: Request, env: Env): Promise<Response> {
-	const code = normalizeCode((await readJson(request))?.key);
-	if (!code) return json({ error: "bad_request" }, 400);
-	const res = await env.DB.prepare("UPDATE keys SET revoked_at = ?1 WHERE code = ?2 AND revoked_at IS NULL")
-		.bind(Date.now(), code)
-		.run();
-	return json({ revoked: res.meta.changes > 0 });
-}
-
+// The owner's token (gzh-key.sh) or the admin console's (App Monitor's Licenses tab, its own
+// secret so either can be rotated alone).
 async function isAdmin(request: Request, env: Env): Promise<boolean> {
 	const header = request.headers.get("Authorization") ?? "";
 	const given = new TextEncoder().encode(header.replace(/^Bearer\s+/i, ""));
-	const expected = new TextEncoder().encode(env.ADMIN_TOKEN ?? "");
-	if (expected.byteLength < 32 || given.byteLength !== expected.byteLength) return false;
-	return crypto.subtle.timingSafeEqual(given, expected);
+	for (const token of [env.ADMIN_TOKEN, env.CONSOLE_TOKEN]) {
+		const expected = new TextEncoder().encode(token ?? "");
+		if (expected.byteLength >= 32 && given.byteLength === expected.byteLength
+			&& crypto.subtle.timingSafeEqual(given, expected)) {
+			return true;
+		}
+	}
+	return false;
 }
 
 let signingKey: Promise<CryptoKey> | undefined;

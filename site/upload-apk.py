@@ -24,6 +24,13 @@ def main():
 
     latest = {"key": key, "version": version, "size": size, "sha256": sha256,
               "published": time.strftime("%Y-%m-%d", time.gmtime())}
+    # For the admin console's Releases tab, when CI provides them.
+    if os.environ.get("GZH_BUILD", "").isdigit():
+        latest["build"] = int(os.environ["GZH_BUILD"])
+    if os.environ.get("GZH_MANDATORY") in ("true", "false"):
+        latest["mandatory"] = os.environ["GZH_MANDATORY"] == "true"
+    if os.environ.get("GZH_RUN_URL"):
+        latest["run_url"] = os.environ["GZH_RUN_URL"]
     zh_r2.call("POST", "%s/admin/upload/record" % site, token, json.dumps(latest).encode())
     if publish:
         zh_r2.call("POST", "%s/admin/upload/publish" % site, token, json.dumps(latest).encode())

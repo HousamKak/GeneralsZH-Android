@@ -17,6 +17,8 @@ export interface IosBuild {
 	size: number;
 	sha256: string;
 	published: string;
+	mandatory?: boolean;
+	run_url?: string; // the GitHub Actions run that built it
 }
 
 export const IPA_KEY_RE = /^ipa\/[A-Za-z0-9._-]{1,200}\.ipa$/;
@@ -98,7 +100,7 @@ export async function altstoreSource(env: IosEnv): Promise<Response> {
 	return Response.json(source, { headers: { "Cache-Control": "public, max-age=300" } });
 }
 
-async function readReleases(env: IosEnv): Promise<IosBuild[]> {
+export async function readReleases(env: IosEnv): Promise<IosBuild[]> {
 	const object = await env.APKS.get(RELEASES_KEY);
 	return object ? ((await object.json()) as IosBuild[]) : [];
 }

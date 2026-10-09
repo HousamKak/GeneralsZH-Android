@@ -8,13 +8,14 @@
 // in parts small enough for a Worker request body, so an APK of any size goes up in one piece.
 
 import { DATA_KEY_RE, dataFile, dataManifest, publishData, type DataEnv } from "./data";
-import { IPA_KEY_RE, altstoreSource, recordBuild, serveIpa } from "./ios";
-import { getReport, listReports, receiveReport } from "./support";
+import { IPA_KEY_RE, altstoreSource, readReleases, recordBuild, serveIpa } from "./ios";
+import { listReports, receiveReport, reportRoute } from "./support";
 
 interface Env extends DataEnv {
 	ASSETS: Fetcher;
 	LICENSE: Fetcher; // the gzh-license Worker, which owns PayPal checkout and the key database
 	UPLOAD_TOKEN: string;
+	CONSOLE_TOKEN?: string; // the admin console (App Monitor): support and releases, read and mark only
 }
 
 interface Latest {
@@ -23,6 +24,9 @@ interface Latest {
 	size: number;
 	sha256: string;
 	published: string;
+	build?: number; // versionCode
+	mandatory?: boolean; // offered as a required update
+	run_url?: string; // the GitHub Actions run that built it
 }
 
 const KEY_RE = /^apk\/[A-Za-z0-9._-]{1,200}\.apk$/;
@@ -81,13 +85,17 @@ export default {
 		if (pathname === "/api/support/report" && request.method === "POST") {
 			return receiveReport(request, env);
 		}
-		if (pathname === "/admin/support" || pathname.startsWith("/admin/support/")) {
-			if (!(await isUploader(request, env))) {
-				return Response.json({ error: "unauthorized" }, { status: 401 });
+		// The admin console's Support and Releases tabs (App Monitor), and support-reports.py.
+		if (pathname === "/admin/support" || pathname.startsWith("/admin/support/") || pathname === "/admin/releases") {
+			if (!(await isUploader(request, env)) && !(await isConsole(request, env))) {
+				return Response.json({ error: "unauthorized", message: "missing or wrong token" }, { status: 401 });
 			}
-			return pathname === "/admin/support"
-				? listReports(env)
-				: getReport(env, pathname.slice("/admin/support/".length));
+			if (pathname === "/admin/releases" && request.method === "GET") return releases(env);
+			if (pathname === "/admin/support" && request.method === "GET") return listReports(url, env);
+			if (pathname.startsWith("/admin/support/")) {
+				return reportRoute(request, env, pathname.slice("/admin/support/".length));
+			}
+			return Response.json({ error: "not_found", message: "no such admin endpoint" }, { status: 404 });
 		}
 		if (pathname.startsWith("/api/paypal/")) {
 			const target = new URL(request.url);
@@ -154,9 +162,61 @@ async function upload(request: Request, url: URL, env: Env): Promise<Response> {
 		await env.APKS.put(step === "publish" ? "latest.json" : "builds/latest.json", JSON.stringify(latest), {
 			httpMetadata: { contentType: "application/json" },
 		});
+		// Every published release, newest first, for the admin console's Releases tab.
+		if (step === "publish") {
+			const history = (await readAndroidHistory(env)).filter((r) => r.version !== latest.version);
+			history.unshift(latest);
+			await env.APKS.put(ANDROID_HISTORY_KEY, JSON.stringify(history), {
+				httpMetadata: { contentType: "application/json" },
+			});
+		}
 		return Response.json({ [step === "publish" ? "published" : "recorded"]: latest.key });
 	}
 	return Response.json({ error: "not_found" }, { status: 404 });
+}
+
+const ANDROID_HISTORY_KEY = "apk/releases.json";
+
+async function readAndroidHistory(env: Env): Promise<Latest[]> {
+	const object = await env.APKS.get(ANDROID_HISTORY_KEY);
+	if (object) return (await object.json()) as Latest[];
+	// Before the history existed: start it from the current release.
+	const latest = await readLatest(env);
+	return latest ? [latest] : [];
+}
+
+function releaseEntry(r: Latest, urlPrefix: string) {
+	return {
+		version: r.version,
+		build: r.build ?? null,
+		published: r.published,
+		size: r.size,
+		sha256: r.sha256,
+		url: `${urlPrefix}${r.key}`,
+		mandatory: r.mandatory ?? null,
+		run_url: r.run_url ?? null,
+	};
+}
+
+// GET /admin/releases: the admin console's Releases tab (read only; releasing stays in CI).
+async function releases(env: Env): Promise<Response> {
+	const site = "https://zerohour.housamkak.com/download/";
+	const android = (await readAndroidHistory(env)).map((r) => releaseEntry(r, site));
+	const ios = (await readReleases(env)).map((r) => releaseEntry(r as Latest, site));
+	return Response.json({
+		android: { current: android[0] ?? null, history: android },
+		// iOS releases are always required: the app does not start below the newest one.
+		ios: { current: ios[0] ? { ...ios[0], mandatory: true } : null, history: ios.map((r) => ({ ...r, mandatory: true })) },
+	});
+}
+
+// The admin console's own token, separate from the upload token so either can be rotated alone.
+async function isConsole(request: Request, env: Env): Promise<boolean> {
+	const header = request.headers.get("Authorization") ?? "";
+	const given = new TextEncoder().encode(header.replace(/^Bearer\s+/i, ""));
+	const expected = new TextEncoder().encode(env.CONSOLE_TOKEN ?? "");
+	if (expected.byteLength < 32 || given.byteLength !== expected.byteLength) return false;
+	return crypto.subtle.timingSafeEqual(given, expected);
 }
 
 async function isUploader(request: Request, env: Env): Promise<boolean> {

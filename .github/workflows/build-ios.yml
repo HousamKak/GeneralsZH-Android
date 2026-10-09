@@ -120,6 +120,7 @@ jobs:
         env:
           GZH_UPLOAD_TOKEN: ${{ secrets.SITE_UPLOAD_TOKEN }}
           GZH_SITE_URL: https://zh-commander.housam-kak20.workers.dev
+          GZH_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           set -euo pipefail
           python3 site/upload-ipa.py "${IPA_PATH}" "${IOS_VERSION}" "${IOS_BUILD}" ${{ inputs.release && '--release' || '' }}

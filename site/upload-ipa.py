@@ -53,6 +53,8 @@ def main():
              "published": time.strftime("%Y-%m-%d", time.gmtime())}
     if build_number is not None:
         build["build"] = build_number
+    if os.environ.get("GZH_RUN_URL"):
+        build["run_url"] = os.environ["GZH_RUN_URL"]
     zh_r2.call("POST", "%s/admin/ios/record" % site, tok, json.dumps(build).encode())
     if release:
         zh_r2.call("POST", "%s/admin/ios/release" % site, tok, json.dumps(build).encode())
