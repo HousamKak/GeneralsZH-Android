@@ -31,6 +31,11 @@ final class ZHBridge {
         sGame = new WeakReference<>(game);
     }
 
+    /** The running game, or null when it is not up. */
+    static Activity gameActivity() {
+        return sGame.get();
+    }
+
     private static Activity game() {
         Activity a = sGame.get();
         if (a == null) {

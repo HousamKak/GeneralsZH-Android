@@ -90,7 +90,7 @@ let licenseKey: Promise<CryptoKey> | undefined;
 
 // A license is base64(payload) + "." + base64(DER ECDSA signature), as the license server issues
 // and LicenseGate stores it. Device binding is the app's job; here any genuine license counts.
-async function hasValidLicense(request: Request, env: DataEnv): Promise<boolean> {
+export async function hasValidLicense(request: Request, env: DataEnv): Promise<boolean> {
 	const license = request.headers.get("X-ZH-License") ?? "";
 	const dot = license.indexOf(".");
 	if (dot <= 0 || license.length > 4096) return false;

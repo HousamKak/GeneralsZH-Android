@@ -9,6 +9,7 @@
 
 import { DATA_KEY_RE, dataFile, dataManifest, publishData, type DataEnv } from "./data";
 import { IPA_KEY_RE, altstoreSource, recordBuild, serveIpa } from "./ios";
+import { getReport, listReports, receiveReport } from "./support";
 
 interface Env extends DataEnv {
 	ASSETS: Fetcher;
@@ -75,6 +76,18 @@ export default {
 				return Response.json({ error: "unauthorized" }, { status: 401 });
 			}
 			return publishData(request, env);
+		}
+		// Support reports from the game's SUPPORT button (support.ts).
+		if (pathname === "/api/support/report" && request.method === "POST") {
+			return receiveReport(request, env);
+		}
+		if (pathname === "/admin/support" || pathname.startsWith("/admin/support/")) {
+			if (!(await isUploader(request, env))) {
+				return Response.json({ error: "unauthorized" }, { status: 401 });
+			}
+			return pathname === "/admin/support"
+				? listReports(env)
+				: getReport(env, pathname.slice("/admin/support/".length));
 		}
 		if (pathname.startsWith("/api/paypal/")) {
 			const target = new URL(request.url);

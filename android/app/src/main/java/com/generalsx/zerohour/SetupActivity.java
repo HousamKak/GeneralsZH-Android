@@ -151,7 +151,8 @@ public class SetupActivity extends Activity {
         supportFromGame = getIntent().getBooleanExtra(EXTRA_SUPPORT, false);
         noGameData = getIntent().getBooleanExtra(EXTRA_NO_GAME_DATA, false);
         if (supportFromGame && getIntent().getBooleanExtra(EXTRA_SHARE_REPORT, false)) {
-            SupportReport.share(this, buildSupportSummary());
+            // Uploaded to the developer (SupportReport.send); the share sheet only if that fails.
+            SupportReport.send(this, buildSupportSummary(), ZHBridge.gameActivity());
             finish();
             return;
         }
@@ -308,7 +309,7 @@ public class SetupActivity extends Activity {
     // the folder pickers; the game-data check now only feeds the report.
     static final String EXTRA_SUPPORT = "com.housamkak.zhcommander.SUPPORT";
     static final String EXTRA_NO_GAME_DATA = "com.housamkak.zhcommander.NO_GAME_DATA";
-    // The game's Support button (ZHBridge): straight to the share sheet, then back to the game.
+    // The game's SUPPORT button (ZHBridge): the report is sent, then straight back to the game.
     static final String EXTRA_SHARE_REPORT = "com.housamkak.zhcommander.SHARE_REPORT";
     private static final String STATE_TAB = "gzh_tab";
     private static final int TAB_GRAPHICS = 2;
@@ -3426,18 +3427,24 @@ public class SetupActivity extends Activity {
     // subdirectory; bundledRoot's own copy is kept fresh the same way, see
     // GeneralsZHActivity.copyAssetTree's ALWAYS_OVERWRITE_PREFIX.
     private static void syncEngineWindowOverrides(File bundledRoot, String gameFolderPath) {
-        File srcDir = new File(bundledRoot, "Window");
+        syncWindowDir(new File(bundledRoot, "Window"), new File(gameFolderPath, "Window"));
+    }
+
+    // Subfolders too: the ZH Commander screen is Window/Menus/CommanderMenu.wnd. Copying only
+    // the top level left it out of the game folder, and the screen opened with nothing on it.
+    private static void syncWindowDir(File srcDir, File destDir) {
         File[] children = srcDir.listFiles();
         if (children == null) {
             return;
         }
-        File destDir = new File(gameFolderPath, "Window");
         if (!destDir.isDirectory() && !destDir.mkdirs()) {
             return;
         }
         for (File child : children) {
             if (child.isFile()) {
                 copyFileOverwrite(child, new File(destDir, child.getName()));
+            } else if (child.isDirectory()) {
+                syncWindowDir(child, new File(destDir, child.getName()));
             }
         }
     }

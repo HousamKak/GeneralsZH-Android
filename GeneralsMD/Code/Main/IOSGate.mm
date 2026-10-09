@@ -887,6 +887,63 @@ extern "C" bool ZHIOSRunGate(void)
 	NSString *reportPath = [NSTemporaryDirectory() stringByAppendingPathComponent:@"support-report.txt"];
 	[report writeToFile:reportPath atomically:YES encoding:NSUTF8StringEncoding error:nil];
 	[items insertObject:[NSURL fileURLWithPath:reportPath] atIndex:0];
+	[self upload:items host:host];
+}
+
+// The report goes to the developer's server (site/src/support.ts) as one zip, and the player
+// gets the reference it answers. The zip comes from the system: a coordinated read "for
+// uploading" of a folder hands back that folder zipped. A failed upload offers the share sheet.
++ (void)upload:(NSArray<NSURL *> *)items host:(UIViewController *)host
+{
+	NSString *dir = [NSTemporaryDirectory() stringByAppendingPathComponent:@"zh-report"];
+	[NSFileManager.defaultManager removeItemAtPath:dir error:nil];
+	[NSFileManager.defaultManager createDirectoryAtPath:dir withIntermediateDirectories:YES attributes:nil error:nil];
+	for (NSURL *item in items) {
+		[NSFileManager.defaultManager copyItemAtPath:item.path
+			toPath:[dir stringByAppendingPathComponent:item.lastPathComponent] error:nil];
+	}
+	__block NSData *zip = nil;
+	NSError *coordError = nil;
+	[[NSFileCoordinator new] coordinateReadingItemAtURL:[NSURL fileURLWithPath:dir]
+		options:NSFileCoordinatorReadingForUploading error:&coordError byAccessor:^(NSURL *zipURL) {
+			zip = [NSData dataWithContentsOfURL:zipURL];
+		}];
+	NSString *license = storedLicense();
+	if (zip == nil || license == nil) {
+		[self share:items host:host];
+		return;
+	}
+	NSMutableURLRequest *req = [NSMutableURLRequest requestWithURL:
+		[NSURL URLWithString:[kSite stringByAppendingString:@"/api/support/report"]]];
+	req.HTTPMethod = @"POST";
+	req.timeoutInterval = 60;
+	[req setValue:@"application/zip" forHTTPHeaderField:@"Content-Type"];
+	[req setValue:license forHTTPHeaderField:@"X-ZH-License"];
+	[req setValue:deviceHash() forHTTPHeaderField:@"X-ZH-Device"];
+	[req setValue:@"ios" forHTTPHeaderField:@"X-ZH-Platform"];
+	[req setValue:NSBundle.mainBundle.infoDictionary[@"CFBundleShortVersionString"] forHTTPHeaderField:@"X-ZH-Version"];
+	[req setValue:UIDevice.currentDevice.model forHTTPHeaderField:@"X-ZH-Model"];
+	[[NSURLSession.sharedSession uploadTaskWithRequest:req fromData:zip
+		completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
+			NSInteger status = [response isKindOfClass:NSHTTPURLResponse.class] ? ((NSHTTPURLResponse *)response).statusCode : 0;
+			NSDictionary *json = data && status == 200 ? [NSJSONSerialization JSONObjectWithData:data options:0 error:nil] : nil;
+			NSString *ref = [json isKindOfClass:NSDictionary.class] ? json[@"ref"] : nil;
+			dispatch_async(dispatch_get_main_queue(), ^{
+				if (![ref isKindOfClass:NSString.class]) {
+					[self share:items host:host];
+					return;
+				}
+				UIAlertController *done = [UIAlertController alertControllerWithTitle:@"Report sent"
+					message:[NSString stringWithFormat:@"Your reference: %@", ref]
+					preferredStyle:UIAlertControllerStyleAlert];
+				[done addAction:[UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:nil]];
+				[host presentViewController:done animated:YES completion:nil];
+			});
+		}] resume];
+}
+
++ (void)share:(NSArray<NSURL *> *)items host:(UIViewController *)host
+{
 	UIActivityViewController *share = [[UIActivityViewController alloc] initWithActivityItems:items applicationActivities:nil];
 	// iPad presents the sheet as a popover, which needs an anchor: the middle of the screen.
 	UIView *view = host.view;

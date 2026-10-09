@@ -43,7 +43,8 @@ namespace ZHCommander
 		// Leaves the game for the download (restarting the app where it can).
 		void (*startDataUpdate)();
 
-		// Zips the logs and a device summary and hands them to the system share sheet.
+		// Sends the logs and a device summary to the developer's server and tells the player the
+		// reference it got back (the share sheet only when the upload fails).
 		void (*shareSupportReport)();
 
 		// The shell's own settings screen (drivers, GeneralsOnline account, language packs).

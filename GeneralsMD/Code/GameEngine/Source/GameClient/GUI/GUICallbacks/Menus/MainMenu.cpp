@@ -1715,9 +1715,9 @@ WindowMsgHandledType MainMenuSystem( GameWindow *window, UnsignedInt msg,
 			if( supportButton != nullptr && control == supportButton )
 			{
 				MessageBoxOkCancel( UnicodeString( L"SUPPORT" ),
-					UnicodeString( L"Send a support report? It collects this device's details and the game's logs "
-						L"into one file and opens the share menu, so you can send it to the developer "
-						L"(on WhatsApp, for example)." ),
+					UnicodeString( L"Send a support report to the developer? It contains this device's details and "
+						L"the game's logs, nothing personal. You get a reference to quote when you ask "
+						L"for help." ),
 					shareSupportReport, nullptr );
 				break;
 			}
