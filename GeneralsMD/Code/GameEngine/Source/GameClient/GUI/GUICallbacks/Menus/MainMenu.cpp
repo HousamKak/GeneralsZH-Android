@@ -84,11 +84,12 @@
 // GeneralsX @feature BenderAI 21/04/2026 In-game update checker for tagged release builds
 #ifdef SAGE_UPDATE_CHECK
 #include "Common/UpdateChecker.h"
+#include <SDL3/SDL.h>
+#endif
+// GeneralsX @feature ZH Commander 09/10/2026 SUPPORT button, version and update offers.
 #include "GameClient/GadgetPushButton.h"
 #include "GameClient/GXButtonLook.h"
 #include "Common/ZHCommander.h"
-#include <SDL3/SDL.h>
-#endif
 
 
 // PRIVATE DATA ///////////////////////////////////////////////////////////////////////////////////
