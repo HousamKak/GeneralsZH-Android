@@ -266,6 +266,7 @@ static NSDictionary<NSString *, NSString *> *installedFiles(void)
 @end
 
 @implementation ZHGateController {
+	BOOL _started;
 	UILabel *_title;
 	UILabel *_body;
 	UITextField *_field;
@@ -334,7 +335,21 @@ static NSDictionary<NSString *, NSString *> *installedFiles(void)
 	wide.priority = UILayoutPriorityDefaultHigh;
 	wide.active = YES;
 
-	[self step];
+	[self show:@"ZH Commander" body:@"Checking…" primary:nil secondary:nil field:NO];
+}
+
+// The checks wait on the network, and the screen is only on display once this view has
+// appeared: started any earlier (viewDidLoad), they left the player looking at a black window.
+- (void)viewDidAppear:(BOOL)animated
+{
+	[super viewDidAppear:animated];
+	if (_started) {
+		return;
+	}
+	_started = YES;
+	dispatch_async(dispatch_get_main_queue(), ^{
+		[self step];
+	});
 }
 
 // Decide what the player needs next: a license, then the game data.
@@ -694,7 +709,20 @@ static NSDictionary<NSString *, NSString *> *installedFiles(void)
 extern "C" bool ZHIOSRunGate(void)
 {
 	@autoreleasepool {
-		UIWindow *window = [[UIWindow alloc] initWithFrame:UIScreen.mainScreen.bounds];
+		// On current iOS a window is shown only when it belongs to the app's window scene;
+		// one created with just a frame can stay invisible, leaving the screen black.
+		UIWindowScene *scene = nil;
+		for (UIScene *s in UIApplication.sharedApplication.connectedScenes) {
+			if ([s isKindOfClass:UIWindowScene.class]) {
+				scene = (UIWindowScene *)s;
+				if (s.activationState == UISceneActivationStateForegroundActive) {
+					break;
+				}
+			}
+		}
+		UIWindow *window = scene != nil ? [[UIWindow alloc] initWithWindowScene:scene]
+			: [[UIWindow alloc] initWithFrame:UIScreen.mainScreen.bounds];
+		window.frame = scene != nil ? scene.coordinateSpace.bounds : UIScreen.mainScreen.bounds;
 		ZHGateController *gate = [ZHGateController new];
 		window.rootViewController = gate;
 		window.windowLevel = UIWindowLevelAlert;
