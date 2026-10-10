@@ -6,7 +6,13 @@
 	"observability": { "enabled": true },
 	// Public half of the license server's signing key (LicenseGate.PUBLIC_KEY_B64): game data
 	// is served only to requests carrying a license it signed.
-	"vars": { "LICENSE_PUBLIC_KEY": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEAhE861NJAUCPcAoeya8LDyNmUux2QKucHdX3ndZ+IjYbkPYVqQU/GXBmn5tsuKg1Wp3b70Xx6aLSbsvJEfjOmg==" },
+	// MONITOR_*: App Monitor's ingest and this app's public ingest key (identifies the app, not a
+	// secret), for the site's visit and download counts (src/hit.ts). The hash salt is a secret.
+	"vars": {
+		"LICENSE_PUBLIC_KEY": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEAhE861NJAUCPcAoeya8LDyNmUux2QKucHdX3ndZ+IjYbkPYVqQU/GXBmn5tsuKg1Wp3b70Xx6aLSbsvJEfjOmg==",
+		"MONITOR_INGEST_URL": "https://ingest.housamkak.com",
+		"MONITOR_APP_KEY": "am_9744dcb336496025978f89b4446a2e8295b0"
+	},
 	// Kept on next to the custom domain: upload-apk.sh publishes through it, since it resolves
 	// even where a resolver still caches the custom domain as missing.
 	"workers_dev": true,

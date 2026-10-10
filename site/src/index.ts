@@ -12,8 +12,9 @@ import { IPA_KEY_RE, altstoreSource, readReleases, recordBuild, serveIpa } from 
 import { listReports, receiveReport, reportRoute } from "./support";
 import { notesApi, publishNotes, readAllNotes } from "./notes";
 import { prune } from "./prune";
+import { hit, isNewDownload, track, type HitEnv } from "./hit";
 
-interface Env extends DataEnv {
+interface Env extends DataEnv, HitEnv {
 	ASSETS: Fetcher;
 	LICENSE: Fetcher; // the gzh-license Worker, which owns PayPal checkout and the key database
 	UPLOAD_TOKEN: string;
@@ -35,14 +36,22 @@ interface Latest {
 const KEY_RE = /^apk\/[A-Za-z0-9._-]{1,200}\.apk$/;
 
 export default {
-	async fetch(request: Request, env: Env): Promise<Response> {
+	async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
 		const url = new URL(request.url);
 		const { pathname } = url;
 		if (pathname.startsWith("/hero/")) {
 			return heroAsset(request, env);
 		}
 		if (pathname === "/download") {
-			return download(env);
+			const response = await download(env);
+			if (response.ok && isNewDownload(request)) {
+				ctx.waitUntil(readLatest(env).then((l) => track(request, env, "site_download", { version: l?.version ?? "unknown", kind: "apk" })));
+			}
+			return response;
+		}
+		// Page visits and buy clicks from hit.js (hit.ts): counted for App Monitor, nothing stored here.
+		if (pathname === "/api/hit" && request.method === "POST") {
+			return hit(request, env, ctx);
 		}
 		// One exact APK, for the app's in-app update (the signed manifest names it, with its
 		// SHA-256): /download stays whatever is current, this address never changes.
