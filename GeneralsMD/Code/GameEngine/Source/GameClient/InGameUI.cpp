@@ -4018,6 +4018,39 @@ void InGameUI::deselectDrawable( Drawable *draw )
 }
 
 //-------------------------------------------------------------------------------------------------
+/** GeneralsX @feature ZH Commander 11/10/2026 A right-click for touch (InGameUI.h). The body is the
+	one TouchInput::cancelOrDeselect() had, unchanged: the same precedence a right-click has
+	(SelectionXlat.cpp), backing out of the most recent commitment first and only clearing the
+	selection if there is nothing to back out of. */
+//-------------------------------------------------------------------------------------------------
+void InGameUI::cancelOrDeselect()
+{
+	if( getGUICommand() != nullptr )
+	{
+		setGUICommand( nullptr );
+		return;
+	}
+
+	// GeneralsX @feature Android port 24/09/2026 The touch modifier modes (issue #25) end here.
+	// GeneralsX @tweak Android port 05/10/2026 Together with the selection, in one gesture: the
+	// issue's author had to cancel twice to let go of a unit after giving it waypoints, once
+	// for the mode and once for the selection. A mode is a way of giving orders to the
+	// selection, so it has no use once the selection is gone; to leave the mode and keep the
+	// units, press the lit button.
+	setForceAttackMode( FALSE );
+	setWaypointMode( FALSE );
+
+	if( getPendingPlaceSourceObjectID() != INVALID_ID )
+	{
+		placeBuildAvailable( nullptr, nullptr );
+		setPreventLeftClickDeselectionInAlternateMouseModeForOneClick( FALSE );
+		return;
+	}
+
+	deselectAllDrawables();
+}
+
+//-------------------------------------------------------------------------------------------------
 /** Clear all drawables' "select" status */
 //-------------------------------------------------------------------------------------------------
 void InGameUI::deselectAllDrawables( Bool postMsg )

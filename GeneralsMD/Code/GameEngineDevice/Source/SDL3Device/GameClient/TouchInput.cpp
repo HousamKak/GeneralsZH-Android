@@ -160,6 +160,92 @@ namespace
 		}
 	}
 
+	/**
+		GeneralsX @bugfix ZH Commander 11/10/2026 A finger is not a one-pixel pointer.
+
+		pickDrawable() casts one ray through one pixel and keeps the nearest mesh it hits, with no
+		tolerance at all. A finger lands a few pixels off a thin worker, or on the building the
+		worker stands in front of, and the tap that was meant to select the second worker became a
+		move order for the first: it left its construction and walked over (player report). So when
+		the ray finds no unit, look for the player's own unit nearest the finger on screen:
+
+		- the ray found nothing: own units within a fingertip that are not selected already (a tap
+		  beside the selected army still moves it, as before; a double tap counts selected ones);
+		- the ray found one of the player's own buildings: an own unit within half a fingertip, unless
+		  the selection would act on the building (repair it, resume its construction), which is what
+		  the tap then means.
+
+		A unit the ray hits directly, and anything that is not the player's, is taken as it is.
+	*/
+	Real fingerTolerancePx()
+	{
+		const Int height = (TheDisplay != nullptr) ? TheDisplay->getHeight() : 0;
+		const Real tolerance = height / 30.0f;
+		return tolerance > 18.0f ? tolerance : 18.0f;
+	}
+
+	Drawable *nearestOwnUnit(const ICoord2D &pixel, Real radiusPx, Bool skipSelected)
+	{
+		if (TheGameClient == nullptr || TheTacticalView == nullptr)
+			return nullptr;
+
+		Drawable *best = nullptr;
+		Real bestDist2 = radiusPx * radiusPx;
+		for (Drawable *draw = TheGameClient->firstDrawable(); draw != nullptr; draw = draw->getNextDrawable())
+		{
+			const Object *obj = draw->getObject();
+			if (obj == nullptr || !obj->isLocallyControlled() || obj->isKindOf(KINDOF_STRUCTURE))
+				continue;
+			if ((skipSelected && draw->isSelected()) || draw->isDrawableEffectivelyHidden() ||
+					!CanSelectDrawable(draw, FALSE))
+				continue;
+
+			// The middle of the unit, where a finger aims, not its feet.
+			Coord3D middle = *draw->getPosition();
+			middle.z += obj->getGeometryInfo().getMaxHeightAbovePosition() * 0.5f;
+			ICoord2D screen;
+			if (!TheTacticalView->worldToScreen(&middle, &screen))
+				continue;
+
+			const Real dx = (Real)(screen.x - pixel.x);
+			const Real dy = (Real)(screen.y - pixel.y);
+			const Real dist2 = dx * dx + dy * dy;
+			if (dist2 < bestDist2)
+			{
+				bestDist2 = dist2;
+				best = draw;
+			}
+		}
+		return best;
+	}
+
+	Drawable *pickForTap(const ICoord2D &pixel, Bool onTerrain, const Coord3D &pos, Bool skipSelected)
+	{
+		Drawable *exact = pickForSelection(pixel);
+		const Object *exactObj = (exact != nullptr) ? exact->getObject() : nullptr;
+		if (exactObj != nullptr && (!exactObj->isKindOf(KINDOF_STRUCTURE) || !exactObj->isLocallyControlled()))
+			return exact;
+
+		const Real tolerance = fingerTolerancePx();
+		Drawable *unit = (exact == nullptr)
+			? nearestOwnUnit(pixel, tolerance, skipSelected)
+			: nearestOwnUnit(pixel, tolerance * 0.5f, FALSE);
+		if (unit == nullptr)
+			return exact;
+
+		if (exact != nullptr && onTerrain && TheInGameUI != nullptr &&
+				TheInGameUI->areSelectedObjectsControllable() && !exact->isSelected() &&
+				selectionInteractsWith(exact, pos))
+			return exact;
+
+		return unit;
+	}
+
+	/// GeneralsX @bugfix ZH Commander 11/10/2026 What the last single tap selected, so that a double
+	/// tap only widens to every unit of a type when both taps were on the same unit. Two quick taps
+	/// on two different workers selected every worker on screen, the one building included.
+	DrawableID s_lastTapSelected = INVALID_DRAWABLE_ID;
+
 	/// Issue the context order for a point, exactly as the click path does.
 	void issueContextOrder(Drawable *draw, const Coord3D &pos)
 	{
@@ -280,6 +366,8 @@ namespace TouchInput
 		if (TheInGameUI == nullptr || TheTacticalView == nullptr)
 			return;
 
+		s_lastTapSelected = INVALID_DRAWABLE_ID;
+
 		ICoord2D pixel;
 		pixel.x = x;
 		pixel.y = y;
@@ -301,8 +389,8 @@ namespace TouchInput
 		Coord3D pos;
 		const Bool onTerrain = TheTacticalView->screenToTerrain(&pixel, &pos);
 
-		// 2. Something of the player's own under the finger.
-		Drawable *selectable = pickForSelection(pixel);
+		// 2. Something of the player's own under the finger (within a fingertip: pickForTap).
+		Drawable *selectable = pickForTap(pixel, onTerrain, pos, TRUE);
 		if (selectable != nullptr)
 		{
 			const Object *obj = selectable->getObject();
@@ -316,6 +404,7 @@ namespace TouchInput
 				if (!interacts)
 				{
 					selectOnly(selectable, TRUE);
+					s_lastTapSelected = selectable->getID();
 					return;
 				}
 				// else: fall through and let it be an order onto that object
@@ -365,8 +454,19 @@ namespace TouchInput
 		pixel.x = x;
 		pixel.y = y;
 
-		Drawable *picked = pickForSelection(pixel);
+		Coord3D tapPos;
+		const Bool tapOnTerrain = TheTacticalView->screenToTerrain(&pixel, &tapPos);
+		// The unit the first tap selected counts here, though it is selected now.
+		Drawable *picked = pickForTap(pixel, tapOnTerrain, tapPos, FALSE);
 		Object *obj = picked ? picked->getObject() : nullptr;
+
+		// Both taps must be on the same unit to select every one of its type; otherwise the second
+		// tap is one more single tap (selecting the other unit, or an order).
+		if (picked != nullptr && picked->getID() != s_lastTapSelected)
+		{
+			tap(x, y);
+			return;
+		}
 
 		// Only the player's own, mass-selectable units answer to this. Anything else falls
 		// back to an ordinary tap so a double tap is never worse than a single one.
@@ -482,35 +582,10 @@ namespace TouchInput
 	//-------------------------------------------------------------------------------------
 	void cancelOrDeselect()
 	{
-		if (TheInGameUI == nullptr)
-			return;
-
-		// Same precedence a right-click has, minus the right-click: back out of the most
-		// recent commitment first, and only clear the selection if there is nothing to
-		// back out of.
-		if (TheInGameUI->getGUICommand() != nullptr)
-		{
-			TheInGameUI->setGUICommand(nullptr);
-			return;
-		}
-
-		// GeneralsX @feature Android port 24/09/2026 The touch modifier modes (issue #25) end here.
-		// GeneralsX @tweak Android port 05/10/2026 Together with the selection, in one gesture: the
-		// issue's author had to cancel twice to let go of a unit after giving it waypoints, once
-		// for the mode and once for the selection. A mode is a way of giving orders to the
-		// selection, so it has no use once the selection is gone; to leave the mode and keep the
-		// units, press the lit button.
-		TheInGameUI->setForceAttackMode(FALSE);
-		TheInGameUI->setWaypointMode(FALSE);
-
-		if (TheInGameUI->getPendingPlaceSourceObjectID() != INVALID_ID)
-		{
-			TheInGameUI->placeBuildAvailable(nullptr, nullptr);
-			TheInGameUI->setPreventLeftClickDeselectionInAlternateMouseModeForOneClick(FALSE);
-			return;
-		}
-
-		TheInGameUI->deselectAllDrawables();
+		// GeneralsX @refactor ZH Commander 11/10/2026 The body moved to InGameUI::cancelOrDeselect(),
+		// which the group panel's DESELECT button calls too.
+		if (TheInGameUI != nullptr)
+			TheInGameUI->cancelOrDeselect();
 	}
 
 

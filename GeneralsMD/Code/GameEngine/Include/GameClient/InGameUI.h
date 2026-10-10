@@ -560,6 +560,11 @@ public:  // ********************************************************************
 	void setForceAttackMode( Bool enabled )		{ m_forceAttackMode = enabled; }
 	void setPreferSelectionMode( Bool enabled )		{ m_preferSelection = enabled; }
 
+	// GeneralsX @feature ZH Commander 11/10/2026 What a right-click does, for touch: back out of the
+	// armed command, the touch modes or the pending placement, else clear the selection. Moved here
+	// from TouchInput so the group panel's DESELECT button and the touch gestures share it.
+	void cancelOrDeselect();
+
 	void toggleAttackMoveToMode()				{ m_attackMoveToMode = !m_attackMoveToMode; }
 	Bool isInAttackMoveToMode() const		{ return m_attackMoveToMode; }
 	void clearAttackMoveToMode()				{ m_attackMoveToMode = FALSE; }

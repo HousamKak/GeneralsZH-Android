@@ -87,6 +87,7 @@
 #include "GameClient/GameWindow.h"
 #include "GameClient/GameWindowManager.h"
 #include "GameClient/GUICallbacks.h"
+#include "GameClient/InGameUI.h"
 #include "GameClient/WindowLayout.h"
 #include "GameClient/WinInstanceData.h"
 #include "GameLogic/Squad.h"
@@ -98,6 +99,12 @@ static NameKeyType s_buttonHandleID = NAMEKEY_INVALID;
 // a camera button, so it sits with the camera-side controls here rather than on a unit's bar, and
 // is there with nothing selected. Optional: an older GroupPanel.wnd simply has no such window.
 static NameKeyType s_buttonLastEventID = NAMEKEY_INVALID;
+// GeneralsX @feature ZH Commander 11/10/2026 DESELECT beside it: the PC's separate deselect button
+// (a right-click on empty ground), which a finger did not have -- the only deselects were a long
+// press and a two-finger tap, neither visible, and a tap on the ground with units selected is a
+// move order. Backs out of an armed command, a touch mode or a pending placement first, as the
+// right-click does (InGameUI::cancelOrDeselect). Optional like "!": an older layout has neither.
+static NameKeyType s_buttonDeselectID = NAMEKEY_INVALID;
 static NameKeyType s_groupRowID = NAMEKEY_INVALID;
 static NameKeyType s_buttonGroupID[10];
 static Bool s_groupRowExpanded = FALSE;
@@ -117,6 +124,7 @@ static void cacheWidgetIDs()
 	s_parentID = TheNameKeyGenerator->nameToKey("GroupPanel.wnd:GroupPanelParent");
 	s_buttonHandleID = TheNameKeyGenerator->nameToKey("GroupPanel.wnd:ButtonHandle");
 	s_buttonLastEventID = TheNameKeyGenerator->nameToKey("GroupPanel.wnd:ButtonLastEvent");
+	s_buttonDeselectID = TheNameKeyGenerator->nameToKey("GroupPanel.wnd:ButtonDeselect");
 	s_groupRowID = TheNameKeyGenerator->nameToKey("GroupPanel.wnd:GroupRow");
 	char buf[40];
 	for (Int i = 0; i < 10; ++i) {
@@ -134,6 +142,16 @@ static Int findGroupButtonIndex(Int controlID)
 		}
 	}
 	return -1;
+}
+
+//-------------------------------------------------------------------------------------------------
+// The small buttons on the handle's line besides the handle itself ("!", DESELECT), which move
+// with it; a layout may lack any of them.
+static const Int SIDE_BUTTON_COUNT = 2;
+static GameWindow *sideButton(Int i)
+{
+	const NameKeyType id = (i == 0) ? s_buttonLastEventID : s_buttonDeselectID;
+	return TheWindowManager ? TheWindowManager->winGetWindowFromId(nullptr, id) : nullptr;
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -294,15 +312,17 @@ static void fitParentToVisibleContent()
 	handle->winGetScreenPosition(&hx, &hy);
 	handle->winGetSize(&hw, &hh);
 	Int loX = hx, loY = hy, hiX = hx + hw, hiY = hy + hh;
-	GameWindow *lastEvent = TheWindowManager->winGetWindowFromId(nullptr, s_buttonLastEventID);
-	if (lastEvent && !lastEvent->winIsHidden()) {
-		Int ex, ey, ew, eh;
-		lastEvent->winGetScreenPosition(&ex, &ey);
-		lastEvent->winGetSize(&ew, &eh);
-		loX = min(loX, ex);
-		loY = min(loY, ey);
-		hiX = max(hiX, ex + ew);
-		hiY = max(hiY, ey + eh);
+	for (Int i = 0; i < SIDE_BUTTON_COUNT; ++i) {
+		GameWindow *side = sideButton(i);
+		if (side && !side->winIsHidden()) {
+			Int ex, ey, ew, eh;
+			side->winGetScreenPosition(&ex, &ey);
+			side->winGetSize(&ew, &eh);
+			loX = min(loX, ex);
+			loY = min(loY, ey);
+			hiX = max(hiX, ex + ew);
+			hiY = max(hiY, ey + eh);
+		}
 	}
 	if (!row->winIsHidden()) {
 		Int rx, ry, rw, rh;
@@ -328,9 +348,12 @@ static void fitParentToVisibleContent()
 	handle->winSetPosition(cx - dx, cy - dy);
 	row->winGetPosition(&cx, &cy);
 	row->winSetPosition(cx - dx, cy - dy);
-	if (lastEvent) {
-		lastEvent->winGetPosition(&cx, &cy);
-		lastEvent->winSetPosition(cx - dx, cy - dy);
+	for (Int i = 0; i < SIDE_BUTTON_COUNT; ++i) {
+		GameWindow *side = sideButton(i);
+		if (side) {
+			side->winGetPosition(&cx, &cy);
+			side->winSetPosition(cx - dx, cy - dy);
+		}
 	}
 	Int ox, oy;
 	parent->winGetPosition(&ox, &oy);
@@ -395,11 +418,13 @@ void GroupPanelFollowControlBar(Int barScreenX, Int barScreenY, Bool visible)
 		row->winGetPosition(&rx, &ry);
 		row->winSetPosition(rx + dx, ry + dy);
 
-		GameWindow *lastEvent = TheWindowManager->winGetWindowFromId(nullptr, s_buttonLastEventID);
-		if (lastEvent) {
-			Int ex, ey;
-			lastEvent->winGetPosition(&ex, &ey);
-			lastEvent->winSetPosition(ex + dx, ey + dy);
+		for (Int i = 0; i < SIDE_BUTTON_COUNT; ++i) {
+			GameWindow *side = sideButton(i);
+			if (side) {
+				Int ex, ey;
+				side->winGetPosition(&ex, &ey);
+				side->winSetPosition(ex + dx, ey + dy);
+			}
 		}
 	}
 	fitParentToVisibleContent();
@@ -477,6 +502,13 @@ WindowMsgHandledType GroupPanelSystem(GameWindow *window, UnsignedInt msg,
 
 			if (controlID == s_buttonLastEventID) {
 				TheMessageStream->appendMessage(GameMessage::MSG_META_VIEW_LAST_RADAR_EVENT);
+				return MSG_HANDLED;
+			}
+
+			if (controlID == s_buttonDeselectID) {
+				if (TheInGameUI) {
+					TheInGameUI->cancelOrDeselect();
+				}
 				return MSG_HANDLED;
 			}
 
