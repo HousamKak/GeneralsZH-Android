@@ -1772,12 +1772,19 @@ WindowMsgHandledType OptionsMenuSystem( GameWindow *window, UnsignedInt msg,
 			{
 				// Closed as Back closes it (unsaved changes here are dropped), so this menu's
 				// preferences cannot later overwrite what the ZH Commander screen saves.
+				// GeneralsX @bugfix ZH Commander 10/10/2026 Including Back's overlay case: from the
+				// online lobby this menu is a GameSpy overlay, not the Shell's options layout, so
+				// DestroyOptionsLayout() alone left it on screen with pref deleted, and its ACCEPT
+				// then crashed in saveOptions() (App Monitor issue 1, 0.1.17).
 				delete pref;
 				pref = nullptr;
 				comboBoxLANIP = nullptr;
 				comboBoxOnlineIP = nullptr;
 				commanderButton = nullptr;
-				DestroyOptionsLayout();
+				if(GameSpyIsOverlayOpen(GSOVERLAY_OPTIONS))
+					GameSpyCloseOverlay(GSOVERLAY_OPTIONS);
+				else
+					DestroyOptionsLayout();
 				TheShell->push( "Menus/CommanderMenu.wnd" );
 			}
 			else if(controlID == checkDrawAnchorID )
