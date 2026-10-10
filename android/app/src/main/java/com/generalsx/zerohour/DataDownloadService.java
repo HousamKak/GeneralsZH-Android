@@ -75,6 +75,7 @@ public class DataDownloadService extends Service {
             }
             sVersion = m.version;
             ZHTelemetry.track("data_download", "stage", "start");
+            final long started = android.os.SystemClock.elapsedRealtime();
             List<DataPack.Entry> todo = DataPack.missing(this, m);
             sTotal = DataPack.bytesOf(todo);
             sDone = 0;
@@ -92,7 +93,12 @@ public class DataDownloadService extends Service {
             if (root != null) {
                 SetupActivity.copyBundledRuntimeIfMissing(root, DataPack.gameDataDir(this).getPath());
             }
-            ZHTelemetry.track("data_download", "stage", "complete");
+            // GeneralsX @feature ZH Commander 10/10/2026 How long the download took and how much it was.
+            java.util.Map<String, Object> complete = new java.util.HashMap<>();
+            complete.put("stage", "complete");
+            complete.put("duration_s", (android.os.SystemClock.elapsedRealtime() - started) / 1000);
+            complete.put("mb", sTotal >> 20);
+            ZHTelemetry.track("data_download", complete);
             sFinished = true;
         } catch (java.io.IOException e) {
             sError = e.getMessage() != null ? e.getMessage() : "error";

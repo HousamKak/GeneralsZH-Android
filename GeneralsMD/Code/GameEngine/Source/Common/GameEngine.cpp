@@ -28,6 +28,7 @@
 
 #include "PreRTS.h"	// This must go first in EVERY cpp file in the GameEngine
 #include "Common/GXRemoteConfig.h"
+#include "Common/ZHMatchTelemetry.h"
 #if defined(__ANDROID__) || defined(__linux__) || defined(__APPLE__)
 #include <dlfcn.h>
 #include <sys/stat.h>
@@ -1662,6 +1663,8 @@ void GameEngine::execute()
 			}
 
 			TheFramePacer->update();
+			// GeneralsX @feature ZH Commander 10/10/2026 Frame timing and match_end (reads only).
+			ZHMatchTelemetry::frame();
 
 			// NOTE: TheDisplay->draw() is called via TheGameClient->UPDATE() above.
 			// GameClient::update() dispatches TheDisplay->DRAW() each frame.

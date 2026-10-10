@@ -150,9 +150,11 @@ final class ZHBridge {
         ZHTelemetry.track("online_sign_out");
     }
 
-    /** Something the engine did, for App Monitor (ZHTelemetry), e.g. "engine_boot". */
+    /** Something the engine did, for App Monitor (ZHTelemetry), e.g. "engine_boot", or with
+     *  properties as "match_end|mode=skirmish|..." (split and filtered in ZHTelemetry). */
     static void event(String name) {
-        ZHTelemetry.track(name);
+        // GeneralsX @feature ZH Commander 10/10/2026 Engine events can carry properties.
+        ZHTelemetry.trackEngine(name);
     }
 
     static void openMoreSettings() {

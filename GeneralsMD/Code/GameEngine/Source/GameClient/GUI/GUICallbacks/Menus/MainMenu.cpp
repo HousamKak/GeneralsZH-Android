@@ -90,6 +90,7 @@
 #include "GameClient/GadgetPushButton.h"
 #include "GameClient/GXButtonLook.h"
 #include "Common/ZHCommander.h"
+#include <cstdlib>
 
 
 // PRIVATE DATA ///////////////////////////////////////////////////////////////////////////////////
@@ -953,6 +954,16 @@ void MainMenuInit( WindowLayout *layout, void *userData )
 	{
 		s_bootReported = TRUE;
 		ZHCommander::hooks().event( "engine_boot" );
+		// GeneralsX @feature ZH Commander 10/10/2026 The game's own display settings, once per run
+		// (the app adds the renderer, the game speed and its own language to this event).
+		OptionPreferences pref;
+		const Int textSize = pref.getInt("ResolutionFontAdjustment", -1);
+		ZHCommander::Event e("settings");
+		e.add("upscale", pref.getAsciiString("GXUpscale", "off").str());
+		e.add("ui_scale", (int)pref.getInt("GXUiScale", 100));
+		if (textSize < 0) e.add("text_size", "default"); else e.add("text_size", (int)textSize);
+		e.add("game_lang", getenv("GENERALSX_TEXT_LANGUAGE"));
+		e.send();
 	}
 	// A required release is asked again each time the menu comes back (zhCommanderUpdate).
 	if (s_appOfferMandatory)

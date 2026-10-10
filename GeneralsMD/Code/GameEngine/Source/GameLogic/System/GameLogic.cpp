@@ -110,6 +110,7 @@
 #include "GameLogic/ScriptEngine.h"
 #include "GameLogic/SidesList.h"
 #include "GameLogic/VictoryConditions.h"
+#include "Common/ZHMatchTelemetry.h"
 #include "GameLogic/Weapon.h"
 #include "GameLogic/GhostObject.h"
 
@@ -2558,6 +2559,9 @@ void GameLogic::tryStartNewGame( Bool loadingSaveGame )
   {
 		TheInGameUI->messageNoFormat( TheGameText->FETCH_OR_SUBSTITUTE( "GUI:FastForwardInstructions", L"Press F to toggle Fast Forward" ) );
   }
+
+	// GeneralsX @feature ZH Commander 10/10/2026 match_start for the usage monitor (reads only).
+	ZHMatchTelemetry::matchStarted( loadingSaveGame );
 
 #ifdef PROFILER_ENABLED
 	AsciiString message;

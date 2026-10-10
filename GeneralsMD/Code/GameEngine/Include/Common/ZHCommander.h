@@ -26,6 +26,8 @@
 // Plain C++ on purpose: IOSGate.mm includes it without the engine's precompiled header.
 #pragma once
 
+#include <cstdio>
+
 namespace ZHCommander
 {
 	struct Hooks
@@ -79,7 +81,8 @@ namespace ZHCommander
 		bool (*gameplayMods)();
 
 		// Something worth counting happened ("engine_boot"), for the app's usage monitor. Client
-		// side only: never called from game logic, which must stay deterministic.
+		// side only: never called from game logic, which must stay deterministic. The name may
+		// carry properties, "name|key=value|..." (built with ZHCommander::Event below).
 		void (*event)(const char *name);
 	};
 
@@ -93,4 +96,53 @@ namespace ZHCommander
 	{
 		return hooks().appVersion ? hooks().appVersion() : nullptr;
 	}
+
+	// GeneralsX @feature ZH Commander 10/10/2026 An event with properties, one line per call site:
+	//   ZHCommander::Event("match_start").add("mode", "skirmish").add("players", 4).send();
+	// sent through hooks().event as "name|key=value|key=value" (ZHBridge.event splits it and keeps
+	// only the keys it allows for that event). '|' and '=' in values become '_'. Reading game state
+	// for it is fine anywhere; it must never change game state.
+	class Event
+	{
+	public:
+		explicit Event(const char *name) : m_len(0) { append(name, false); }
+
+		Event &add(const char *key, const char *value)
+		{
+			if (value == nullptr || value[0] == '\0') return *this;
+			append("|", false);
+			append(key, true);
+			append("=", false);
+			append(value, true);
+			return *this;
+		}
+		Event &add(const char *key, int value)
+		{
+			char buf[16];
+			std::snprintf(buf, sizeof(buf), "%d", value);
+			return add(key, buf);
+		}
+		Event &add(const char *key, double value, int decimals = 1)
+		{
+			char buf[32];
+			std::snprintf(buf, sizeof(buf), "%.*f", decimals, value);
+			return add(key, buf);
+		}
+
+		void send() const
+		{
+			if (hooks().event != nullptr) hooks().event(m_buf);
+		}
+
+	private:
+		void append(const char *s, bool clean)
+		{
+			for (; *s != '\0' && m_len < (int)sizeof(m_buf) - 1; ++s)
+				m_buf[m_len++] = (clean && (*s == '|' || *s == '=')) ? '_' : *s;
+			m_buf[m_len] = '\0';
+		}
+
+		char m_buf[512];
+		int m_len;
+	};
 }

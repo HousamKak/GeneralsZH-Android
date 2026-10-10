@@ -37,6 +37,8 @@ final class GameSignIn {
                 NetworkTrace.section(app, "sign-in from the game");
                 String code = GeneralsOnlineSession.fetchLoginCode(app);
                 if (code == null) {
+                    // GeneralsX @feature ZH Commander 10/10/2026 Sign-in failures by result, for the usage monitor.
+                    ZHTelemetry.track("online_sign_in", "result", "no_network");
                     toast(main, app, "Could not reach GeneralsOnline. Check the connection and press Online again.");
                     return;
                 }
@@ -45,6 +47,7 @@ final class GameSignIn {
                         game.startActivity(new Intent(Intent.ACTION_VIEW,
                             Uri.parse(String.format(GeneralsOnlineActivity.LOGIN_URL_FMT, code))));
                     } catch (Exception e) {
+                        ZHTelemetry.track("online_sign_in", "result", "no_browser");
                         Toast.makeText(app, "No browser to sign in with: " + e.getMessage(), Toast.LENGTH_LONG).show();
                     }
                 });
@@ -62,11 +65,13 @@ final class GameSignIn {
                         return;
                     }
                     if (result.httpStatus == 423) {
+                        ZHTelemetry.track("online_sign_in", "result", "rejected");
                         toast(main, app, "This GeneralsOnline account is banned.");
                         return;
                     }
                     // Anything else means "not yet": the player is still in the browser.
                 }
+                ZHTelemetry.track("online_sign_in", "result", "timeout");
                 toast(main, app, "The sign-in did not finish. Press Online to try again.");
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();

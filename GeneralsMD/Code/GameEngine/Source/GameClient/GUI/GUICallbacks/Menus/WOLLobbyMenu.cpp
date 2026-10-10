@@ -70,6 +70,14 @@
 #include "GameNetwork/GameSpy/LobbyUtils.h"
 #include "GameNetwork/RankPointValue.h"
 #include "GameNetwork/GeneralsOnline/NGMP_interfaces.h"
+#include "Common/ZHCommander.h"
+
+// GeneralsX @feature ZH Commander 10/10/2026 Why a lobby join was refused, for the usage monitor
+// (the reason only: no lobby, host or player names).
+static void reportJoinRefused(const char *reason)
+{
+	ZHCommander::Event("online_join_refused").add("reason", reason).add("sim_hz", (int)LOGICFRAMES_PER_SECOND).send();
+}
 
 void refreshGameList( Bool forceRefresh = FALSE );
 void refreshPlayerList( Bool forceRefresh = FALSE );
@@ -1242,10 +1250,12 @@ void NGMP_WOLLobbyMenu_JoinLobbyCallback(EJoinLobbyResult result)
 		switch (result)
 		{
 		case EJoinLobbyResult::JoinLobbyResult_FullRoom:        // The room is full.
+			reportJoinRefused("full");
 			s = TheGameText->fetch("GUI:JoinFailedRoomFull");
 			break;
 
         case EJoinLobbyResult::JoinLobbyResult_AnticheatMismatch:
+            reportJoinRefused("anticheat");
             s = TheGameText->fetchOrSubstitute("GUI:JoinFailedAnticheatMismatch", L"You are running a different anticheat from this lobby host.");
             break;
 
@@ -1259,6 +1269,7 @@ void NGMP_WOLLobbyMenu_JoinLobbyCallback(EJoinLobbyResult result)
 			break;
 			*/
 		case EJoinLobbyResult::JoinLobbyResult_BadPassword:     // An incorrect password (or none) was given for a passworded room.
+			reportJoinRefused("password");
 			s = TheGameText->fetch("GUI:JoinFailedBadPassword");
 			break;
 		/*
@@ -1270,6 +1281,7 @@ void NGMP_WOLLobbyMenu_JoinLobbyCallback(EJoinLobbyResult result)
 			break;
 			*/
 		default:
+			reportJoinRefused("other");
 			s = TheGameText->fetch("GUI:JoinFailedDefault");
 			break;
 		}
@@ -2598,6 +2610,7 @@ WindowMsgHandledType WOLLobbyMenuSystem( GameWindow *window, UnsignedInt msg,
 							{
 								if (Lobby.exe_crc != TheGlobalData->m_exeCRC)
 								{
+									reportJoinRefused("crc");
 									// GeneralsX @tweak ZH Commander 10/10/2026 Between phones this is almost always
 									// a different game speed (30 or 60 Hz, part of this checksum since 0.1.15) or
 									// different game data; say which settings to compare, not only the PC case.
@@ -2609,10 +2622,12 @@ WindowMsgHandledType WOLLobbyMenuSystem( GameWindow *window, UnsignedInt msg,
 								}
 								else if (TheGlobalData->m_iniCRC != VANILLA_INI_CRC)
 								{
+									reportJoinRefused("ini_local");
 									GSMessageBoxOk(TheGameText->fetch("GUI:JoinFailedDefault"), UnicodeString(L"You have modified INI files or a modification."));
 								}
 								else if (Lobby.ini_crc != VANILLA_INI_CRC)
 								{
+									reportJoinRefused("ini_host");
 									// GeneralsX @bugfix Android port 13/09/2026 This branch is now the
 									// one people actually reach, because the EXE checksum can be made
 									// to match (see GlobalData::init and the cross-platform switch),
@@ -2630,6 +2645,7 @@ WindowMsgHandledType WOLLobbyMenuSystem( GameWindow *window, UnsignedInt msg,
 								}
 								else
 								{
+									reportJoinRefused("other");
 									GSMessageBoxOk(TheGameText->fetch("GUI:JoinFailedDefault"), TheGameText->fetch("GUI:JoinFailedCRCMismatch"));
 								}
 								break;

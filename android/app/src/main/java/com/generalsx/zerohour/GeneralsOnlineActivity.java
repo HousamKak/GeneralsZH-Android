@@ -678,6 +678,8 @@ public class GeneralsOnlineActivity extends Activity {
             busy = false;
             signInButton.setEnabled(true);
             statusText.setText(withNetworkErrorDetail(getString(R.string.online_status_no_login_code)));
+            // GeneralsX @feature ZH Commander 10/10/2026 Sign-in failures by result, for the usage monitor.
+            ZHTelemetry.track("online_sign_in", "result", "no_network");
             return;
         }
 
@@ -690,6 +692,7 @@ public class GeneralsOnlineActivity extends Activity {
             busy = false;
             signInButton.setEnabled(true);
             Toast.makeText(this, getString(R.string.online_toast_no_browser, e.getMessage()), Toast.LENGTH_LONG).show();
+            ZHTelemetry.track("online_sign_in", "result", "no_browser");
             return;
         }
 
@@ -733,6 +736,7 @@ public class GeneralsOnlineActivity extends Activity {
             signInButton.setEnabled(true);
             statusText.setText(withNetworkErrorDetail(getString(R.string.online_status_network_error)));
             NetworkTrace.write(this, "sign-in aborted: no usable response from either endpoint");
+            ZHTelemetry.track("online_sign_in", "result", "no_network");
             return;
         }
 
@@ -744,6 +748,7 @@ public class GeneralsOnlineActivity extends Activity {
                 : getString(R.string.online_status_banned_reason, result.banReason);
             statusText.setText(reason);
             NetworkTrace.write(this, "sign-in refused: account banned");
+            ZHTelemetry.track("online_sign_in", "result", "rejected");
             return;
         }
 
@@ -773,6 +778,7 @@ public class GeneralsOnlineActivity extends Activity {
             NetworkTrace.write(this, "sign-in timed out after " + pollAttempt
                 + " polls; last status HTTP " + result.httpStatus
                 + ", result " + result.state);
+            ZHTelemetry.track("online_sign_in", "result", "timeout");
             return;
         }
 
