@@ -8,9 +8,14 @@
 //                         match the module name in crash frames, e.g. libmain.so)
 //   --compress-debug <llvm-objcopy>   shrink DWARF first (zlib-compressed debug sections keep file and
 //                         line info, llvm-symbolizer reads them directly). Typically 3x to 5x smaller.
+//   --no-gzip             native symbols are gzip-compressed before upload by default (stored
+//                         compressed, decompressed on read); this sends them as they are.
 // Files over 45 MB go up as a multipart upload (any size).
 // Env: MONITOR_URL, and UPLOAD_TOKEN (upload-only, for CI) or ADMIN_TOKEN.
 import { readFile, open, stat, mkdtemp } from 'node:fs/promises';
+import { createReadStream, createWriteStream } from 'node:fs';
+import { pipeline } from 'node:stream/promises';
+import { createGzip } from 'node:zlib';
 import { basename, join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { execFileSync } from 'node:child_process';
@@ -20,7 +25,7 @@ import { args, adminHeaders, dashUrl, fetchRetry } from './lib.mjs';
 const PART = Math.max(5, Number(process.env.AM_PART_MB) || 45) * 1024 * 1024;
 const a = args();
 if (!a.app || !a.version || !a.platform || (!a.mapping && !a.symbols)) {
-  console.error('usage: upload-symbols.mjs --app <id> --version <v> --platform android|ios --mapping <file> | --symbols <file> [file ...] [--name n] [--compress-debug path/to/llvm-objcopy]');
+  console.error('usage: upload-symbols.mjs --app <id> --version <v> --platform android|ios --mapping <file> | --symbols <file> [file ...] [--name n] [--compress-debug path/to/llvm-objcopy] [--no-gzip]');
   process.exit(2);
 }
 const base = `${dashUrl(a)}/admin/v1/apps/${a.app}/releases/${encodeURIComponent(a.version)}`;
@@ -32,8 +37,8 @@ async function call(url, init) {
   return JSON.parse(text);
 }
 
-async function multipart(file, name, size) {
-  const start = await call(`${base}/symbols/multipart?platform=${a.platform}&name=${encodeURIComponent(name)}`, { method: 'POST' });
+async function multipart(file, name, size, enc) {
+  const start = await call(`${base}/symbols/multipart?platform=${a.platform}&name=${encodeURIComponent(name)}${enc}`, { method: 'POST' });
   const id = encodeURIComponent(start.upload_id);
   const key = encodeURIComponent(start.key);
   const fh = await open(file, 'r');
@@ -69,14 +74,22 @@ async function post(kind, file, nameOverride) {
     console.log(`compressed debug sections: ${(await stat(file)).size} -> ${(await stat(path)).size} bytes`);
   }
   const name = kind === 'mappings' ? 'mapping.txt' : nameOverride || basename(file);
+  let enc = '';
+  if (kind === 'symbols' && !a['no-gzip']) {
+    const gz = join(await mkdtemp(join(tmpdir(), 'am-gz-')), basename(path) + '.gz');
+    await pipeline(createReadStream(path), createGzip({ level: 6 }), createWriteStream(gz));
+    console.log(`gzip: ${(await stat(path)).size} -> ${(await stat(gz)).size} bytes`);
+    path = gz;
+    enc = '&encoding=gzip';
+  }
   const size = (await stat(path)).size;
   if (kind === 'symbols' && size > PART) {
     console.log(`uploading ${file} (${Math.round(size / 1048576)} MB) as ${name} in parts`);
-    const r = await multipart(path, name, size);
+    const r = await multipart(path, name, size, enc);
     console.log(`uploaded ${file} as symbols/${name} (${r.size} bytes)`);
     return;
   }
-  const res = await fetchRetry(`${base}/${kind}?platform=${a.platform}&name=${encodeURIComponent(name)}`, {
+  const res = await fetchRetry(`${base}/${kind}?platform=${a.platform}&name=${encodeURIComponent(name)}${enc}`, {
     method: 'POST',
     headers: adminHeaders({ 'content-type': 'application/octet-stream' }),
     body: await readFile(path),
