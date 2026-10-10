@@ -11,6 +11,7 @@ import { DATA_KEY_RE, currentManifest, dataFile, dataManifest, publishData, type
 import { IPA_KEY_RE, altstoreSource, readReleases, recordBuild, serveIpa } from "./ios";
 import { listReports, receiveReport, reportRoute } from "./support";
 import { notesApi, publishNotes, readAllNotes } from "./notes";
+import { prune } from "./prune";
 
 interface Env extends DataEnv {
 	ASSETS: Fetcher;
@@ -28,6 +29,7 @@ interface Latest {
 	build?: number; // versionCode
 	mandatory?: boolean; // offered as a required update
 	run_url?: string; // the GitHub Actions run that built it
+	file_removed?: boolean; // the APK was deleted by /admin/prune; the entry stays as history
 }
 
 const KEY_RE = /^apk\/[A-Za-z0-9._-]{1,200}\.apk$/;
@@ -128,6 +130,12 @@ export default {
 			const { key: _key, ...info } = latest;
 			return Response.json(info, { headers: { "Cache-Control": "public, max-age=60" } });
 		}
+		if (pathname === "/admin/prune" && request.method === "POST") {
+			if (!(await isUploader(request, env))) {
+				return Response.json({ error: "unauthorized" }, { status: 401 });
+			}
+			return prune(env.APKS, url.searchParams.get("dry_run") === "1");
+		}
 		if (pathname.startsWith("/admin/upload/")) {
 			if (!(await isUploader(request, env))) {
 				return Response.json({ error: "unauthorized" }, { status: 401 });
@@ -212,7 +220,8 @@ function releaseEntry(r: Latest, urlPrefix: string) {
 		published: r.published,
 		size: r.size,
 		sha256: r.sha256,
-		url: `${urlPrefix}${r.key}`,
+		url: r.file_removed ? null : `${urlPrefix}${r.key}`,
+		file_removed: r.file_removed ?? false,
 		mandatory: r.mandatory ?? null,
 		run_url: r.run_url ?? null,
 	};
