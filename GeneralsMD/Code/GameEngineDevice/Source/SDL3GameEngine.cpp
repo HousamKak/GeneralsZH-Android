@@ -1826,7 +1826,17 @@ void handleTouchEvent(SDL_Window *window, const SDL_Event &event)
 					// Mouse parity, not an invention: on the radar a left click orders and a
 					// right click looks (ControlBarCallback.cpp:262). A tap is the left one;
 					// this is the right one.
-					if ((SDL_GetTicks() - s_touch.downTicks) >= LONG_PRESS_MS &&
+					//
+					// GeneralsX @tweak ZH Commander 11/10/2026 Swapped: a TAP on the minimap now
+					// looks, and the long press is the order. Player feedback: a tap is what
+					// everyone tries first to get somewhere, and it kept marching the selected
+					// army across the map instead. A long press falls through to the
+					// window-manager replay below, which is the radar's own left click, so
+					// sending an army from the minimap still works. So does a tap while a
+					// command is armed (a special power or attack move aimed at the minimap):
+					// that tap is the target, not a look.
+					if ((SDL_GetTicks() - s_touch.downTicks) < LONG_PRESS_MS &&
+					    !(TheInGameUI && (TheInGameUI->getGUICommand() || TheInGameUI->getPendingPlaceType())) &&
 					    TouchInput::lookAtRadarPoint((Int)s_touch.downX, (Int)s_touch.downY)) {
 						break;
 					}
