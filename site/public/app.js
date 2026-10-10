@@ -70,8 +70,7 @@
 		a3: "تحتاج أندرويد 9 أو أحدث على هاتف 64 بت، ونحو 2.5 غيغابايت مساحة لملفات اللعبة، ويُفضّل 4 غيغابايت ذاكرة. هواتف Snapdragon هي الأفضل؛ هواتف Mali الأقدم تعمل لكن أبطأ.",
 		q4: "مقابل ماذا أدفع ثمن المفتاح؟",
 		a4: "لبناء هذه النسخة ودعمها. الكود المصدري يبقى مفتوحًا بترخيص GPL: <a href=\"https://github.com/HousamKak/GeneralsZH-Android\" rel=\"noopener\" dir=\"ltr\">github.com/HousamKak/GeneralsZH-Android</a>.",
-		disclaimer: "ZH Commander مشروع غير رسمي من المعجبين، غير تابع لشركة Electronic Arts ولا معتمد منها. Command &amp; Conquer وGenerals علامتان تجاريتان لشركة Electronic Arts.",
-		credits: "مبني على الكود المصدري الذي نشرته EA بترخيص GPL v3، وعلى GeneralsX وTheSuperHackers ونسخة GeneralsZH لأندرويد من MYSOREZ. <a href=\"https://github.com/HousamKak/GeneralsZH-Android\" rel=\"noopener\">الكود المصدري (GPL v3)</a>"
+		disclaimer: "ZH Commander مشروع غير رسمي من المعجبين، غير تابع لشركة Electronic Arts ولا معتمد منها. Command &amp; Conquer وGenerals علامتان تجاريتان لشركة Electronic Arts."
 	};
 
 	var root = document.documentElement;
