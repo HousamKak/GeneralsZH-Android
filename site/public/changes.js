@@ -17,6 +17,7 @@
 			version: "Version",
 			latest: "Latest",
 			doc_title: "ZH Commander: What's new",
+			privacy_link: "Privacy",
 			toggle: "عربي"
 		},
 		ar: {
@@ -32,6 +33,7 @@
 			version: "الإصدار",
 			latest: "الأحدث",
 			doc_title: "ZH Commander: ما الجديد",
+			privacy_link: "الخصوصية",
 			toggle: "English"
 		}
 	};

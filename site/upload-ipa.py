@@ -59,6 +59,8 @@ def main():
     if release:
         zh_r2.call("POST", "%s/admin/ios/release" % site, tok, json.dumps(build).encode())
     print("%s %s (%d MB)" % ("released" if release else "uploaded", key, size >> 20))
+    if release:
+        zh_r2.prune(site, tok)
 
 
 if __name__ == "__main__":

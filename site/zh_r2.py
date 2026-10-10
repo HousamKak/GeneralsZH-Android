@@ -43,6 +43,16 @@ def call(method, url, token, body=None, content_type="application/json"):
         return json.loads(res.read().decode("utf-8"))
 
 
+# GeneralsX @feature ZH Commander 10/10/2026 Prune old APKs and IPAs after a release.
+def prune(site, token):
+    """Delete builds older than the newest 2 per platform (site/src/prune.ts). Never fails a release."""
+    try:
+        r = call("POST", "%s/admin/prune" % site, token, b"{}")
+        print("pruned %d old builds (%d MB)" % (len(r["deleted"]), r["bytes_freed"] >> 20))
+    except Exception as exc:  # noqa: BLE001 - a failed prune only leaves files for the next one
+        print("prune skipped: %s" % exc)
+
+
 def upload_file(site, token, path, key, size, label=""):
     """Upload one local file to R2 under key, printing progress. Aborts the upload on failure."""
     q = "key=" + urllib.parse.quote(key, safe="")

@@ -70,7 +70,8 @@
 		a3: "تحتاج أندرويد 9 أو أحدث على هاتف 64 بت، ونحو 2.5 غيغابايت مساحة لملفات اللعبة، ويُفضّل 4 غيغابايت ذاكرة. هواتف Snapdragon هي الأفضل؛ هواتف Mali الأقدم تعمل لكن أبطأ.",
 		q4: "مقابل ماذا أدفع ثمن المفتاح؟",
 		a4: "لبناء هذه النسخة ودعمها. الكود المصدري يبقى مفتوحًا بترخيص GPL: <a href=\"https://github.com/HousamKak/GeneralsZH-Android\" rel=\"noopener\" dir=\"ltr\">github.com/HousamKak/GeneralsZH-Android</a>.",
-		disclaimer: "ZH Commander مشروع غير رسمي من المعجبين، غير تابع لشركة Electronic Arts ولا معتمد منها. Command &amp; Conquer وGenerals علامتان تجاريتان لشركة Electronic Arts."
+		disclaimer: "ZH Commander مشروع غير رسمي من المعجبين، غير تابع لشركة Electronic Arts ولا معتمد منها. Command &amp; Conquer وGenerals علامتان تجاريتان لشركة Electronic Arts.",
+		privacy_link: "الخصوصية"
 	};
 
 	var root = document.documentElement;
@@ -188,6 +189,8 @@
 					return window.paypal.Buttons({
 						style: { layout: "vertical", shape: "rect", color: "gold", label: "pay" },
 						createOrder: function () {
+							// GeneralsX @feature ZH Commander 10/10/2026 Count the buy click (hit.js).
+							if (window.zhHit) window.zhHit("site_buy_click", { method: "paypal" });
 							return postJson("/api/paypal/order").then(function (d) {
 								if (!d.id) throw new Error(d.error || "order failed");
 								return d.id;
@@ -209,6 +212,24 @@
 				});
 		})
 		.catch(function () { setStatus("paypal-status", "pp_error", true); });
+
+	// GeneralsX @feature ZH Commander 10/10/2026 Whish has no button: a tap on or a copy of its
+	// number counts as its buy click, once per page view. The language switch rewrites the number's
+	// paragraph, so listen on its card.
+	var whish = document.querySelector(".buy-card .phone");
+	var whishCard = whish ? whish.closest(".buy-card") : null;
+	var whishCounted = false;
+	function countWhish() {
+		if (whishCounted || !window.zhHit) return;
+		whishCounted = true;
+		window.zhHit("site_buy_click", { method: "whish" });
+	}
+	if (whishCard) {
+		whishCard.addEventListener("copy", countWhish);
+		whishCard.addEventListener("click", function (e) {
+			if (e.target.closest && e.target.closest(".phone")) countWhish();
+		});
+	}
 
 	document.getElementById("lookup-form").addEventListener("submit", function (e) {
 		e.preventDefault();

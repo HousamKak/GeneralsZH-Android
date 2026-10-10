@@ -35,6 +35,8 @@ def main():
     if publish:
         zh_r2.call("POST", "%s/admin/upload/publish" % site, token, json.dumps(latest).encode())
     print("%s %s (%d MB)" % ("published" if publish else "uploaded", key, size >> 20))
+    if publish:
+        zh_r2.prune(site, token)
 
 
 if __name__ == "__main__":
