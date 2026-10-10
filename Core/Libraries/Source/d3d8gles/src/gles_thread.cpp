@@ -33,7 +33,13 @@ inline double usSince(Clock::time_point t)
 // 16 MB: a heavy frame is ~5000 commands of mostly 32-96 bytes; large payloads (buffer and texture
 // data) are on the heap, so the ring holds several frames with room to spare.
 constexpr size_t kRingBytes = 16u << 20;
-constexpr size_t kAlign = 16;
+// GeneralsX @bugfix Android port 04/10/2026 Every command, and so every gap left before the end of
+// the ring, is a multiple of this -- and the padding that fills such a gap starts with a whole Cmd
+// header. At 16 that held until Cmd gained `where` (24 bytes): a gap of exactly 16 bytes then had
+// its header written 8 bytes past the ring, and the game died in allocCmd on the first page after
+// it (a heavy base-game match, logs of 04/10).
+constexpr size_t kAlign = 32;
+static_assert(sizeof(Cmd) <= kAlign, "the end-of-ring padding header must fit in the smallest gap");
 
 unsigned char *s_ring = nullptr;
 size_t s_allocPos = 0;                  // engine thread: next free byte (monotonic)
@@ -138,8 +144,22 @@ bool fencesPending()
 	return !s_pendingFences.empty();
 }
 
+// GeneralsX @feature Android port 04/10/2026 What the render thread was doing when it died.
+// Written by the render thread only, read by the crash handler (after the fact, on the crashed
+// thread or another one), so plain volatile stores: no locks, nothing a signal handler could
+// deadlock on.
+namespace {
+const unsigned kRecentCmds = 16;
+const char *volatile s_recentWhere[kRecentCmds];
+volatile unsigned s_recentNext = 0;
+volatile pid_t s_workerTid = 0;
+char s_driverRenderer[160];
+char s_driverVersion[160];
+}
+
 void workerMain()
 {
+	s_workerTid = gettid();
 	if (!SDL_GL_MakeCurrent(s_window, s_context)) {
 		fprintf(stderr, "[d3d8gles] render thread: SDL_GL_MakeCurrent failed: %s\n", SDL_GetError());
 		s_stop.store(true);
@@ -195,8 +215,11 @@ void workerMain()
 		while (read != write) {
 			Cmd *c = reinterpret_cast<Cmd *>(s_ring + read % kRingBytes);
 			const uint32_t bytes = c->bytes;
-			if (c->run)
+			if (c->run) {
+				s_recentWhere[s_recentNext % kRecentCmds] = c->where;
+				s_recentNext = s_recentNext + 1;
 				c->run(c);
+			}
 			read += bytes;
 			s_readPos.store(read, std::memory_order_release);
 			wakeMain();
@@ -288,6 +311,13 @@ void stopAtExit()
 
 } // namespace
 
+// Outside the unnamed namespace: called from gles_pipeline.cpp.
+void noteDriver(const char *renderer, const char *version)
+{
+	snprintf(s_driverRenderer, sizeof(s_driverRenderer), "%s", renderer ? renderer : "?");
+	snprintf(s_driverVersion, sizeof(s_driverVersion), "%s", version ? version : "?");
+}
+
 void *allocCmd(size_t bytes, uint32_t *rounded)
 {
 	// The ring has one producer. A GL call from any other thread while the render thread runs
@@ -308,6 +338,7 @@ void *allocCmd(size_t bytes, uint32_t *rounded)
 		Cmd *p = reinterpret_cast<Cmd *>(s_ring + phys);
 		p->run = nullptr;
 		p->bytes = (uint32_t)pad;
+		p->where = nullptr;
 		s_allocPos += pad;
 		s_writePos.store(s_allocPos, std::memory_order_seq_cst);
 	}
@@ -327,13 +358,13 @@ void commitCmd()
 	wakeWorker();
 }
 
-void syncCall(void (*fn)(void *), void *ctx)
+void syncCall(void (*fn)(void *), void *ctx, const char *where)
 {
 	std::atomic<bool> done{false};
 	post([fn, ctx, &done] {
 		fn(ctx);
 		done.store(true, std::memory_order_release);
-	});
+	}, where);
 	s_stats.syncCalls++;
 	waitMain([&done] { return done.load(std::memory_order_acquire); }, &s_stats.syncWaitUs);
 }
@@ -374,6 +405,7 @@ void writeMapped(void *dst, const void *src, size_t bytes)
 		MappedWriteCmd *w = new (mem) MappedWriteCmd;
 		w->run = &MappedWriteCmd::exec;
 		w->bytes = rounded;
+		w->where = "writeMapped (memcpy into a persistent buffer)";
 		w->dst = to;
 		w->length = n;
 		memcpy(mem + sizeof(MappedWriteCmd), from, n);
@@ -549,3 +581,30 @@ bool running()
 }
 
 } // namespace gxrt
+
+// GeneralsX @feature Android port 04/10/2026 Called from the native crash handler
+// (GeneralsMD/Code/Main/AndroidCrashHandler.cpp, a weak reference: builds without this library
+// simply skip it). Names the GL driver, and, when the crash is on the render thread, the GL calls
+// it ran last -- the newest is the one it died in.
+extern "C" void d3d8gles_write_crash_context(void (*out)(const char *, size_t), int crashedTid)
+{
+	char buf[320];
+	int len = snprintf(buf, sizeof(buf), "GL driver: %s | %s\n",
+		gxrt::s_driverRenderer[0] ? gxrt::s_driverRenderer : "(not initialised)",
+		gxrt::s_driverVersion[0] ? gxrt::s_driverVersion : "-");
+	if (len > 0)
+		out(buf, (size_t)len < sizeof(buf) ? (size_t)len : sizeof(buf) - 1);
+	if (gxrt::s_workerTid == 0 || crashedTid != (int)gxrt::s_workerTid)
+		return;
+	const unsigned next = gxrt::s_recentNext;
+	const unsigned count = next < gxrt::kRecentCmds ? next : gxrt::kRecentCmds;
+	len = snprintf(buf, sizeof(buf), "crash on the GLES render thread; its last %u GL commands, oldest first (the last one is where it died):\n", count);
+	if (len > 0)
+		out(buf, (size_t)len < sizeof(buf) ? (size_t)len : sizeof(buf) - 1);
+	for (unsigned i = next - count; i != next; ++i) {
+		const char *w = gxrt::s_recentWhere[i % gxrt::kRecentCmds];
+		len = snprintf(buf, sizeof(buf), "  %s\n", w ? w : "(unnamed)");
+		if (len > 0)
+			out(buf, (size_t)len < sizeof(buf) ? (size_t)len : sizeof(buf) - 1);
+	}
+}

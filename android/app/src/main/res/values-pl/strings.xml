@@ -101,6 +101,8 @@
     <string name="setup_switch_touch_debug_desc">Rysuje na grze stan warstwy dotykowej: bieżący gest, położenie palca, miejsce, w którym silnik widzi wskaźnik, oraz kotwicę przewijania kamery. Włącz to przy zgłaszaniu problemów ze sterowaniem — uciekająca mapa, widmowy budynek w złym miejscu, zdolność celująca tam, gdzie nie dotknięto. (gx_touch_debug.txt)</string>
     <string name="setup_switch_gx_perf">Podsumowanie wydajności</string>
     <string name="setup_switch_gx_perf_desc">Dodaje jedną krótką linię na sekundę pokazującą, na co idzie czas klatki (radar, dźwięk, sieć, logika gry, renderowanie). Można bezpiecznie zostawić włączone przez całą sesję — włącz do zgłoszeń o FPS/spowolnieniach. (gx_perf.txt)</string>
+    <string name="setup_switch_gpu_timer">Pomiar czasu GPU</string>
+    <string name="setup_switch_gpu_timer_desc">Mierzy, ile czasu GPU poświęca na każdą klatkę, i dodaje to do podsumowania wydajności — by sprawdzić, czy ogranicza GPU czy CPU. Tylko OpenGL ES. Niektóre sterowniki Mali się z tym wysypują, więc włączaj tylko na prośbę. (gx_gles_gputimer.txt)</string>
     <string name="setup_switch_gx_audio_trace">Dziennik dźwięku</string>
     <string name="setup_switch_gx_audio_trace_desc">Zapisuje, co robi system dźwięku: zapełnienie buforów muzyki i mowy, dźwięk filmów oraz każde uruchomienie i zatrzymanie źródła. Włącz, jeśli po zgłoszeniu braku dźwięku, przerywania lub ciszy poproszą Cię o dziennik dźwięku. (gx_audio_trace.txt)</string>
     <string name="setup_button_download_langpack">Pobierz pakiet językowy</string>
@@ -160,9 +162,7 @@
     <!-- LogViewerActivity -->
     <string name="logviewer_title">Dzienniki</string>
     <string name="logviewer_button_clear">Wyczyść dzienniki</string>
-    <string name="logviewer_button_copy">Kopiuj</string>
     <string name="logviewer_button_share">Udostępnij</string>
-    <string name="logviewer_toast_copied">Skopiowano do schowka.</string>
     <string name="logviewer_section_crash_log">=== crash.log (natywna obsługa awarii, pamięć wewnętrzna) ===\n</string>
     <string name="logviewer_crash_log_absent">(brak — nie odnotowano żadnej natywnej awarii od czasu instalacji lub aplikacja nigdy nie uruchomiła się dalej niż wczytanie biblioteki)</string>
     <string name="logviewer_section_stderr_log">=== generals-stderr.log (dziennik silnika, pamięć zewnętrzna) ===\n</string>
