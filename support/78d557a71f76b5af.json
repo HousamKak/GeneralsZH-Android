@@ -1,0 +1,14 @@
+{
+  "text": {
+    "en": {
+      "title": "Get a key",
+      "body": "Activation keys cost $5 via Whish. Send a message to the number below to get yours. One key activates one phone.",
+      "warning": "Keys are only sold through this number.",
+      "copy_hint": "Tap to copy the number",
+      "copied": "Number copied: %s"
+    }
+  },
+  "entries": [
+    { "label": "Whish / messages", "value": "+96171406981" }
+  ]
+}

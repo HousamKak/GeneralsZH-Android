@@ -1,0 +1,60 @@
+{
+  "app": {
+    "mandatory": false,
+    "sha256": "dc50066bc7437fb24b25c2768ce32f78c0788ce206a9b0e0fefb3a199e754b3e",
+    "size": 63610978,
+    "url": "https://zerohour.housamkak.com/download/apk/ZH-Commander-0.1.18-dc50066b.apk",
+    "version_code": 10518,
+    "version_name": "0.1.18"
+  },
+  "config": {
+    "activation_regular_price_usd": "15",
+    "activation_sale_price_usd": "10",
+    "datapack_manifest_url": "https://cdn.playgenerals.online/manifest.json",
+    "logic_crc_revision": "0",
+    "pc_exe_crc": "560676586",
+    "stun_servers": "stun:stun.playgenerals.online:53,stun:stun.playgenerals.online:3478,stun:stun.l.google.com:19302",
+    "turn_servers": "turn:turn.playgenerals.online:53,turn:turn.playgenerals.online:3478"
+  },
+  "engine": {
+    "files": {
+      "libmain.so": {
+        "sha256": "411c10216feb8f0de3baef8450f04e01c814e6b83d30c55bac17e7cc0d9c8e2e",
+        "size": 42262992,
+        "url": "https://raw.githubusercontent.com/HousamKak/GeneralsZH-Android/updates/engine/10051/libmain.so.gz"
+      },
+      "libmain60.so": {
+        "sha256": "bae7d0ed1e51e4288df14de874cb8d5dde51e57c609e8031319516a899056504",
+        "size": 42263176,
+        "url": "https://raw.githubusercontent.com/HousamKak/GeneralsZH-Android/updates/engine/10051/libmain60.so.gz"
+      }
+    },
+    "requires_libs": {
+      "libEGL_angle.so": "68bec582dab9f2466ca83d80babbb65a334c09a9e85ef83aa3448ba22990268b",
+      "libGLESv2_angle.so": "f85d6f551069a88757859088a88a3456fdfe4ac54e9c18a3c7fb533e9753efe2",
+      "libSDL3.so": "6ed3f7e36b4c6133ca3ab4c7264aa9ac4a8bdc3ad145c875c66131697daa46d9",
+      "libSDL3_image.so": "67766296057a8288024d94fae39082bcf0555c72fdc94314061e471a2eca9d1f",
+      "libadrenotools.so": "aca61d1edcd0092080ef3eeabaee47125a36d47d5a26f8ceb318e2cf75151371",
+      "libapp_monitor_ndk.so": "00e53b3b69319bb5999fab6924f96fab4bbc73a07dfec67f8eeac013f58fbb9d",
+      "libc++_shared.so": "f9992c4ba6b7c5a716e3a202fceb1ce029d6a2b0605838ac6b3219f489dd7970",
+      "libdxvk_d3d8.so": "386dfa0a56941e553bf657a80b08d2813c2e997aacfea81612b7c00b10232da4",
+      "libdxvk_d3d9.so": "ddf6a8ccf234df16384cc2921231ea43b075be4577641610a8c1782436e9429e",
+      "libfile_redirect_hook.so": "a972c1c3a8539a6418799c4ef9eb8c681d77024f0dbea8702e889a6a792045d8",
+      "libgamespy.so": "d9db97475d9c1ef0edc7fadf45345f6aa744543836b956be1bbfdf3ee8b481c3",
+      "libgsl_alloc_hook.so": "42f08a5c4c4e8dbed3faf8a977af2ff6abd82abb98d1b4d8d00520dc0ca0b434",
+      "libhook_impl.so": "2617ae278a66b31768c2b992bb4ba1a79697aaa7608507451b6fcd5f0f8f3259",
+      "libmain_hook.so": "5fb186b3f6f8da57bd0b9cb3a607fcf9585e1d90101141fce7c596ad2308fc8d",
+      "libopenal.so": "d24c36b4dc73eba424bd40d97c827f28ff3a465ddcbe3643624ca8708547bd4a"
+    },
+    "seq": 10051
+  },
+  "note": "ZH Commander run 28",
+  "published": "2026-10-10",
+  "schema": 1,
+  "serial": 1018,
+  "support": {
+    "sha256": "78d557a71f76b5afcef84584d9a8b90de2514e88104a6fea93d129340d011ff7",
+    "size": 418,
+    "url": "https://raw.githubusercontent.com/HousamKak/GeneralsZH-Android/updates/support/78d557a71f76b5af.json"
+  }
+}
