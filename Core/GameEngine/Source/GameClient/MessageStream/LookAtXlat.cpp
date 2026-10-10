@@ -28,6 +28,8 @@
 
 #include "PreRTS.h"	// This must go first in EVERY cpp file in the GameEngine
 
+#include "Common/GXMouseMode.h"
+
 #include "Common/FramePacer.h"
 #include "Common/GameType.h"
 #include "Common/GameEngine.h"
@@ -128,7 +130,15 @@ Bool LookAtTranslator::canScrollAtScreenEdge() const
 	// is both more precise and already native (applyCameraPan -> TheTacticalView).
 	// If mouse support is ever offered here for an attached OTG/Bluetooth pointer, this
 	// is the line that has to consult that setting rather than the platform.
-	return false;
+	// GeneralsX @feature Android port 05/10/2026 It is now (GXMouseMode.h): with a pointer --
+	// a mouse, or the touchpad's, which stays where it was left like a mouse's -- the edge
+	// scrolls as on a PC.
+	if (!GXMouseModeEnabled())
+		return false;
+	// GeneralsX @bugfix Android port 05/10/2026 ...and only that: the windowed/fullscreen choice
+	// below is a desktop option (Options.ini ScreenEdgeScrollMode), and the game window on a phone
+	// does not count as full screen to it, so edge scrolling never started (owner's report).
+	return true;
 #else
 	if (!TheMouse->isCursorCaptured())
 		return false;

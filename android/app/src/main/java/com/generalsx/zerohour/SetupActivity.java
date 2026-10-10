@@ -77,6 +77,11 @@ import java.io.File;
 public class SetupActivity extends Activity {
 
     static final String PREFS_NAME = "generalszh_setup";
+    static final String PREF_SKIP_INTRO = "skip_intro";
+
+    static boolean isSkipIntroEnabled(android.content.Context ctx) {
+        return ctx.getSharedPreferences(PREFS_NAME, MODE_PRIVATE).getBoolean(PREF_SKIP_INTRO, false);
+    }
     static final String PREF_GAME_PATH = "game_path";
 
     // GeneralsX @feature Android port 15/09/2026 Simulation tick rate.
@@ -428,6 +433,7 @@ public class SetupActivity extends Activity {
                 buildLanguageSection(page);
                 buildUiScaleSection(page);
                 buildInterfaceScaleSection(page);
+                buildMouseModeSection(page);
                 break;
             case TAB_ONLINE:
                 buildGeneralsOnlineSection(page);
@@ -819,6 +825,86 @@ public class SetupActivity extends Activity {
             getString(R.string.replaycheck_title),
             getString(R.string.replaycheck_row_note),
             () -> startActivity(new Intent(this, ReplayCheckActivity.class)));
+    }
+
+    // GeneralsX @feature Android port 05/10/2026 Issue #39: a pointer instead of native touch,
+    // off by default. A marker file in the app's own files dir, read natively at start
+    // (GXMouseMode.h), so it holds before any game folder is chosen and for both games.
+    static final String MOUSE_MODE_MARKER = "mouse_mode";
+
+    private void buildMouseModeSection(LinearLayout root) {
+        LinearLayout content = UiKit.card(root);
+        UiKit.sectionHeader(content, R.drawable.ic_gzh_sliders,
+            getString(R.string.setup_card_controls), false);
+        // GeneralsX @feature Android port 05/10/2026 Skip the logos and intro movies (owner's
+        // request): the engine's own -nologo, passed by GeneralsZHActivity.getArguments().
+        // Ported to ZH Commander 10/10/2026 into this card, as the launcher has no Home card.
+        SwitchCompat skipIntro = UiKit.switchRow(content,
+            getString(R.string.setup_switch_skip_intro), getString(R.string.setup_switch_skip_intro_desc));
+        skipIntro.setChecked(isSkipIntroEnabled(this));
+        skipIntro.setOnCheckedChangeListener((button, checked) ->
+            getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit().putBoolean(PREF_SKIP_INTRO, checked).apply());
+
+        SwitchCompat mouse = UiKit.switchRow(content,
+            getString(R.string.setup_switch_mouse_mode), getString(R.string.setup_switch_mouse_mode_desc));
+        final File marker = new File(getFilesDir(), MOUSE_MODE_MARKER);
+        mouse.setChecked(marker.isFile());
+
+        // GeneralsX @feature Android port 05/10/2026 Cursor size for the touchpad pointer, 50-200%,
+        // shown only while the mode is on. Kept as the marker's content (GXMouseCursorPercent).
+        final LinearLayout cursorBox = new LinearLayout(this);
+        cursorBox.setOrientation(LinearLayout.VERTICAL);
+        final TextView cursorLabel = UiKit.body(cursorBox, null);
+        final Slider cursorSlider = new Slider(this);
+        cursorSlider.setValueFrom(50f);
+        cursorSlider.setValueTo(200f);
+        cursorSlider.setStepSize(10f);
+        cursorSlider.setValue(readMouseCursorPercent(marker));
+        cursorSlider.setLabelBehavior(LabelFormatter.LABEL_GONE);
+        cursorSlider.setTrackActiveTintList(UiKit.tint(this, R.color.gzh_primary));
+        cursorSlider.setTrackInactiveTintList(UiKit.tint(this, R.color.gzh_surface_container_highest));
+        cursorSlider.setThumbTintList(UiKit.tint(this, R.color.gzh_primary));
+        cursorSlider.setHaloTintList(UiKit.tint(this, R.color.gzh_ripple_primary));
+        cursorLabel.setText(getString(R.string.setup_cursor_size_label, (int) cursorSlider.getValue()));
+        cursorSlider.addOnChangeListener((slider, value, fromUser) -> {
+            cursorLabel.setText(getString(R.string.setup_cursor_size_label, (int) value));
+            if (fromUser) {
+                writeMouseMode(marker, true, (int) value);
+            }
+        });
+        cursorBox.addView(cursorSlider, new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+        content.addView(cursorBox, new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+        cursorBox.setVisibility(marker.isFile() ? android.view.View.VISIBLE : android.view.View.GONE);
+
+        mouse.setOnCheckedChangeListener((button, checked) -> {
+            writeMouseMode(marker, checked, (int) cursorSlider.getValue());
+            cursorBox.setVisibility(checked ? android.view.View.VISIBLE : android.view.View.GONE);
+        });
+        UiKit.helpText(content, getString(R.string.setup_mouse_mode_help));
+    }
+
+    private static int readMouseCursorPercent(File marker) {
+        try (java.io.BufferedReader r = new java.io.BufferedReader(new java.io.FileReader(marker))) {
+            String line = r.readLine();
+            int value = line == null ? 100 : Integer.parseInt(line.trim());
+            return Math.max(50, Math.min(200, Math.round(value / 10f) * 10));
+        } catch (java.io.IOException | NumberFormatException e) {
+            return 100;
+        }
+    }
+
+    private static void writeMouseMode(File marker, boolean enabled, int cursorPercent) {
+        if (!enabled) {
+            marker.delete();
+            return;
+        }
+        try (java.io.FileWriter w = new java.io.FileWriter(marker, false)) {
+            w.write(Integer.toString(cursorPercent));
+        } catch (java.io.IOException e) {
+            android.util.Log.w("SetupActivity", "could not write the mouse mode marker", e);
+        }
     }
 
     // GeneralsX @feature Android port 13/07/2026 GitHub issue #4: in-app
