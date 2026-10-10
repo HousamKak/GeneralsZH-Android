@@ -403,6 +403,12 @@
     <string name="activation_buy">Don\'t have a key? Sale: $%1$s (normally $%2$s). Buy via Whish: send a message to +961 71 406 981 to get your key.</string>
     <string name="activation_key_hint">Activation key (GZH-XXXX-XXXX-XXXX)</string>
     <string name="activation_button">Activate</string>
+    <string name="activation_paste">Paste</string>
+    <string name="activation_pasted">Key pasted from the clipboard. Press Activate.</string>
+    <string name="activation_clipboard_empty">No activation key on the clipboard. Copy the key from your message, then press Paste.</string>
+    <string name="activation_whatsapp">Get a key on WhatsApp</string>
+    <string name="activation_whatsapp_message">Hi, I would like a ZH Commander activation key.</string>
+    <string name="activation_whatsapp_missing">WhatsApp is not installed. Send a message to %1$s to get a key.</string>
     <string name="activation_working">Activating…</string>
     <string name="activation_error_invalid_key">That key is not valid. Check it and try again.</string>
     <string name="activation_error_key_used">That key has already been used on another device.</string>

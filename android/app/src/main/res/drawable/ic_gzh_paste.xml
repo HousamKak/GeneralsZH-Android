@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- GeneralsX @feature ZH Commander 10/10/2026 Paste, for the activation key field: a clipboard
+     board with its clip, drawn in the same flat style as ic_gzh_copy. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:fillType="evenOdd"
+        android:pathData="M4 4 h4 v2 h-2 v14 h12 v-14 h-2 v-2 h4 v18 h-16 Z" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:fillType="nonZero"
+        android:pathData="M9 2 h6 v5 h-6 Z M8.5 10 h7 v2 h-7 Z M8.5 14 h7 v2 h-7 Z" />
+</vector>
