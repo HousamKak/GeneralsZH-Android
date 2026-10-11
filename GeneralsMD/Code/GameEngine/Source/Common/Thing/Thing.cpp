@@ -232,11 +232,14 @@ void Thing::setOrientation( Real angle )
 		// row) and -0 at angle 0 (-sin 0). The values are equal; the bits are not, and the logic
 		// checksum hashes the bits: a retail replay failed at frame 0 on every rotated object.
 		// The GeneralsOnline client is modern MSVC, which keeps IEEE signs, so only retail rules.
+		// y.x is the negated sine, but x.y is "0 - y.x", a real subtraction: at angle -0 retail has
+		// +0 there, not the sine's -0 (two ambient objects on Dogs of War).
 		const Real c = Cos(angle);
 		const Real s = Sin(angle);
-		m_transform.Set(  c,    -s,   0.0f, pos.x,
-											s,     c,   0.0f, pos.y,
-											0.0f, 0.0f, 1.0f, pos.z );
+		const Real yx = -s;
+		m_transform.Set(  c,          yx,   0.0f, pos.x,
+											0.0f - yx,  c,    0.0f, pos.y,
+											0.0f,       0.0f, 1.0f, pos.z );
 		(void)x; (void)y; (void)z; (void)u;
 #else
 		z.x = 0.0f;

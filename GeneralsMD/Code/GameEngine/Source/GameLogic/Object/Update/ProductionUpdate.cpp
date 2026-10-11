@@ -292,6 +292,11 @@ Bool ProductionUpdate::queueUpgrade( const UpgradeTemplate *upgrade )
 	// cannot reach this through the UI, whose command set for an unfinished building has no
 	// upgrade buttons; only scripts and the AI can.
 	// See docs/WORKDIR/lessons/LESSON-cross-play-desync-method.md.
+	//
+	// GeneralsX @bugfix ZH Commander 12/10/2026 Not with retail rules (SAGE_RETAIL_RULES): retail
+	// Zero Hour 1.04 does research on a foundation. In a retail replay the Stealth General AI's
+	// barracks finished camo netting at frame 187 and was not built until frame 807.
+#if !defined(SAGE_RETAIL_RULES)
 	if( getObject()->getStatusBits().test( OBJECT_STATUS_UNDER_CONSTRUCTION ) )
 	{
 		GX_NET_TRACE("upgrade queue frame %u: factory id=%u %s upgrade=%s refused, UNDER_CONSTRUCTION\n",
@@ -299,6 +304,7 @@ Bool ProductionUpdate::queueUpgrade( const UpgradeTemplate *upgrade )
 			getObject()->getTemplate()->getName().str(), upgrade->getUpgradeName().str());
 		return FALSE;
 	}
+#endif
 
 	// STOP cheaters by making sure they can actually build this
 	if( !getObject()->canProduceUpgrade(upgrade) )

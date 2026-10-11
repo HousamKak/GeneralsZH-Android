@@ -4615,6 +4615,9 @@ void Object::giveUpgrade( const UpgradeTemplate *upgradeT )
 {
 	if (upgradeT)
 	{
+		// GeneralsX @feature ZH Commander 12/10/2026 Replay comparison trace (gx_net_trace.txt).
+		GX_NET_TRACE("give upgrade frame %u: id=%u %s %s\n", (unsigned)TheGameLogic->getFrame(), (unsigned)getID(),
+			getTemplate()->getName().str(), upgradeT->getUpgradeName().str());
 		m_objectUpgradesCompleted.set( upgradeT->getUpgradeMask() );
 
 		//

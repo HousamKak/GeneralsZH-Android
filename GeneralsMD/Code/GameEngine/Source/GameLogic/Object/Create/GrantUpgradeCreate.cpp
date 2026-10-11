@@ -33,9 +33,22 @@
 #define DEFINE_OBJECT_STATUS_NAMES
 #include "Common/Player.h"
 #include "Common/Upgrade.h"
+#include "Common/ThingTemplate.h"
 #include "Common/Xfer.h"
 #include "GameLogic/Module/GrantUpgradeCreate.h"
 #include "GameLogic/Object.h"
+#include "GameLogic/GameLogic.h"
+#include "GXTrace.h"
+
+// GeneralsX @feature ZH Commander 12/10/2026 Replay comparison trace (gx_net_trace.txt): when a
+// building's creation grants, or would grant, an upgrade, with the upgrade's mask bit.
+static int gxUpgradeBit(const UpgradeTemplate *t)
+{
+	for (Int i = 0; i < UPGRADE_MAX_COUNT; ++i)
+		if (t->getUpgradeMask().test(i))
+			return i;
+	return -1;
+}
 
 // ------------------------------------------------------------------------------------------------
 // ------------------------------------------------------------------------------------------------
@@ -84,6 +97,13 @@ void GrantUpgradeCreate::onCreate()
 
 	ObjectStatusMaskType exemptStatus = getGrantUpgradeCreateModuleData()->m_exemptStatus;
 	ObjectStatusMaskType currentStatus = getObject()->getStatusBits();
+	{
+		const UpgradeTemplate *gxT = TheUpgradeCenter->findUpgrade( getGrantUpgradeCreateModuleData()->m_upgradeName );
+		GX_NET_TRACE("grant onCreate frame %u: id=%u %s underConstruction=%d exempt=%d upgrade=%s bit=%d\n",
+			(unsigned)TheGameLogic->getFrame(), (unsigned)getObject()->getID(), getObject()->getTemplate()->getName().str(),
+			(int)currentStatus.test( OBJECT_STATUS_UNDER_CONSTRUCTION ), (int)exemptStatus.test( OBJECT_STATUS_UNDER_CONSTRUCTION ),
+			getGrantUpgradeCreateModuleData()->m_upgradeName.str(), gxT ? gxUpgradeBit(gxT) : -1);
+	}
 	if( exemptStatus.test( OBJECT_STATUS_UNDER_CONSTRUCTION ) )
 	{
 		if(	!currentStatus.test( OBJECT_STATUS_UNDER_CONSTRUCTION ) )
@@ -118,6 +138,9 @@ void GrantUpgradeCreate::onBuildComplete()
 {
 	if( ! shouldDoOnBuildComplete() )
 		return;
+	GX_NET_TRACE("grant onBuildComplete frame %u: id=%u %s upgrade=%s\n",
+		(unsigned)TheGameLogic->getFrame(), (unsigned)getObject()->getID(), getObject()->getTemplate()->getName().str(),
+		getGrantUpgradeCreateModuleData()->m_upgradeName.str());
 
 	CreateModule::onBuildComplete(); // extend
 
