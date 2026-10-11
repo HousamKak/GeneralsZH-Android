@@ -147,6 +147,8 @@ public:
 																	 Player *owningPlayer );
 
 	/// query if we can build at this location
+	LegalBuildCode gxIsLocationLegalToBuildImpl( const Coord3D *worldPos, const ThingTemplate *build, Real angle,
+		UnsignedInt options, const Object *builderObject, Player *player ); ///< the check itself; the virtual one traces it
 	virtual LegalBuildCode isLocationLegalToBuild( const Coord3D *worldPos,
 																								 const ThingTemplate *build,
 																								 Real angle,  // angle to construct 'build' at

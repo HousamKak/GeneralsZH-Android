@@ -55,6 +55,7 @@
 #include "GameLogic/ScriptEngine.h"
 #include "GameLogic/Module/ProductionUpdate.h"
 #include "GameClient/TerrainVisual.h"
+#include "Lib/X87Real.h"
 
 
 #define USE_DOZER 1
@@ -673,7 +674,13 @@ void AISkirmishPlayer::buildAIBaseDefenseStructure(const AsciiString &thingName,
 
 		if (angle > PI/3) break;
 		Real s = sin(angle);
+#if defined(SAGE_RETAIL_RULES)
+		// GeneralsX @bugfix ZH Commander 12/10/2026 Retail rules: retail stores the sine but keeps the
+		// cosine in the x87 register ("fstp s; fcos; fld st(0); fmul ..."), unrounded (Lib/X87Real.h).
+		const X87Real c(cos((double)angle));
+#else
 		Real c = cos(angle);
+#endif
 
 // TheSuperHackers @info helmutbuhler 21/04/2025 This debug mutates the code to become CRC incompatible
 #if defined(RTS_DEBUG) || !RETAIL_COMPATIBLE_CRC

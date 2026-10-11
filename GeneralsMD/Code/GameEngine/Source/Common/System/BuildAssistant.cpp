@@ -30,6 +30,8 @@
 
 // USER INCLUDES //////////////////////////////////////////////////////////////////////////////////
 #include "PreRTS.h"	// This must go first in EVERY cpp file in the GameEngine
+#include "GameLogic/GameLogic.h"
+#include "GXTrace.h"
 
 #include "Common/BuildAssistant.h"
 #include "Common/GlobalData.h"
@@ -911,7 +913,24 @@ LegalBuildCode BuildAssistant::isLocationClearOfObjects( const Coord3D *worldPos
 	* to be valid to know if a location is legal to build at.  'builderObject' is used
 	* for queries that require a pathfind check and should be null if not required */
 //-------------------------------------------------------------------------------------------------
+// GeneralsX @feature ZH Commander 12/10/2026 Replay comparison trace (gx_net_trace.txt) of every
+// build-location check: retail and this port must agree on each answer.
 LegalBuildCode BuildAssistant::isLocationLegalToBuild( const Coord3D *worldPos,
+																											 const ThingTemplate *build,
+																											 Real angle,
+																											 UnsignedInt options,
+																											 const Object *builderObject,
+																											 Player *player)
+{
+	const LegalBuildCode result = gxIsLocationLegalToBuildImpl( worldPos, build, angle, options, builderObject, player );
+	GX_NET_TRACE("legal build frame %u: %s pos=%08X,%08X angle=%08X options=%X builder=%u -> %d\n",
+		(unsigned)TheGameLogic->getFrame(), build ? build->getName().str() : "(none)",
+		*(const UnsignedInt *)&worldPos->x, *(const UnsignedInt *)&worldPos->y, *(const UnsignedInt *)&angle,
+		options, builderObject ? (unsigned)builderObject->getID() : 0u, (int)result);
+	return result;
+}
+
+LegalBuildCode BuildAssistant::gxIsLocationLegalToBuildImpl( const Coord3D *worldPos,
 																											 const ThingTemplate *build,
 																											 Real angle,
 																											 UnsignedInt options,
