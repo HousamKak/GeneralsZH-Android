@@ -583,7 +583,9 @@ void SDL3Mouse::createStreamMessages()
 	// launcher (GXMouseMode.h, issue #39). Then the events in this object's buffer -- a real
 	// mouse's, and the touchpad's -- become the same raw mouse messages they do on a PC, and the
 	// touch layer stays out of the way (SDL3GameEngine.cpp sends fingers to the touchpad instead).
-	if (GXMouseModeEnabled()) {
+	// GeneralsX @feature ZH Commander 11/10/2026 ...and whenever a real mouse was used last
+	// (GXPointerActive), with no switch: a mouse plays exactly as on a PC.
+	if (GXPointerActive()) {
 		Mouse::createStreamMessages();
 	}
 }

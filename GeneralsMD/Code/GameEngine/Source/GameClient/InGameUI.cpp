@@ -1619,7 +1619,8 @@ void InGameUI::handleRadiusCursor()
 #if defined(__ANDROID__) || (defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE)
 			// GeneralsX @feature Android port 05/10/2026 ...unless the player chose a pointer
 			// (GXMouseMode.h): then there is one, and it aims, as on a PC.
-			if( !GXMouseModeEnabled() )
+			// GeneralsX @feature ZH Commander 11/10/2026 A real mouse in use counts too.
+			if( !GXPointerActive() )
 			{
 				if( !m_touchAimKnown )
 				{
@@ -2058,7 +2059,8 @@ void InGameUI::handleBuildPlacements()
 			// where the building is going, and nowhere before that.
 			// GeneralsX @feature Android port 05/10/2026 With a pointer (GXMouseMode.h) the ghost
 			// follows it, as on a PC.
-			if( GXMouseModeEnabled() )
+			// GeneralsX @feature ZH Commander 11/10/2026 A real mouse in use counts too.
+			if( GXPointerActive() )
 			{
 				loc = TheMouse->getMouseStatus()->pos;
 			}

@@ -2388,7 +2388,9 @@ void enforceNoPointerScrollWithoutFinger()
 	// for itself (a click on the interface, an order cancelled) leaves SCROLL_RMB latched, and from
 	// then on every pointer move scrolls the camera away from the anchor. With no real right button
 	// down (SDL's own mouse state; the touchpad's events never enter it) it cannot be legitimate.
-	if (GXMouseModeEnabled()) {
+	// GeneralsX @feature ZH Commander 11/10/2026 The same holds for a real mouse in use with the
+	// switch off (GXPointerActive): its pointer rests at the edge too.
+	if (GXPointerActive()) {
 		if (TheLookAtTranslator->isRightButtonScrollActive() &&
 		    (SDL_GetMouseState(nullptr, nullptr) & SDL_BUTTON_RMASK) == 0) {
 			fprintf(stderr, "[gxtouch] cancelling a right-button scroll with no right button down\n");
@@ -2947,6 +2949,14 @@ void SDL3GameEngine::pollSDL3Events(void)
 				if (event.motion.which == SDL_TOUCH_MOUSEID) {
 					break;
 				}
+				// GeneralsX @feature ZH Commander 11/10/2026 A real mouse (not the touchpad's
+				// synthetic one) takes over from the fingers until the next touch: SDL3Mouse then
+				// turns its events into the PC's raw mouse messages (GXPointerActive). The wheel
+				// event's `which` sits at the same offset as the motion and button events'.
+				if (event.motion.which != SDL3Mouse::TOUCHPAD_MOUSE_ID && !GXRealMouseActive()) {
+					fprintf(stderr, "[gxmouse] real mouse in use: it drives the game until the next touch\n");
+					GXSetRealMouseActive(true);
+				}
 #endif
 				// Fighter19 pattern: direct addSDLEvent() call with raw SDL_Event
 				// GeneralsX @refactor felipebraz 16/02/2026 Simplified event routing
@@ -2979,6 +2989,18 @@ void SDL3GameEngine::pollSDL3Events(void)
 				// Dismissing it and tapping anything brought it straight back.
 				// GeneralsX @feature Android port 05/10/2026 With a pointer chosen in the launcher a
 				// finger is a touchpad (handleTouchpadEvent), and the native touch layer stays out.
+				// GeneralsX @bugfix ZH Commander 11/10/2026 Not a finger at all: SDL on Android makes a
+				// touch out of every left click by default (SDL_HINT_MOUSE_TOUCH_EVENTS, turned off in
+				// SDL3Main.cpp; this is the guard if it is ever back on). That copy is what made a
+				// mouse play like a finger, so it is dropped: the real mouse events carry the click.
+				if (event.tfinger.touchID == SDL_MOUSE_TOUCHID) {
+					break;
+				}
+				// GeneralsX @feature ZH Commander 11/10/2026 A real finger hands the game back to touch.
+				if (event.type == SDL_EVENT_FINGER_DOWN && GXRealMouseActive()) {
+					fprintf(stderr, "[gxmouse] finger down: touch drives the game again\n");
+					GXSetRealMouseActive(false);
+				}
 				if (GXMouseModeEnabled()) {
 					Int clickX = 0, clickY = 0;
 					if (m_SDLWindow && handleTouchpadEvent(m_SDLWindow, event, clickX, clickY)) {

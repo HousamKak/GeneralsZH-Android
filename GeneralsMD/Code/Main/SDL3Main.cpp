@@ -1162,6 +1162,11 @@ int main(int argc, char* argv[])
 		// SDL3GameEngine.cpp; SDL's automatic touch->mouse synthesis would
 		// double-deliver finger 1 and fight the two-finger pan logic.
 		SDL_SetHint(SDL_HINT_TOUCH_MOUSE_EVENTS, "0");
+		// GeneralsX @bugfix ZH Commander 11/10/2026 ...and the reverse: SDL on Android also makes a
+		// touch out of every left click of a real mouse (SDL_mouse.c, on by default there), which
+		// the touch layer read as a finger. That is why a mouse played like a finger, with no
+		// right click, wheel or box selection. The mouse's own events now drive SDL3Mouse.
+		SDL_SetHint(SDL_HINT_MOUSE_TOUCH_EVENTS, "0");
 #endif
 #if defined(__ANDROID__)
 		// Keep running (paused by our own lifecycle gate) instead of blocking
