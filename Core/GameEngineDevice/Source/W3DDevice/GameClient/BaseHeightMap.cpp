@@ -926,16 +926,32 @@ Real BaseHeightMapRenderObjClass::getHeightMapHeight(Real x, Real y, Coord3D* no
 	int idx = ix + iy*xExtent;
 	float p0 = data[idx];
 	float p2 = data[idx + xExtent + 1];
+	// GeneralsX @bugfix ZH Commander 11/10/2026 Retail rules: the order retail's machine code adds
+	// in. VC6 reassociated "p3 + a + b" into "(a + b) + p3" (disassembly: the two products, then
+	// faddp, then fadd of the corner), and float addition is not associative: two ambient objects
+	// on Twilight Flame stood one unit in the last place higher than in a retail replay.
 	if (fy > fx) // test if we are in the upper triangle
 	{
 		float p3 = data[idx + xExtent];
+#if defined(SAGE_RETAIL_RULES)
+		const float a = (1.0f-fy)*(p0-p3);
+		const float b = fx*(p2-p3);
+		height = ((a + b) + p3) * MAP_HEIGHT_SCALE;
+#else
 		height = (p3 + (1.0f-fy)*(p0-p3) + fx*(p2-p3)) * MAP_HEIGHT_SCALE;
+#endif
 	}
 	else
 	{
 		// we are in the lower triangle
 		float p1 = data[idx + 1];
+#if defined(SAGE_RETAIL_RULES)
+		const float a = (1.0f-fx)*(p0-p1);
+		const float b = fy*(p2-p1);
+		height = ((a + b) + p1) * MAP_HEIGHT_SCALE;
+#else
 		height = (p1 + fy*(p2-p1) + (1.0f-fx)*(p0-p1)) * MAP_HEIGHT_SCALE;
+#endif
 	}
 
 //  DEBUG_ASSERTCRASH( height < 30, ("SOMEBODY THINKS THE CLIENT HEIGHTMAP IS GOOD ENOUGH FOR LOGIC SAMPLING."));
