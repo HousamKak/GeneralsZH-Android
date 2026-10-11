@@ -294,7 +294,11 @@ void HelixContain::removeFromContain( Object *obj, Bool exposeStealthUnits )
       // two sides disagreed about the checksum from the moment a Helix dropped
       // its portable structure. The client takes the #else arm, since
       // RETAIL_COMPATIBLE_CRC is 0 on both sides.
+      // GeneralsX @bugfix ZH Commander 12/10/2026 With retail rules (RETAIL_COMPATIBLE_CRC on),
+      // TheSuperHackers' retail arm: the portable keeps its container pointer, as in retail.
+#if !RETAIL_COMPATIBLE_CRC
       portable->friend_setContainedBy(nullptr);
+#endif
 
       m_portableStructureID = INVALID_ID;
       //portable->kill();

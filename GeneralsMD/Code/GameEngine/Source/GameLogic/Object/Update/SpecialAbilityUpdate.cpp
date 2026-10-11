@@ -739,7 +739,13 @@ void SpecialAbilityUpdate::startPacking(Bool success)
   const SpecialAbilityUpdateModuleData* data = getSpecialAbilityUpdateModuleData();
   m_packingState = STATE_PACKING;
   Real variation = GameLogicRandomValueReal( 1.0f - data->m_packUnpackVariationFactor, 1.0f + data->m_packUnpackVariationFactor );
+#if defined(SAGE_RETAIL_RULES)
+  // GeneralsX @bugfix ZH Commander 12/10/2026 Retail rules: TheSuperHackers' (and retail's)
+  // pack time, not the GeneralsOnline client's unpack time described above.
+  m_animFrames = data->m_packTime * variation;
+#else
   m_animFrames = data->m_unpackTime * variation;
+#endif
 
   //Set the animation state
   getObject()->clearAndSetModelConditionFlags(
@@ -1408,6 +1414,14 @@ void SpecialAbilityUpdate::triggerAbilityEffect()
         const ParticleSystemTemplate *tmp = data->m_disableFXParticleSystem;
         if (tmp)
         {
+#if RETAIL_COMPATIBLE_CRC
+          // GeneralsX @bugfix ZH Commander 12/10/2026 Restored from TheSuperHackers for retail
+          // rules: retail draws this offset from the logic RNG, so the seed moves with it.
+          {
+            Coord3D offs = {0,0,0};
+            target->getGeometryInfo().makeRandomOffsetWithinFootprint( offs, LogicRandomValueClass() );
+          }
+#endif
           ParticleSystem *sys = TheParticleSystemManager->createParticleSystem(tmp);
           if (sys)
           {

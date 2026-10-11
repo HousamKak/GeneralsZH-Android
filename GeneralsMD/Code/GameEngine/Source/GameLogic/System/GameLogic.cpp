@@ -4802,7 +4802,23 @@ UnsignedInt GameLogic::getCRC( Int mode, AsciiString deepCRCFileName )
 	// nothing next to the megabyte of stderr a session produces -- and settable
 	// with GX_TRACE_OBJ_FRAMES for a longer hunt. Read once; 0 turns per-object
 	// tracing off while leaving the stage and RNG traces alone.
+	//
+	// GeneralsX @feature ZH Commander 12/10/2026 A window anywhere in the match: a file
+	// gx_trace_obj_frames.txt in the game data folder holding "FROM TO" (Android has no way to
+	// set an environment variable for the game), for a divergence long after frame 500.
+	static Int s_objTraceFirstFrame = 0;
 	static const Int s_objTraceLastFrame = []() -> Int {
+		if (FILE *f = fopen("gx_trace_obj_frames.txt", "r"))
+		{
+			int from = 0, to = 0;
+			const int n = fscanf(f, "%d %d", &from, &to);
+			fclose(f);
+			if (n == 2 && to >= from && from >= 0)
+			{
+				s_objTraceFirstFrame = from;
+				return to;
+			}
+		}
 		const char *env = getenv("GX_TRACE_OBJ_FRAMES");
 		if (env == nullptr || *env == '\0')
 			return 500;
@@ -4811,7 +4827,8 @@ UnsignedInt GameLogic::getCRC( Int mode, AsciiString deepCRCFileName )
 	}();
 
 	const Bool gxTraceObjects = GXTrace::isNetEnabled() && isInGameLogicUpdate()
-		&& xferCRC->getXferMode() == XFER_CRC && m_frame <= (UnsignedInt)s_objTraceLastFrame;
+		&& xferCRC->getXferMode() == XFER_CRC && m_frame <= (UnsignedInt)s_objTraceLastFrame
+		&& m_frame >= (UnsignedInt)s_objTraceFirstFrame;
 	for( obj = m_objList; obj; obj=obj->getNextObject() )
 	{
 		if (GXCrcStream::isCapturing())

@@ -792,7 +792,16 @@ void Object::onDestroy()
 	// This is the old cleanUpContain safeguard.  Say goodbye so they don't try to look us up.
 	if (m_containedBy)
 	{
-#if RETAIL_COMPATIBLE_CRC
+#if defined(SAGE_RETAIL_RULES)
+		// GeneralsX @bugfix ZH Commander 12/10/2026 Retail rules: retail removes the object from its
+		// container unconditionally. The ID check below skips it for a Helix or Overlord add-on, whose
+		// container is set through friend_setContainedBy and never gets an ID, so the add-on stayed in
+		// the container's list when retail had dropped it.
+		if (ContainModuleInterface* contain = m_containedBy->getContain())
+		{
+			contain->removeFromContain(this);
+		}
+#elif RETAIL_COMPATIBLE_CRC
 		if (m_containedByID == INVALID_ID)
 		{
 			// TheSuperHackers @bugfix Caball009 25/05/2026 Due to a potential use-after-free bug that cannot be fixed
@@ -2241,7 +2250,13 @@ void Object::setDisabledUntil( DisabledType type, UnsignedInt frame )
 		if ( contain )
 		{
 			Object *rider = (Object*)contain->friend_getRider();
+#if defined(SAGE_RETAIL_RULES)
+			// GeneralsX @bugfix ZH Commander 12/10/2026 Retail rules: retail also disables a dying rider;
+			// only the crash guard stays.
+			if ( rider && rider->m_behaviors )
+#else
 			if ( rider && !rider->isEffectivelyDead() && rider->m_behaviors )
+#endif
 			{
 				rider->setDisabledUntil(type, frame);
 			}
@@ -2384,7 +2399,13 @@ Bool Object::clearDisabled( DisabledType type )
 	{
 		// We explicitly pass stuff in up in the set, so we need to turn it off if it is a forever type
 		Object *rider = (Object*)contain->friend_getRider();
+#if defined(SAGE_RETAIL_RULES)
+		// GeneralsX @bugfix ZH Commander 12/10/2026 Retail rules: as above, retail also clears a dying
+		// rider; only the crash guard stays.
+		if( rider  &&  rider->m_behaviors  &&  (m_disabledTillFrame[ type ] == FOREVER) )
+#else
 		if( rider  &&  !rider->isEffectivelyDead()  &&  rider->m_behaviors  &&  (m_disabledTillFrame[ type ] == FOREVER) )
+#endif
 		{
 			rider->clearDisabled(type);
 		}

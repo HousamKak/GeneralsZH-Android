@@ -505,6 +505,12 @@ AIGroup *AI::findGroup( UnsignedInt id )
 
 	return nullptr;
 }
+// GeneralsX @feature ZH Commander 12/10/2026 From TheSuperHackers: retail rules' check that a
+// selected group still exists (GameLogicDispatch), instead of testing an empty but live group.
+Bool AI::doesGroupExist( AIGroup *group ) const
+{
+	return std::find(m_groupList.begin(), m_groupList.end(), group) != m_groupList.end();
+}
 
 //--------------------------------------------------------------------------------------------------------
 /**

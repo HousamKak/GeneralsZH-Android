@@ -279,6 +279,7 @@ public:
 	AIGroupPtr createGroup(); ///< instantiate a new AI Group
 	void destroyGroup( AIGroup *group );	///< destroy the given AI Group
 	AIGroup *findGroup( UnsignedInt id );	///< return the AI Group with the given ID
+	Bool doesGroupExist( AIGroup *group ) const; ///< GeneralsX @feature ZH Commander 12/10/2026 whether the group is in the group list (from TheSuperHackers)
 
 	// Formation info
 	enum FormationID getNextFormationID();

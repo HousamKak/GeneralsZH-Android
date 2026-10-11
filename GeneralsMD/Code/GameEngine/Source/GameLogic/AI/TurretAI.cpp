@@ -1380,7 +1380,8 @@ StateReturnType TurretAIIdleScanState::update()
   if( getMachineOwner()->testStatus( OBJECT_STATUS_UNDER_CONSTRUCTION))
     return STATE_CONTINUE;//ML so that under-construction base-defenses do not idle-scan while under construction
 
-#if defined(GENERALS_ONLINE) && defined(GENERALS_ONLINE_HIGH_FPS_LIMIT)
+// GeneralsX @bugfix ZH Commander 12/10/2026 Not with retail rules: retail aligns exactly (0.0f).
+#if defined(GENERALS_ONLINE) && defined(GENERALS_ONLINE_HIGH_FPS_LIMIT) && !defined(SAGE_RETAIL_RULES)
 	Bool angleAligned = getTurretAI()->friend_turnTowardsAngle(getTurretAI()->getNaturalTurretAngle() + m_desiredAngle, 0.5f, 0.5f);
 #else
 	Bool angleAligned = getTurretAI()->friend_turnTowardsAngle(getTurretAI()->getNaturalTurretAngle() + m_desiredAngle, 0.5f, 0.0f);

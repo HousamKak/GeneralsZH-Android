@@ -142,6 +142,20 @@ void InstantDeathBehavior::onDie( const DamageInfo *damageInfo )
 	// Cancelling a building is something players do in the first seconds of a
 	// match. Upstream fixes, TheSuperHackers @bugfix Stubbjax 21 & 23/07/2026.
 
+	// GeneralsX @bugfix ZH Commander 12/10/2026 TheSuperHackers' body: with RETAIL_COMPATIBLE_CRC
+	// off it is exactly the GeneralsOnline order described above; with it on (retail rules) the
+	// dead-state check runs first and scaffolds fire their death weapons, as in retail.
+#if RETAIL_COMPATIBLE_CRC
+	AIUpdateInterface* ai = getObject()->getAIUpdateInterface();
+	if (ai)
+	{
+		// has another AI already handled us. (hopefully another InstantDeathBehavior)
+		if (ai->isAiInDeadState())
+			return;
+		ai->markAsDead();
+	}
+#endif
+
 	const InstantDeathBehaviorModuleData* d = getInstantDeathBehaviorModuleData();
 
 	size_t idx, listSize;
@@ -166,7 +180,11 @@ void InstantDeathBehavior::onDie( const DamageInfo *damageInfo )
 		ObjectCreationList::create(ocl, getObject(), nullptr);
 	}
 
+#if !RETAIL_COMPATIBLE_CRC
+	// TheSuperHackers @bugfix Stubbjax 23/07/2026 Prevent firing weapons when a scaffold is cancelled
+	// or destroyed. This logic matches the condition in the FireWeaponWhenDeadBehavior module.
 	if (!getObject()->getStatusBits().test(OBJECT_STATUS_UNDER_CONSTRUCTION))
+#endif
 	{
 		listSize = d->m_weapons.size();
 		if (listSize > 0)
@@ -182,6 +200,9 @@ void InstantDeathBehavior::onDie( const DamageInfo *damageInfo )
 		}
 	}
 
+#if !RETAIL_COMPATIBLE_CRC
+	// TheSuperHackers @bugfix Stubbjax 21/07/2026 Allow multiple InstantDeathBehaviors to be processed.
+  // Multiple FXListDie, CreateObjectDie and FireWeaponWhenDeadBehavior modules are already supported.
 	AIUpdateInterface* ai = getObject()->getAIUpdateInterface();
 	if (ai)
 	{
@@ -190,6 +211,7 @@ void InstantDeathBehavior::onDie( const DamageInfo *damageInfo )
 			return;
 		ai->markAsDead();
 	}
+#endif
 
 	TheGameLogic->destroyObject(getObject());
 }

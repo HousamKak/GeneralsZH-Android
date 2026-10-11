@@ -1868,7 +1868,15 @@ void PartitionData::doCircleFill(
 	// and no RETAIL_COMPATIBLE_CRC special case. The set of cells this touches feeds
 	// the shroud and threat grids, which are part of the lockstep CRC, so the loop
 	// shape has to match the client we play against bit for bit.
+#if defined(SAGE_RETAIL_RULES)
+	// GeneralsX @bugfix ZH Commander 12/10/2026 Retail rules: the octant bound retail has, as
+	// TheSuperHackers keep it under RETAIL_COMPATIBLE_CRC.
+	Int end = cellRadius - 1;
+	Int& endRef = (cellRadius < 240) ? y : end;
+	for (Int x = 0; x <= endRef; ++x)
+#else
 	for (Int x = 0; x < cellRadius; x++)
+#endif
 	{
 		hLineCircle(cellCenterX - x, cellCenterX + x, cellCenterY + y);
 		hLineCircle(cellCenterX - x, cellCenterX + x, cellCenterY - y);

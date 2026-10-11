@@ -237,7 +237,12 @@ void TeamFactory::initTeam(const AsciiString& name, const AsciiString& owner, Bo
 {
 	DEBUG_ASSERTCRASH(findTeamPrototype(name)==nullptr,("team already exists"));
 	Player *pOwner = ThePlayerList->findPlayerWithNameKey(NAMEKEY(owner));
+	// GeneralsX @bugfix ZH Commander 12/10/2026 Not with retail rules: retail has no fallback either.
+#if !defined(SAGE_RETAIL_RULES)
 	if (!pOwner && !owner.isEmpty())
+#else
+	if (false)
+#endif
 	{
 		// GeneralsX @bugfix felipebraz 21/02/2026 ISSUE-002: fallback to name-string search.
 		// Player::initFromDict (skirmish path) updates m_playerName to the qualified name but keeps

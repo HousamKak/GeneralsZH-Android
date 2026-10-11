@@ -309,6 +309,16 @@ void EMPUpdate::doDisableAttack()
 
 					for (UnsignedInt e = 0 ; e < emitterCount; ++e)
 					{
+#if RETAIL_COMPATIBLE_CRC
+						// GeneralsX @bugfix ZH Commander 12/10/2026 Restored from TheSuperHackers for
+						// retail rules: retail drew these from the logic RNG, so the seed moves with them.
+						{
+							Coord3D offs = {0,0,0};
+							curVictim->getGeometryInfo().makeRandomOffsetWithinFootprint( offs, LogicRandomValueClass() );
+							GameLogicRandomValue(3, victimHeight);
+							GameLogicRandomValue(1, 100);
+						}
+#endif
 
 						ParticleSystem *sys = TheParticleSystemManager->createParticleSystem(tmp);
 

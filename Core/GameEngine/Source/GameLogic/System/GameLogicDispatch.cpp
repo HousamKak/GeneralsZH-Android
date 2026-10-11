@@ -922,8 +922,16 @@ void GameLogic::logicMessageDispatcher( GameMessage *msg, void *userData )
 	// TheSuperHackers @bugfix xezon 28/06/2025 This hack avoids crashing when players are selected during Replay playback.
 	// It can read data from an already deleted AIGroup and return this function when its member size is 0, signifying that
 	// it is indeed deleted.
+#if defined(SAGE_RETAIL_RULES)
+	// GeneralsX @bugfix ZH Commander 12/10/2026 Retail rules: TheSuperHackers' check that the group
+	// was deleted. A live group that is merely empty must reach destroyGroup below, or it stays in
+	// the group list that AI::crc hashes.
+	if (currentlySelectedGroup && !TheAI->doesGroupExist(currentlySelectedGroup))
+		return;
+#else
 	if (currentlySelectedGroup && currentlySelectedGroup->getCount() == 0)
 		return;
+#endif
 #endif
 
 	/**/ /// @todo: multiplayer semantics

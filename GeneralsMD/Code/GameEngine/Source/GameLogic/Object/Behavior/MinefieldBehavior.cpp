@@ -279,6 +279,42 @@ void MinefieldBehavior::detonateOnce(const Coord3D& position)
 	if (m_virtualMinesRemaining > 0)
 		--m_virtualMinesRemaining;
 
+#if defined(SAGE_RETAIL_RULES)
+	// GeneralsX @bugfix ZH Commander 12/10/2026 Retail rules: retail destroys a spent minefield
+	// that does not regenerate outright (no die modules), as TheSuperHackers keep it.
+	if (!m_regenerates && m_virtualMinesRemaining == 0)
+	{
+		TheGameLogic->destroyObject(getObject());
+	}
+	else
+	{
+		Real percent = (Real)m_virtualMinesRemaining / (Real)d->m_numVirtualMines;
+		BodyModuleInterface* body = getObject()->getBodyModule();
+		Real health = body->getHealth();
+		Real desired = percent * body->getMaxHealth();
+		if (desired < MIN_HEALTH)
+			desired = MIN_HEALTH;
+		Real amount = health - desired;
+
+		if (amount > 0.0f)
+		{
+			m_ignoreDamage = true;
+
+			//body->internalChangeHealth(desired - health);
+			//can't use this, AutoHeal won't work unless we go thru normal damage stuff
+
+			DamageInfo extraDamageInfo;
+			extraDamageInfo.in.m_damageType = DAMAGE_UNRESISTABLE;
+			extraDamageInfo.in.m_deathType = DEATH_NONE;
+			extraDamageInfo.in.m_sourceID = getObject()->getID();
+			extraDamageInfo.in.m_amount = amount;
+			getObject()->attemptDamage(&extraDamageInfo);
+
+			m_ignoreDamage = false;
+		}
+	}
+
+#else
 	// GeneralsX @bugfix Android port 24/09/2026 As in the GeneralsOnline PC client: a minefield
 	// that does not regenerate and has no mines left is damaged to zero health and dies through
 	// its normal death path. This port destroyed the object outright, which skips the die
@@ -316,6 +352,7 @@ void MinefieldBehavior::detonateOnce(const Coord3D& position)
 		m_ignoreDamage = false;
 	}
 
+#endif
 	if (m_virtualMinesRemaining == 0)
 	{
 		getObject()->setModelConditionState(MODELCONDITION_RUBBLE);

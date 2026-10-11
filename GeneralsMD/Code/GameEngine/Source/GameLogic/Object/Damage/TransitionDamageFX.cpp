@@ -387,6 +387,11 @@ void TransitionDamageFX::onBodyDamageStateChange( const DamageInfo* damageInfo,
 				if( lastDamageInfo == nullptr ||
 						getDamageTypeFlag( modData->m_damageParticleTypes, lastDamageInfo->in.m_damageType ) )
 				{
+#if RETAIL_COMPATIBLE_CRC
+					// GeneralsX @bugfix ZH Commander 12/10/2026 Restored from TheSuperHackers for retail
+					// rules: retail draws this position from the logic RNG, so the seed moves with it.
+					getLocalEffectPos( &modData->m_particleSystem[ newState ][ i ].locInfo, draw, LogicRandomValueClass() );
+#endif
 
 					// create a new particle system based on the template provided
 					ParticleSystem* pSystem = TheParticleSystemManager->createParticleSystem( pSystemT );

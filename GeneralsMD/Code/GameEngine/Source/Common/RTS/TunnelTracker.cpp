@@ -232,6 +232,32 @@ void TunnelTracker::onTunnelCreated( const Object *newTunnel )
 // ------------------------------------------------------------------------
 void TunnelTracker::onTunnelDestroyed( const Object *deadTunnel )
 {
+#if defined(SAGE_RETAIL_RULES)
+	// GeneralsX @bugfix ZH Commander 12/10/2026 Retail rules: retail's bookkeeping, as TheSuperHackers
+	// keep it under RETAIL_COMPATIBLE_CRC: the count drops even for an untracked tunnel, no heal-time
+	// refresh, and occupants are reassigned to the first tunnel left, or to none.
+	m_tunnelIDs.remove(deadTunnel->getID());
+	m_tunnelCount--;
+
+	if( m_tunnelCount == 0 )
+	{
+		// Kill everyone in our contain list.  Cave in!
+		iterateContained( destroyObject, nullptr, FALSE );
+		m_containList.clear();
+		m_containListSize = 0;
+	}
+	else
+	{
+		Object *tunnel = m_tunnelIDs.empty() ? nullptr : TheGameLogic->findObjectByID( m_tunnelIDs.front() );
+		for(ContainedItemsList::iterator it = m_containList.begin(); it != m_containList.end(); )
+		{
+			Object* obj = *it;
+			++it;
+			if( obj->getContainedBy() == deadTunnel )
+				obj->onContainedBy( tunnel );
+		}
+	}
+#else
 	{
 		std::list<ObjectID>::iterator it = std::find(m_tunnelIDs.begin(), m_tunnelIDs.end(), deadTunnel->getID());
 		if (it == m_tunnelIDs.end())
@@ -264,7 +290,8 @@ void TunnelTracker::onTunnelDestroyed( const Object *deadTunnel )
 			if( obj->getContainedBy() == deadTunnel )
 				obj->onContainedBy( validTunnel );
 		}
-	}
+	}
+#endif
 }
 
 // ------------------------------------------------------------------------

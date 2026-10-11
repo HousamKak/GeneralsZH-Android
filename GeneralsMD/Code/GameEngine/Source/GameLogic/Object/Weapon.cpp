@@ -1701,6 +1701,8 @@ WeaponTemplate *WeaponStore::newWeaponTemplate(AsciiString name)
 	// MissileCallsOnDie in INI, so getDieOnDetonate() was false, detonate()
 	// skipped attemptDamage() and the die modules never fired -- which is a
 	// difference in damage dealt, and therefore in the lockstep checksum.
+	// GeneralsX @bugfix ZH Commander 12/10/2026 Not with retail rules: retail has no such fix.
+#if !defined(SAGE_RETAIL_RULES)
 	if (strcmp(name.str(), "SupW_AuroraFuelBombWeapon") == 0)
 	{
 		// Note: m_dieOnDetonate is set to true to fix the Alpha Aurora second explosion inconsistency when targeting structures.
@@ -1708,6 +1710,7 @@ WeaponTemplate *WeaponStore::newWeaponTemplate(AsciiString name)
 		// and change m_dieOnDetonate back to false.
 		wt->m_dieOnDetonate = TRUE;
 	}
+#endif
 	m_weaponTemplateVector.push_back(wt);
 	m_weaponTemplateHashMap[wt->m_nameKey] = wt;
 
