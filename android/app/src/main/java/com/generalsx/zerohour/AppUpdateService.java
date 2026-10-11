@@ -35,6 +35,12 @@ import java.util.Locale;
  * still asks the player to confirm the install itself: apps outside a store cannot skip that.
  */
 public class AppUpdateService extends Service {
+
+    // GeneralsX @tweak ZH Commander 11/10/2026 The app's language, with Western digits (LocaleHelper).
+    @Override
+    protected void attachBaseContext(android.content.Context newBase) {
+        super.attachBaseContext(LocaleHelper.wrap(newBase));
+    }
     private static final String CHANNEL = "zh_app_update";
     private static final int NOTIFICATION_ID = 7102;
     private static final long[] RETRY_DELAYS_MS = { 2000, 5000, 15000, 30000 };

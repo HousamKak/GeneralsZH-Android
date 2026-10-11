@@ -68,12 +68,33 @@ final class LocaleHelper {
 
     // Call from every Activity's attachBaseContext(Context) that has
     // localized resources: super.attachBaseContext(LocaleHelper.wrap(base)).
+    // GeneralsX @tweak ZH Commander 11/10/2026 Arabic text with Western digits (owner: "about 60 MB
+    // is showing 60 in indian"). Android writes every %d in an Arabic context as ٠١٢٣, which the
+    // owner's players do not read as naturally as 0123 next to MB, prices and versions; the game
+    // itself uses Western digits too. The Unicode extension nu=latn keeps the language and only
+    // changes the digits.
+    static Locale withLatinDigits(Locale locale) {
+        if (locale == null || !"ar".equals(locale.getLanguage())
+                || locale.getUnicodeLocaleType("nu") != null) {
+            return locale;
+        }
+        return new Locale.Builder().setLocale(locale).setUnicodeLocaleKeyword("nu", "latn").build();
+    }
+
     static Context wrap(Context base) {
         String tag = getSavedLanguageTag(base);
+        Locale locale;
         if (tag == null || tag.isEmpty()) {
-            return base;  // "System Default" -- leave the base context alone.
+            // "System Default": leave the base context alone, except for its digits (below).
+            locale = base.getResources().getConfiguration().getLocales().get(0);
+            Locale latin = withLatinDigits(locale);
+            if (latin.equals(locale)) {
+                return base;
+            }
+            locale = latin;
+        } else {
+            locale = withLatinDigits(Locale.forLanguageTag(tag));
         }
-        Locale locale = Locale.forLanguageTag(tag);
         Locale.setDefault(locale);
 
         Configuration config = new Configuration(base.getResources().getConfiguration());

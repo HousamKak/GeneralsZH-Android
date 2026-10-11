@@ -24,6 +24,12 @@ import java.util.List;
  */
 public class DataDownloadService extends Service {
 
+    // GeneralsX @tweak ZH Commander 11/10/2026 The app's language, with Western digits (LocaleHelper).
+    @Override
+    protected void attachBaseContext(android.content.Context newBase) {
+        super.attachBaseContext(LocaleHelper.wrap(newBase));
+    }
+
     private static final String CHANNEL = "zh_data_download";
     private static final int NOTIFICATION_ID = 7101;
 
