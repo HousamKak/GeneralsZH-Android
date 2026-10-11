@@ -44,6 +44,7 @@
     <string name="data_offline">Couldn\'t reach the download server. Check your internet connection.</string>
     <string name="data_no_space">Not enough free space: free up about %1$d MB more on your phone first.</string>
     <string name="data_progress">%1$d / %2$d MB</string>
+    <string name="data_crossplay_body">Getting the GeneralsOnline data, so you can play online with PC players and phones alike. This happens once, and again when GeneralsOnline updates it.</string>
     <string name="data_failed">The download stopped. Tap Download to continue where it left off.</string>
     <string name="data_button_download">Download</string>
     <string name="data_button_retry">Try again</string>

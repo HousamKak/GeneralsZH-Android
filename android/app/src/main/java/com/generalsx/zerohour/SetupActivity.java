@@ -186,7 +186,9 @@ public class SetupActivity extends Activity {
             // A required release is installed before the game starts. Everything else that a
             // check finds (an optional release, newer game data) the game offers itself, on its
             // main menu (MainMenu.cpp, through ZHBridge).
-            Class<?> next = GeneralsZHActivity.class;
+            // GeneralsX @feature ZH Commander 11/10/2026 ...and the GeneralsOnline data cross-play
+            // needs is fetched first, on the game-data screen (ZeroSetup.patchNeeded).
+            Class<?> next = ZeroSetup.patchNeeded(this) ? DataDownloadActivity.class : GeneralsZHActivity.class;
             UpdateManager.AppOffer offer = UpdateManager.appOffer(this);
             if (offer != null && offer.mandatory) {
                 next = UpdateActivity.class;

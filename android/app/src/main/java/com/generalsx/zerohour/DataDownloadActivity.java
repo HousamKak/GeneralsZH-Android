@@ -250,7 +250,52 @@ public class DataDownloadActivity extends Activity {
     }
 
     private void goToGame() {
+        // GeneralsX @feature ZH Commander 11/10/2026 The GeneralsOnline data cross-play needs, fetched
+        // or updated here with the game data, so a player never has to (ZeroSetup). A failure does
+        // not hold the game back: it starts anyway, and the next start tries again.
+        if (ZeroSetup.patchNeeded(this) && !sPatchTriedThisProcess) {
+            sPatchTriedThisProcess = true;
+            busy = true;
+            downloadButton.setEnabled(false);
+            bodyText.setText(R.string.data_crossplay_body);
+            progress.setVisibility(android.view.View.VISIBLE);
+            progress.setIndeterminate(true);
+            final android.content.Context app = getApplicationContext();
+            new Thread(() -> {
+                DataPackInstaller.Result result = DataPackInstaller.install(app, new DataPackInstaller.Progress() {
+                    @Override public void onChecking() {}
+
+                    @Override public void onDownloading(long done, long total) {
+                        runOnUiThread(() -> {
+                            if (total > 0) {
+                                progress.setIndeterminate(false);
+                                progress.setProgress((int) (done * 1000 / total));
+                                statusText.setText(getString(R.string.data_progress, done >> 20, total >> 20));
+                            }
+                        });
+                    }
+
+                    @Override public void onInstalling() {
+                        runOnUiThread(() -> progress.setIndeterminate(true));
+                    }
+                });
+                ZeroSetup.ensure(app);
+                runOnUiThread(() -> {
+                    busy = false;
+                    if (!result.ok) {
+                        android.widget.Toast.makeText(this, getString(R.string.online_crossplay_failed, result.error),
+                            android.widget.Toast.LENGTH_LONG).show();
+                    }
+                    if (!isFinishing()) {
+                        goToGame();
+                    }
+                });
+            }, "GXCrossPlayData").start();
+            return;
+        }
         startActivity(new Intent(this, GeneralsZHActivity.class));
         finish();
     }
+
+    private static boolean sPatchTriedThisProcess;
 }

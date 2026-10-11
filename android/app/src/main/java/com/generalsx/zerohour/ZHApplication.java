@@ -14,6 +14,8 @@ public class ZHApplication extends Application {
         String process = android.os.Build.VERSION.SDK_INT >= 28 ? getProcessName() : getPackageName();
         if (getPackageName().equals(process)) {
             ZHTelemetry.init(this);
+            // GeneralsX @feature ZH Commander 11/10/2026 Cross-play kept in step (ZeroSetup).
+            ZeroSetup.ensure(this);
         }
     }
 }

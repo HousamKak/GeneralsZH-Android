@@ -57,8 +57,8 @@ namespace
 	};
 
 	const Choice SIM_HZ[] = {
-		{ "30", L"30 HZ (WITH PHONES)" },
-		{ "60", L"60 HZ (WITH PC)" },
+		{ "30", L"30 HZ (30 HZ PHONES ONLY)" },
+		{ "60", L"60 HZ (PCS AND PHONES)" },
 	};
 	const Choice RENDERERS[] = {
 		{ "gles", L"OPENGL ES" },

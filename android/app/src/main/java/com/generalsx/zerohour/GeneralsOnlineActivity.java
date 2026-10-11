@@ -533,50 +533,31 @@ public class GeneralsOnlineActivity extends Activity {
         com.google.android.material.materialswitch.MaterialSwitch sw = UiKit.switchRow(card,
             getString(R.string.online_switch_crossplay),
             getString(R.string.online_switch_crossplay_desc));
-        sw.setChecked(marker.isFile());
+        // GeneralsX @feature ZH Commander 11/10/2026 On by default and kept in step at every start
+        // (ZeroSetup): this switch is now only how a player leaves the PC pool, or comes back.
+        sw.setChecked(ZeroSetup.crossPlayWanted(this));
         sw.setOnCheckedChangeListener((button, checked) -> {
-            if (checked) {
-                try {
-                    marker.createNewFile();
-                } catch (java.io.IOException e) {
-                    Toast.makeText(this,
-                        getString(R.string.setup_toast_options_save_failed, e.getMessage()),
-                        Toast.LENGTH_LONG).show();
-                    button.setChecked(false);
-                    return;
-                }
-                // GeneralsX @feature Android port 15/09/2026 Cross-play is not just a
-                // checksum claim: the Windows client simulates at 60 Hz, and a 30 Hz
-                // client cannot stay in lockstep with it whatever it reports. So turning
-                // this on switches the engine too - and says so, because it costs twice
-                // the logic work per second and a slow device will feel it.
-                if (SetupActivity.getSimHz(this) != SetupActivity.SIM_HZ_CROSSPLAY) {
-                    SetupActivity.setSimHz(this, SetupActivity.SIM_HZ_CROSSPLAY);
-                    refreshCrossPlayHzChip();
-                    new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
-                        .setTitle(R.string.online_crossplay_hz_title)
-                        .setMessage(R.string.online_crossplay_hz_message)
-                        .setPositiveButton(android.R.string.ok, null)
-                        .show();
-                }
-                // GeneralsX @bugfix ZH Commander 11/10/2026 One switch for all of cross-play. The
-                // INI half (the GeneralsOnline community patch every PC player mounts) used to be a
-                // separate Update button on the card above, behind sign-in, and nothing led a player
-                // to it: phones joined PC lobbies with the claimed EXE checksum and a retail INI one,
-                // and were turned away every time (support report of 11/10). Now the switch turns the
-                // patch on and fetches it when it is missing.
-                DataPackInstaller.setEnabled(this, true);
-                if (!DataPackInstaller.communityPatchFile().isFile()) {
-                    onUpdateDataPacks(true);
-                }
-                refreshDataPackCard();
-            } else {
-                marker.delete();
-                // ...and off for all of it: with the patch mounted the INI checksum is the PC's, so
-                // a phone that left cross-play would no longer match phones that never had it.
-                DataPackInstaller.setEnabled(this, false);
-                refreshDataPackCard();
+            // GeneralsX @feature Android port 15/09/2026 Cross-play is not just a checksum claim:
+            // the Windows client simulates at 60 Hz, and a 30 Hz client cannot stay in lockstep with
+            // it whatever it reports. So turning this on switches the engine too, and says so.
+            final boolean wasRetailHz = SetupActivity.getSimHz(this) != SetupActivity.SIM_HZ_CROSSPLAY;
+            // GeneralsX @bugfix ZH Commander 11/10/2026 One switch for all of cross-play: the 60 Hz
+            // engine, the PC checksum marker and the GeneralsOnline community patch, on and off
+            // together (ZeroSetup.setCrossPlay). Off, the INI checksum is retail again, so the phone
+            // matches phones that never had it.
+            ZeroSetup.setCrossPlay(this, checked);
+            if (checked && wasRetailHz) {
+                refreshCrossPlayHzChip();
+                new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+                    .setTitle(R.string.online_crossplay_hz_title)
+                    .setMessage(R.string.online_crossplay_hz_message)
+                    .setPositiveButton(android.R.string.ok, null)
+                    .show();
             }
+            if (checked && !DataPackInstaller.communityPatchFile().isFile()) {
+                onUpdateDataPacks(true);
+            }
+            refreshDataPackCard();
         });
 
         // The tick rate is the other half of cross-play, so show where it stands here

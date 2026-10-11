@@ -187,6 +187,7 @@ final class ZHBridge {
         switch (key) {
             case "sim_hz":
                 SetupActivity.setSimHz(a, "60".equals(value) ? SetupActivity.SIM_HZ_CROSSPLAY : SetupActivity.SIM_HZ_RETAIL);
+                ZeroSetup.ensure(a);  // 30 Hz leaves cross-play, 60 Hz rejoins it
                 break;
             case "telemetry":
                 ZHTelemetry.setEnabled("on".equals(value));
