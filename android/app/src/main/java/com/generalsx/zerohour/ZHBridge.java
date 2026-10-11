@@ -111,6 +111,8 @@ final class ZHBridge {
 
     static String playerNotice() {
         Activity a = game();
+        // The main menu polls this every couple of seconds: ask the server again every 5 minutes.
+        LicenseStatus.refreshIfStale(a, 5L * 60 * 1000);
         String why = LicenseStatus.blockReason(a);
         if ("revoked".equals(why) || "moved".equals(why)) {
             String reason = LicenseStatus.reason(a);

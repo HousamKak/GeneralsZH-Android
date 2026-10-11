@@ -52,6 +52,23 @@ final class LicenseStatus {
         new Thread(() -> refresh(app), "GXLicenseStatus").start();
     }
 
+    // When the game last asked (refreshIfStale); per process.
+    private static volatile long sLastAskMs;
+
+    /**
+     * Asks again in the background when the last ask is older than {@code maxAgeMs}: the game's
+     * main menu calls this as it polls, so a message reaches a game that was reopened from the
+     * recent apps (no start-up check) or that stays open for hours.
+     */
+    static void refreshIfStale(Context ctx, long maxAgeMs) {
+        long now = System.currentTimeMillis();
+        if (now - sLastAskMs < maxAgeMs) {
+            return;
+        }
+        sLastAskMs = now;
+        refreshAsync(ctx);
+    }
+
     /** Asks the server and keeps the answer. Blocking; false when the server could not be reached. */
     static boolean refresh(Context ctx) {
         String license = LicenseGate.storedLicense(ctx);
