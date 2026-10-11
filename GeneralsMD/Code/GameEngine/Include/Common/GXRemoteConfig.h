@@ -33,8 +33,12 @@
 #include <cstring>
 #include <map>
 #include <string>
+#include <cstdlib>
 #if defined(__ANDROID__)
 #include <unistd.h>
+#endif
+#if defined(__APPLE__)
+#include <TargetConditionals.h>
 #endif
 
 namespace GXRemoteConfig
@@ -46,6 +50,11 @@ namespace GXRemoteConfig
 		const int userId = (int)(getuid() / 100000);
 		snprintf(path, sizeof(path), "/data/user/%d/com.housamkak.zhcommander/files/update", userId);
 		return path;
+#elif defined(__APPLE__) && TARGET_OS_IPHONE
+		// GeneralsX @feature ZH Commander 11/10/2026 The iOS shell (IOSGate.mm) keeps the PC
+		// checksum seed of the GeneralsOnline data here, as the Android launcher does in files/update.
+		const char *home = getenv("HOME");
+		return home != nullptr ? std::string(home) + "/Library/Application Support/GeneralsX/update" : std::string();
 #else
 		return std::string();
 #endif

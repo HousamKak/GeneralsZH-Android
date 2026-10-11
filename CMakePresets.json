@@ -255,7 +255,7 @@
             "inherits": "default-vcpkg",
             "generator": "Ninja",
             "binaryDir": "${sourceDir}/build/${presetName}",
-            "description": "iOS port: arm64 device build with MoltenVK (static, from $VULKAN_SDK) for graphics, SDL3 for windowing/touch, OpenAL for audio, FFmpeg (vcpkg) for video. Requires the LunarG Vulkan SDK with the iOS MoltenVK xcframework; export VULKAN_SDK=$HOME/VulkanSDK/<version>/macOS.",
+            "description": "iOS port: arm64 device build with MoltenVK (static, from $VULKAN_SDK) for graphics, SDL3 for windowing/touch, OpenAL for audio, FFmpeg (vcpkg) for video, GameNetworkingSockets for GeneralsOnline matches. One engine, simulating at 60 Hz like the GeneralsOnline PC client (an iOS app carries one engine, not two as the Android APK does). Requires the LunarG Vulkan SDK with the iOS MoltenVK xcframework; export VULKAN_SDK=$HOME/VulkanSDK/<version>/macOS.",
             "cacheVariables": {
                 "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
                 "CMAKE_BUILD_TYPE": "RelWithDebInfo",
@@ -279,6 +279,7 @@
                 "RTS_BUILD_CORE_TOOLS": "OFF",
                 "RTS_BUILD_ZEROHOUR_TOOLS": "OFF",
                 "RTS_BUILD_ZEROHOUR_EXTRAS": "OFF",
+                "SAGE_HIGH_FPS_SIM": "ON",
                 "Vulkan_INCLUDE_DIR": "$env{VULKAN_SDK}/include",
                 "Vulkan_LIBRARY": "$env{VULKAN_SDK}/lib/MoltenVK.xcframework/ios-arm64/libMoltenVK.a",
                 "Vulkan_MoltenVK_LIBRARY": "$env{VULKAN_SDK}/lib/MoltenVK.xcframework/ios-arm64/libMoltenVK.a",

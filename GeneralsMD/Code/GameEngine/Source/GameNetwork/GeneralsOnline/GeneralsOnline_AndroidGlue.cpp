@@ -15,13 +15,42 @@
 #include <cstdlib>
 #include <string>
 
-#if defined(__ANDROID__)
-#include <SDL3/SDL.h>
 #include <cstdio>
 #include <cstring>
+#if defined(__ANDROID__)
+#include <SDL3/SDL.h>
+#endif
+#if defined(__APPLE__)
+#include <TargetConditionals.h>
 #endif
 
+// GeneralsX @feature ZH Commander 11/10/2026 The iOS shell (IOSGate.mm) signs in to GeneralsOnline
+// as the Android launcher does and writes the same session marker, in the app's Application
+// Support folder: everything below that reads or renews the session applies to both.
+#if defined(__ANDROID__) || (defined(__APPLE__) && TARGET_OS_IPHONE)
+#define GX_SHELL_SESSION 1
+#endif
+
+#if defined(GX_SHELL_SESSION)
+namespace
+{
+	// Where the shell keeps generalsonline_session.txt: Android's getFilesDir() (the same
+	// directory SDL_GetAndroidInternalStoragePath() resolves to), iOS's
+	// Library/Application Support/GeneralsX (IOSGate.mm, sessionDir).
+	std::string SessionDir()
+	{
 #if defined(__ANDROID__)
+		const char* internalPath = SDL_GetAndroidInternalStoragePath();
+		return internalPath != nullptr ? std::string(internalPath) : std::string();
+#else
+		const char* home = getenv("HOME");
+		return home != nullptr ? std::string(home) + "/Library/Application Support/GeneralsX" : std::string();
+#endif
+	}
+}
+#endif
+
+#if defined(GX_SHELL_SESSION)
 namespace
 {
 	struct AndroidSession
@@ -43,16 +72,16 @@ namespace
 	// plumbing involved on either side, just a shared filesystem convention.
 	bool ReadAndroidSession(AndroidSession& outSession)
 	{
-		const char* internalPath = SDL_GetAndroidInternalStoragePath();
-		if (internalPath == nullptr)
+		const std::string sessionDir = SessionDir();
+		if (sessionDir.empty())
 		{
-			fprintf(stderr, "DEBUG-ONLINE: ReadAndroidSession bail -- SDL_GetAndroidInternalStoragePath() returned null\n");
+			fprintf(stderr, "DEBUG-ONLINE: ReadAndroidSession bail -- no session directory\n");
 			fflush(stderr);
 			return false;
 		}
 
 		char markerPath[1024];
-		snprintf(markerPath, sizeof(markerPath), "%s/generalsonline_session.txt", internalPath);
+		snprintf(markerPath, sizeof(markerPath), "%s/generalsonline_session.txt", sessionDir.c_str());
 		FILE* f = fopen(markerPath, "r");
 		if (f == nullptr)
 		{
@@ -97,7 +126,7 @@ namespace
 		return bValid;
 	}
 }
-#endif // __ANDROID__
+#endif // GX_SHELL_SESSION
 
 void GeneralsOnline_GetDeviceIdentity(std::string& outMachineGuid,
 	std::string& outMacAddr, std::string& outVolSerial)
@@ -106,7 +135,7 @@ void GeneralsOnline_GetDeviceIdentity(std::string& outMachineGuid,
 	outMacAddr.clear();
 	outVolSerial.clear();
 
-#if defined(__ANDROID__)
+#if defined(GX_SHELL_SESSION)
 	// Read once and keep. This is called from the auth path, which can run
 	// on every session refresh; the marker file only changes at sign-in, and
 	// a sign-in means a fresh process anyway.
@@ -135,15 +164,16 @@ void GeneralsOnline_GetDeviceIdentity(std::string& outMachineGuid,
 #endif
 }
 
-#if defined(__ANDROID__)
+#if defined(GX_SHELL_SESSION)
 namespace
 {
 	std::string MarkerPath()
 	{
-		const char* internalPath = SDL_GetAndroidInternalStoragePath();
-		return internalPath != nullptr ? std::string(internalPath) + "/generalsonline_session.txt" : std::string();
+		const std::string sessionDir = SessionDir();
+		return !sessionDir.empty() ? sessionDir + "/generalsonline_session.txt" : std::string();
 	}
 
+#if defined(__ANDROID__)
 	// Launchers up to 1.3.0 keep the refresh token only in their SharedPreferences, an XML file in
 	// this same app's data directory (files/../shared_prefs). A JWT is [A-Za-z0-9._-] only, so it
 	// needs no XML unescaping.
@@ -183,13 +213,14 @@ namespace
 		out = xml.substr(start, end - start);
 		return true;
 	}
+#endif
 }
 #endif
 
 bool GeneralsOnline_ReadStoredRefreshToken(std::string& outRefreshToken)
 {
 	outRefreshToken.clear();
-#if defined(__ANDROID__)
+#if defined(GX_SHELL_SESSION)
 	AndroidSession session;
 	ReadAndroidSession(session);
 	if (!session.refreshToken.empty())
@@ -197,7 +228,11 @@ bool GeneralsOnline_ReadStoredRefreshToken(std::string& outRefreshToken)
 		outRefreshToken = session.refreshToken;
 		return true;
 	}
+#if defined(__ANDROID__)
 	return ReadRefreshTokenFromLauncherPrefs(outRefreshToken);
+#else
+	return false;
+#endif
 #else
 	return false;
 #endif
@@ -205,7 +240,7 @@ bool GeneralsOnline_ReadStoredRefreshToken(std::string& outRefreshToken)
 
 bool GeneralsOnline_StoreRenewedSession(const std::string& sessionToken, const std::string& refreshToken)
 {
-#if defined(__ANDROID__)
+#if defined(GX_SHELL_SESSION)
 	std::string path = MarkerPath();
 	if (path.empty())
 	{
@@ -259,7 +294,7 @@ bool GeneralsOnline_StoreRenewedSession(const std::string& sessionToken, const s
 
 bool TryStartGeneralsOnline()
 {
-#if defined(__ANDROID__)
+#if defined(GX_SHELL_SESSION)
 	fprintf(stderr, "DEBUG-ONLINE: TryStartGeneralsOnline enter\n");
 	fflush(stderr);
 	AndroidSession session;

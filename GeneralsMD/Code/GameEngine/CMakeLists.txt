@@ -1203,8 +1203,14 @@ set(GAMEENGINE_SRC
 # on the very first #include. GENERALS_ONLINE_ENABLE_P2P_TRANSPORT defaults to
 # whatever if(ANDROID) already meant, and a preset for another platform (a Windows
 # diagnostic build, say) can turn it on for real once GNS is wired there too.
+# GeneralsX @feature ZH Commander 11/10/2026 iOS too: without the transport an iPhone or iPad
+# could browse GeneralsOnline lobbies but never start a match in one.
 if(NOT DEFINED GENERALS_ONLINE_ENABLE_P2P_TRANSPORT)
-    set(GENERALS_ONLINE_ENABLE_P2P_TRANSPORT ${ANDROID})
+    if(ANDROID OR IOS)
+        set(GENERALS_ONLINE_ENABLE_P2P_TRANSPORT ON)
+    else()
+        set(GENERALS_ONLINE_ENABLE_P2P_TRANSPORT OFF)
+    endif()
 endif()
 if(GENERALS_ONLINE_ENABLE_P2P_TRANSPORT)
     list(APPEND GAMEENGINE_SRC
@@ -1268,7 +1274,9 @@ target_link_libraries(z_gameengine PUBLIC CURL::libcurl)
 # steamwebrtc/webrtc-lite binary is needed -- upstream's Windows build predates
 # that and still vendors webrtc-lite.lib. Our static triplet exports the _s
 # target (which also injects STEAMNETWORKINGSOCKETS_STATIC_LINK for consumers).
-if(ANDROID)
+# GeneralsX @feature ZH Commander 11/10/2026 Linked wherever the P2P transport is built (Android
+# and iOS), so the two can never disagree.
+if(GENERALS_ONLINE_ENABLE_P2P_TRANSPORT)
     find_package(GameNetworkingSockets CONFIG REQUIRED)
     if(TARGET GameNetworkingSockets::GameNetworkingSockets_s)
         target_link_libraries(z_gameengine PUBLIC GameNetworkingSockets::GameNetworkingSockets_s)
