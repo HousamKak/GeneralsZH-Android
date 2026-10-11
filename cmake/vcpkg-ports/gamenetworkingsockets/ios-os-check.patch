@@ -1,0 +1,54 @@
+GeneralsX @build ZH Commander 11/10/2026
+
+Build GameNetworkingSockets for iOS.
+
+GNS 1.6.0's CMake knows Linux, Darwin, FreeBSD, OpenBSD and Windows by
+CMAKE_SYSTEM_NAME and stops with "Could not identify your target operating
+system" for anything else; vcpkg's arm64-ios triplet says iOS. The sources
+themselves already know iOS (minbase_identify.h: IsIOS() and IsPosix() from
+TargetConditionals.h; platform_sockets.h: poll(), as on macOS), so the CMake
+branches add nothing but their existence. The one source file that does not is
+tier0/dbg.cpp, whose debugger check ends in #error "HALP" for an Apple target
+that is not macOS; there it answers false, as for the Nintendo Switch.
+
+Applied after android-os-check.patch, beside whose Android branches it sits.
+
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -163,6 +163,10 @@
+ 		# GeneralsX @build Android port 12/07/2026 bionic is Linux-compatible
+ 		# for everything GNS's POSIX/Linux code paths use (epoll, eventfd, ...)
+ 		target_compile_definitions(${TGT} PUBLIC LINUX POSIX ANDROID)
++	elseif(CMAKE_SYSTEM_NAME MATCHES iOS)
++		# GeneralsX @build ZH Commander 11/10/2026 iOS needs no define: the headers
++		# tell it apart themselves (minbase_identify.h, TargetConditionals.h:
++		# IsIOS(), IsPosix(), and poll() as on macOS in platform_sockets.h).
+ 	elseif(CMAKE_SYSTEM_NAME MATCHES Windows)
+ 		target_compile_definitions(${TGT} PUBLIC _WINDOWS)
+ 		if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
+--- a/src/CMakeLists.txt
++++ b/src/CMakeLists.txt
+@@ -336,6 +336,9 @@
+ 	elseif(CMAKE_SYSTEM_NAME MATCHES Android)
+ 		# GeneralsX @build Android port 12/07/2026 same as the Linux branch:
+ 		# nothing platform-specific to link
++	elseif(CMAKE_SYSTEM_NAME MATCHES iOS)
++		# GeneralsX @build ZH Commander 11/10/2026 as the Darwin branch:
++		# nothing platform-specific to link
+ 	elseif(CMAKE_SYSTEM_NAME MATCHES Windows)
+ 		if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
+ 			get_target_property(TARGET_TYPE ${GNS_TARGET} TYPE)
+--- a/src/tier0/dbg.cpp
++++ b/src/tier0/dbg.cpp
+@@ -119,7 +119,10 @@
+ 	return (nTracePid != 0);
+ #elif IsPlaystation()
+ 	// NDA material
+-#elif IsNintendoSwitch()
++#elif IsNintendoSwitch() || IsIOS() || IsTVOS()
++	// GeneralsX @build ZH Commander 11/10/2026 iOS and tvOS too: only a debugger
++	// hint, and the macOS branch above reads kinfo_proc through headers it does not
++	// include for them.
+ 	return false;
+ #else
+ 	#error "HALP"

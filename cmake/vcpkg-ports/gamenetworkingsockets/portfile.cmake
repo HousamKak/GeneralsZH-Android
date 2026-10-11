@@ -10,6 +10,9 @@
 # by letting devices offer interfaces they cannot actually send from. Drop this
 # overlay once a vcpkg pin ships a port/GNS release that recognizes Android
 # natively.
+# GeneralsX @build ZH Commander 11/10/2026 And iOS: ios-os-check.patch lets the
+# same CMake accept CMAKE_SYSTEM_NAME=iOS (the sources already know it). The
+# ios-vulkan preset now uses this overlay too.
 vcpkg_from_github(
     OUT_SOURCE_PATH SOURCE_PATH
     REPO ValveSoftware/GameNetworkingSockets
@@ -20,6 +23,7 @@ vcpkg_from_github(
         android-os-check.patch
         android-getlocaladdresses.patch
         android-ice-stun-spin.patch
+        ios-os-check.patch
 )
 
 vcpkg_check_features(
