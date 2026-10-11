@@ -111,6 +111,41 @@ else()
     add_compile_definitions(GENERALS_ONLINE_HIGH_FPS_LIMIT=30)
     add_compile_definitions(GENERALS_ONLINE_HIGH_FPS_FRAME_MULTIPLIER=1)
 endif()
+# GeneralsX @feature ZH Commander 11/10/2026 Retail rules (cmake/config-build.cmake). Top level for
+# the same reason as the rate: these switches change class layouts, packet layouts and checksum
+# inputs, so every translation unit must agree. GameDefines.h only defines a switch that is not
+# already defined, so these win.
+if(SAGE_RETAIL_RULES)
+    if(SAGE_HIGH_FPS_SIM)
+        message(FATAL_ERROR "SAGE_RETAIL_RULES is for the 30 Hz engine: retail Zero Hour simulates at 30 Hz")
+    endif()
+    add_compile_definitions(
+        SAGE_RETAIL_RULES=1
+        RETAIL_COMPATIBLE_CRC=1
+        RETAIL_COMPATIBLE_XFER_SAVE=1
+        RETAIL_COMPATIBLE_PATHFINDING=1
+        RETAIL_COMPATIBLE_PATHFINDING_ALLOCATION=1
+        RETAIL_COMPATIBLE_NETWORKING=1
+        RETAIL_COMPATIBLE_AIGROUP=1
+        PRESERVE_BUILDING_RESUMPTION_DELAY=1
+        PRESERVE_CHINOOK_PASSENGER_DUMPING=1
+        PRESERVE_HARDCODED_BLACK_LOTUS_CASH_HACK=1
+        PRESERVE_MULTI_CRATE_PICKUP=1
+        PRESERVE_NO_XP_FROM_FLAME_KILLS=1
+        PRESERVE_NO_XP_FROM_OCL_KILLS=1
+        PRESERVE_NO_XP_FROM_POISON_KILLS=1
+        PRESERVE_OCCUPANT_DETECTION_VIA_DRAG_SELECTION=1
+        PRESERVE_PERPETUAL_HORDE_BONUS=1
+        PRESERVE_PREMATURE_BATTLE_BUS_DEATH=1
+        PRESERVE_RADAR_WARNING_SUPPRESSION=1
+        PRESERVE_STRUCTURE_STEALTH_DURING_REPAIR=1
+        PRESERVE_TUNNEL_HEAL_STACKING=1
+        PRESERVE_UNRELIABLE_FIRESTORMS=1
+        PRESERVE_SNIPING_EMPTY_STINGER_SITES=1
+        PRESERVE_RETAIL_SCRIPTED_CAMERA=1
+    )
+endif()
+
 # Unlocks the render framerate. Required at 60 Hz, optional but desirable at 30.
 add_compile_definitions(GENERALS_ONLINE_HIGH_FPS_RENDER=1)
 

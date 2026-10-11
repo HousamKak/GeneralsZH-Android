@@ -1229,6 +1229,14 @@ static Bool pcExeCrcFromDataPack(UnsignedInt &out)
 // at the first checkpoint. No package, or one from before the launcher checked: unchanged.
 static void logicCRCRevisionFromDataPack()
 {
+#if defined(SAGE_RETAIL_RULES)
+	// GeneralsX @feature ZH Commander 11/10/2026 The retail engine never carries the GeneralsOnline
+	// tag, whatever PC release the data package holds: the PC it plays is the original game.
+	GameLogic::setDefaultLogicCRCRevision(0u);
+	fprintf(stderr, "[GX-CRC] retail rules: logic CRC revision tag off\n");
+	fflush(stderr);
+	return;
+#endif
 	const char* source = nullptr;
 	Bool tagged = TRUE;
 
@@ -1553,6 +1561,14 @@ UnsignedInt GlobalData::generateExeCRC()
 		const UnsignedInt logicRate = LOGICFRAMES_PER_SECOND;
 		exeCRC.computeCRC( &logicRate, sizeof(UnsignedInt) );
 	}
+#if defined(SAGE_RETAIL_RULES)
+	// GeneralsX @feature ZH Commander 11/10/2026 Retail rules simulate differently from the 30 Hz
+	// engine of earlier releases (GeneralsOnline rules), so the two must not pass a lobby's check.
+	{
+		const UnsignedInt retailRules = 0x52544C31; // "RTL1"
+		exeCRC.computeCRC( &retailRules, sizeof(UnsignedInt) );
+	}
+#endif
 	// GeneralsX @bugfix Copilot 22/03/2026 Load shared script CRC inputs relative to the configured asset root.
 	// Add in MP scripts to the EXE CRC, since the game will go out of sync if they change
 	fp = TheFileSystem->openFile("Data\\Scripts\\SkirmishScripts.scb", File::READ | File::BINARY);

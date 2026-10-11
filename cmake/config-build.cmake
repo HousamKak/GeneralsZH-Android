@@ -30,6 +30,14 @@ endif()
 # must agree on in every single translation unit.
 option(SAGE_HIGH_FPS_SIM "Simulate at 60 Hz to match the GeneralsOnline PC client" OFF)
 
+# GeneralsX @feature ZH Commander 11/10/2026 The original game's rules, for LAN games against a
+# retail Zero Hour 1.04 PC. GameDefines.h sets the GeneralsOnline client's simulation switches
+# (RETAIL_COMPATIBLE_* off, community fixes on), and those simulate differently from retail: a
+# match would start and fall out of sync. With this ON every RETAIL_COMPATIBLE_* switch is on and
+# every PRESERVE_* keeps retail behaviour. Retail runs at 30 Hz, so this is for the 30 Hz engine
+# (libmain.so) only; the 60 Hz cross-play engine keeps the GeneralsOnline rules.
+option(SAGE_RETAIL_RULES "Simulate with retail Zero Hour 1.04 rules (30 Hz engine only)" OFF)
+
 # macOS port option (Phase 5)
 option(SAGE_USE_MOLTENVK "Use MoltenVK for Vulkan on macOS (Phase 5 macOS port)" OFF)
 

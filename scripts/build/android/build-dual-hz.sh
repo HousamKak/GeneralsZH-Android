@@ -22,7 +22,7 @@ REPO="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
 STASH="${REPO}/build/libmain60.so"
 
 echo "=== pass 1 of 2: 60 Hz engine ==="
-GX_EXTRA_CMAKE="-DSAGE_HIGH_FPS_SIM=ON" "${SCRIPT_DIR}/build-local-sandboxed.sh"
+GX_EXTRA_CMAKE="-DSAGE_HIGH_FPS_SIM=ON -DSAGE_RETAIL_RULES=OFF" "${SCRIPT_DIR}/build-local-sandboxed.sh"
 
 BUILT="${REPO}/build/android-vulkan/GeneralsMD/Code/Main/libmain.so"
 [ -f "${BUILT}" ] || { echo "60 Hz libmain.so missing at ${BUILT}"; exit 1; }
@@ -31,7 +31,7 @@ cp "${BUILT}" "${STASH}"
 echo "60 Hz engine set aside: ${STASH} ($(du -h "${STASH}" | cut -f1))"
 
 echo "=== pass 2 of 2: 30 Hz engine, then package both ==="
-GX_EXTRA_CMAKE="-DSAGE_HIGH_FPS_SIM=OFF" GX_SECOND_GAME_LIB="${STASH}" \
+GX_EXTRA_CMAKE="-DSAGE_HIGH_FPS_SIM=OFF -DSAGE_RETAIL_RULES=ON" GX_SECOND_GAME_LIB="${STASH}" \
     "${SCRIPT_DIR}/build-local-sandboxed.sh"
 
 echo "=== done: the APK carries libmain.so (30 Hz) and libmain60.so (60 Hz) ==="

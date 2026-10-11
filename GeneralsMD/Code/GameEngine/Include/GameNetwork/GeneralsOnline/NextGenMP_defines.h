@@ -108,7 +108,11 @@ static int FRAME_GROUPING_CAP = 64;
 #define DEFAULT_DISPLAY_HEIGHT_SPLASH     600
 #endif
 
+// GeneralsX @feature ZH Commander 11/10/2026 Not with retail rules (SAGE_RETAIL_RULES): a retail
+// PC assigns start positions the original way, and the two must agree from frame 0.
+#if !defined(SAGE_RETAIL_RULES)
 #define GENERALS_ONLINE_IBRA_STARTING_POS_LOGIC 1
+#endif
 
 //#define GENERALS_ONLINE_WINDOWED_FULLSCREEN 1
 

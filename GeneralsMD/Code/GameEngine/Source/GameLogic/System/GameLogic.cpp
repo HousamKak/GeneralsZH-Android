@@ -5017,8 +5017,15 @@ UnsignedInt GameLogic::getCRC( Int mode, AsciiString deepCRCFileName )
 }
 
 // ------------------------------------------------------------------------------------------------
+// GeneralsX @feature ZH Commander 11/10/2026 Retail rules (SAGE_RETAIL_RULES): the original game's
+// checksum has no GeneralsOnline tag, and nothing turns it on (GlobalData::init).
+#if defined(SAGE_RETAIL_RULES)
+UnsignedInt GameLogic::s_logicCRCRevision = 0;
+UnsignedInt GameLogic::s_defaultLogicCRCRevision = 0;
+#else
 UnsignedInt GameLogic::s_logicCRCRevision = GameLogic::GO_LOGIC_CRC_REVISION;
 UnsignedInt GameLogic::s_defaultLogicCRCRevision = GameLogic::GO_LOGIC_CRC_REVISION;
+#endif
 
 // ------------------------------------------------------------------------------------------------
 Bool GameLogic::adoptLogicCRCRevisionFrom( UnsignedInt recorded, UnsignedInt *ours )
