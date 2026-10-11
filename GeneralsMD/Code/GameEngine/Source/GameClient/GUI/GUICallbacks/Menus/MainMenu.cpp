@@ -88,6 +88,7 @@
 #endif
 // GeneralsX @feature ZH Commander 09/10/2026 SUPPORT button, version and update offers.
 #include "GameClient/GadgetPushButton.h"
+#include "GameClient/GadgetListBox.h"
 #include "GameClient/GXButtonLook.h"
 #include "Common/ZHCommander.h"
 #include <cstdlib>
@@ -695,6 +696,134 @@ static void startDataUpdate()
 		ZHCommander::hooks().startDataUpdate();
 }
 
+// GeneralsX @feature ZH Commander 11/10/2026 Release notes in their own window
+// (Window/Menus/ZHNotes.wnd) instead of a message box: a title, the release's headline, the items
+// one per row in a scrolling list with room between them, and the game's own buttons. Owner's
+// feedback: ten items in the message box's small text box read as one crammed block.
+struct ZHNotesCallbacks
+{
+	GameWinMsgBoxFunc primary;
+	GameWinMsgBoxFunc secondary;
+};
+
+static WindowMsgHandledType ZHNotesSystem( GameWindow *window, UnsignedInt msg, WindowMsgData mData1, WindowMsgData mData2 )
+{
+	switch( msg )
+	{
+		case GWM_DESTROY:
+			delete (ZHNotesCallbacks *)window->winGetUserData();
+			window->winSetUserData( nullptr );
+			return MSG_HANDLED;
+
+		case GWM_INPUT_FOCUS:
+			if( mData1 == TRUE )
+				*(Bool *)mData2 = TRUE;
+			return MSG_HANDLED;
+
+		// The list is for reading: a tapped row must not stay highlighted.
+		case GLM_SELECTED:
+			GadgetListBoxSetSelected( (GameWindow *)mData1, -1 );
+			return MSG_HANDLED;
+
+		case GBM_SELECTED:
+		{
+			static const NameKeyType primaryID = TheNameKeyGenerator->nameToKey( "ZHNotes.wnd:ButtonPrimary" );
+			static const NameKeyType secondaryID = TheNameKeyGenerator->nameToKey( "ZHNotes.wnd:ButtonSecondary" );
+			const Int controlID = ((GameWindow *)mData1)->winGetWindowId();
+			if( controlID != primaryID && controlID != secondaryID )
+				return MSG_IGNORED;
+			const ZHNotesCallbacks *callbacks = (const ZHNotesCallbacks *)window->winGetUserData();
+			const GameWinMsgBoxFunc chosen = callbacks
+				? (controlID == primaryID ? callbacks->primary : callbacks->secondary) : nullptr;
+			TheWindowManager->winDestroy( window );
+			if( chosen )
+				chosen();
+			return MSG_HANDLED;
+		}
+
+		default:
+			return MSG_IGNORED;
+	}
+}
+
+// `items` is the notes' "• line\n• line". An empty `secondary` shows one centered button. False
+// when the layout is missing, so the caller can fall back to a message box.
+static Bool zhNotesBox( const UnicodeString &title, const UnicodeString &headline, const UnicodeString &items,
+	const UnicodeString &primary, GameWinMsgBoxFunc primaryFn,
+	const UnicodeString &secondary, GameWinMsgBoxFunc secondaryFn )
+{
+	GameWindow *root = TheWindowManager->winCreateFromScript( "Menus/ZHNotes.wnd" );
+	if( root == nullptr )
+		return FALSE;
+
+	GameWindow *titleText = TheWindowManager->winGetWindowFromId( root, TheNameKeyGenerator->nameToKey( "ZHNotes.wnd:Title" ) );
+	GameWindow *headlineText = TheWindowManager->winGetWindowFromId( root, TheNameKeyGenerator->nameToKey( "ZHNotes.wnd:Subtitle" ) );
+	GameWindow *list = TheWindowManager->winGetWindowFromId( root, TheNameKeyGenerator->nameToKey( "ZHNotes.wnd:List" ) );
+	GameWindow *buttonPrimary = TheWindowManager->winGetWindowFromId( root, TheNameKeyGenerator->nameToKey( "ZHNotes.wnd:ButtonPrimary" ) );
+	GameWindow *buttonSecondary = TheWindowManager->winGetWindowFromId( root, TheNameKeyGenerator->nameToKey( "ZHNotes.wnd:ButtonSecondary" ) );
+	if( !titleText || !headlineText || !list || !buttonPrimary || !buttonSecondary )
+	{
+		TheWindowManager->winDestroy( root );
+		return FALSE;
+	}
+
+	GadgetStaticTextSetText( titleText, title );
+	GadgetStaticTextSetText( headlineText, headline );
+
+	// One row per item, an empty row between items. Rows wrap to the list's width.
+	const Color itemColor = GameMakeColor( 235, 235, 235, 255 );
+	const WideChar *p = items.str();
+	Bool first = TRUE;
+	while( *p )
+	{
+		const WideChar *end = p;
+		while( *end && *end != L'\n' )
+			++end;
+		UnicodeString line;
+		for( const WideChar *c = p; c < end; ++c )
+			line.concat( *c );
+		line.trim();
+		if( !line.isEmpty() )
+		{
+			if( !first )
+				GadgetListBoxAddEntryText( list, UnicodeString( L" " ), itemColor, -1, 0 );
+			GadgetListBoxAddEntryText( list, line, itemColor, -1, 0 );
+			first = FALSE;
+		}
+		p = *end ? end + 1 : end;
+	}
+	GadgetListBoxSetSelected( list, -1 );
+
+	GadgetButtonSetText( buttonPrimary, primary );
+	if( secondary.isEmpty() )
+	{
+		// Centered on the panel.
+		buttonSecondary->winHide( TRUE );
+		Int panelW, panelH, w, h, x, y;
+		buttonPrimary->winGetParent()->winGetSize( &panelW, &panelH );
+		buttonPrimary->winGetSize( &w, &h );
+		buttonPrimary->winGetPosition( &x, &y );
+		buttonPrimary->winSetPosition( (panelW - w) / 2, y );
+	}
+	else
+	{
+		GadgetButtonSetText( buttonSecondary, secondary );
+	}
+
+	ZHNotesCallbacks *callbacks = NEW ZHNotesCallbacks;
+	callbacks->primary = primaryFn;
+	callbacks->secondary = secondaryFn;
+	root->winSetUserData( callbacks );
+	root->winSetSystemFunc( ZHNotesSystem );
+
+	TheWindowManager->winSetModal( root );
+	TheWindowManager->winSetFocus( nullptr );
+	TheWindowManager->winSetFocus( root );
+	root->winHide( FALSE );
+	root->winBringToTop();
+	return TRUE;
+}
+
 // GeneralsX @feature ZH Commander 09/10/2026 What the app found newer than this install, asked
 // in the game's own dialog once the menu is up and quiet: a release first, then game data. The
 // app checks in the background as the game starts, so this looks every couple of seconds while
@@ -721,7 +850,9 @@ static void zhCommanderUpdate()
 		s_whatsNewAsked = TRUE;
 		if (h.whatsNew(notesTitle, sizeof(notesTitle), notesBody, sizeof(notesBody)))
 		{
-			MessageBoxOk( utf8ToUnicode( notesTitle ), utf8ToUnicode( notesBody ), nullptr );
+			if (!zhNotesBox( UnicodeString( L"WHAT'S NEW" ), utf8ToUnicode( notesTitle ), utf8ToUnicode( notesBody ),
+					UnicodeString( L"OK" ), nullptr, UnicodeString::TheEmptyString, nullptr ))
+				MessageBoxOk( utf8ToUnicode( notesTitle ), utf8ToUnicode( notesBody ), nullptr );
 			return;
 		}
 	}
@@ -738,10 +869,18 @@ static void zhCommanderUpdate()
 				L"again.", version);
 		else
 			body.format(L"ZH Commander %hs is ready. Install it now?", version);
-		// What the update brings, from its release notes, when the site had them.
+		// What the update brings, from its release notes, when the site had them: in the notes
+		// window, the question as its headline and the notes' own headline as the list's first row.
 		if (h.releaseNotes != nullptr
 			&& h.releaseNotes(version, notesTitle, sizeof(notesTitle), notesBody, sizeof(notesBody)))
 		{
+			UnicodeString items = utf8ToUnicode( notesTitle );
+			items.concat( L"\n" );
+			items.concat( utf8ToUnicode( notesBody ) );
+			if (zhNotesBox( UnicodeString( mandatory ? L"UPDATE REQUIRED" : L"UPDATE AVAILABLE" ), body, items,
+					UnicodeString( L"INSTALL" ), startAppUpdate,
+					mandatory ? UnicodeString::TheEmptyString : UnicodeString( L"NOT NOW" ), nullptr ))
+				return;
 			body.concat( L"\n\n" );
 			body.concat( utf8ToUnicode( notesBody ) );
 		}

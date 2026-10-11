@@ -145,7 +145,7 @@ static Int findGroupButtonIndex(Int controlID)
 }
 
 //-------------------------------------------------------------------------------------------------
-// The small buttons on the handle's line besides the handle itself ("!", DESELECT), which move
+// The small buttons on the handle's line besides the handle itself (ALERT, DESELECT), which move
 // with it; a layout may lack any of them.
 static const Int SIDE_BUTTON_COUNT = 2;
 static GameWindow *sideButton(Int i)
