@@ -104,10 +104,29 @@ Real Tan(Real x)
 #endif
 }
 
+// GeneralsX @bugfix ZH Commander 11/10/2026 Retail's acos/asin, bit for bit (SAGE_RETAIL_RULES).
+// Unlike sin/cos, these are several x87 steps in VC6's runtime, and retail runs the FPU at 24-bit
+// precision (setFPMode), so every step rounds to float. Measured by calling a VC6 build of this
+// file under that FPU mode: the double-precision path above differs on 0.81% of acos inputs and
+// 23.7% of asin inputs (one bridge's heading on Tournament B was a bit off), while
+// atan2(sqrtf((1-x)(1+x)), x) matches all 5361792 inputs tried, and its mirror for asin too.
+// The GeneralsOnline client is modern MSVC with real double precision, so only retail rules.
+#if defined(SAGE_RETAIL_RULES)
+static Real retailSqrtOneMinusSquare(Real x)
+{
+	const float a = 1.0f - x;
+	const float b = 1.0f + x;
+	const float product = a * b;
+	return sqrtf(product);
+}
+#endif
+
 Real ACos(Real x)
 {
 #if defined(_MSC_VER) && defined(_M_IX86)
 	return acosf(x);
+#elif defined(SAGE_RETAIL_RULES)
+	return (Real)atan2((double)retailSqrtOneMinusSquare(x), (double)x);
 #else
 	return (Real)acos((double)x);
 #endif
@@ -117,6 +136,8 @@ Real ASin(Real x)
 {
 #if defined(_MSC_VER) && defined(_M_IX86)
 	return asinf(x);
+#elif defined(SAGE_RETAIL_RULES)
+	return (Real)atan2((double)x, (double)retailSqrtOneMinusSquare(x));
 #else
 	return (Real)asin((double)x);
 #endif

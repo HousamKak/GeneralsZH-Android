@@ -653,7 +653,13 @@ WWINLINE float WWMath::Fast_Acos(float val)
 
 WWINLINE float WWMath::Acos(float val)
 {
+#if defined(SAGE_RETAIL_RULES)
+	// GeneralsX @bugfix ZH Commander 11/10/2026 Retail's acos bit for bit; see ACos in Trig.cpp.
+	const float product = (1.0f - val) * (1.0f + val);
+	return (float)atan2((double)sqrtf(product), (double)val);
+#else
 	return (float)acos(val);
+#endif
 }
 
 // ----------------------------------------------------------------------------
@@ -690,7 +696,13 @@ WWINLINE float WWMath::Fast_Asin(float val)
 
 WWINLINE float WWMath::Asin(float val)
 {
+#if defined(SAGE_RETAIL_RULES)
+	// GeneralsX @bugfix ZH Commander 11/10/2026 Retail's asin bit for bit; see ASin in Trig.cpp.
+	const float product = (1.0f - val) * (1.0f + val);
+	return (float)atan2((double)val, (double)sqrtf(product));
+#else
 	return (float)asin(val);
+#endif
 }
 
 // ----------------------------------------------------------------------------

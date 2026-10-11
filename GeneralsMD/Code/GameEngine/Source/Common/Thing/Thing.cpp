@@ -225,6 +225,20 @@ void Thing::setOrientation( Real angle )
 	}
 	else
 	{
+#if defined(SAGE_RETAIL_RULES)
+		// GeneralsX @bugfix ZH Commander 11/10/2026 The matrix retail Zero Hour 1.04 builds here.
+		// VC6 inlined the two cross products below and folded their constant terms (0*a to +0,
+		// a*1 to a, 0-a to -a), so retail's matrix has +0 where IEEE arithmetic gives -0 (the third
+		// row) and -0 at angle 0 (-sin 0). The values are equal; the bits are not, and the logic
+		// checksum hashes the bits: a retail replay failed at frame 0 on every rotated object.
+		// The GeneralsOnline client is modern MSVC, which keeps IEEE signs, so only retail rules.
+		const Real c = Cos(angle);
+		const Real s = Sin(angle);
+		m_transform.Set(  c,    -s,   0.0f, pos.x,
+											s,     c,   0.0f, pos.y,
+											0.0f, 0.0f, 1.0f, pos.z );
+		(void)x; (void)y; (void)z; (void)u;
+#else
 		z.x = 0.0f;
 		z.y = 0.0f;
 		z.z = 1.0f;
@@ -239,6 +253,7 @@ void Thing::setOrientation( Real angle )
 		m_transform.Set(  x.x, y.x, z.x, pos.x,
 											x.y, y.y, z.y, pos.y,
 											x.z, y.z, z.z, pos.z );
+#endif
 	}
 
 	//DEBUG_ASSERTCRASH(-PI <= angle && angle <= PI, ("Please pass only normalized (-PI..PI) angles to setOrientation (%f).", angle));
