@@ -144,6 +144,14 @@ if(SAGE_RETAIL_RULES)
         PRESERVE_SNIPING_EMPTY_STINGER_SITES=1
         PRESERVE_RETAIL_SCRIPTED_CAMERA=1
     )
+    # GeneralsX @bugfix HousamKak 12/10/2026 VC6 /O2 compiled every division by a compile-time
+    # constant as a multiplication by its rounded reciprocal (INI "120%" -> 1.19999993, not 1.2).
+    # clang does the same under -freciprocal-math, bit for bit. It also merges three or more
+    # divisions by one variable and hoists loop-invariant divisors, which VC6 never did; the
+    # functions where that happens open with GX_VC6_DIVISIONS (Lib/X87Real.h).
+    if(NOT MSVC)
+        add_compile_options(-freciprocal-math)
+    endif()
 endif()
 
 # Unlocks the render framerate. Required at 60 Hz, optional but desirable at 30.
