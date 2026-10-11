@@ -743,8 +743,9 @@ static NSString *installCommunityPatch(ZHPatchProgress *progress)
 	NSString *version = [manifest[@"version"] description] ?: @"";
 	NSString *downloadUrl = [manifest[@"download_url"] isKindOfClass:NSString.class] ? manifest[@"download_url"] : @"";
 	// Trimmed: one manifest published its digest with a leading space.
-	NSString *expectedSha = [[[manifest[@"sha256"] description] ?: @""
-		stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceAndNewlineCharacterSet] lowercaseString];
+	NSString *rawSha = [manifest[@"sha256"] description] ?: @"";
+	NSString *expectedSha = [[rawSha stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceAndNewlineCharacterSet]
+		lowercaseString];
 	if (![downloadUrl hasPrefix:@"https://"]) {
 		return @"The GeneralsOnline manifest has no usable download.";
 	}
@@ -921,13 +922,15 @@ static NSData *sha256Bytes(NSString *s)
 
 static NSString *goSyntheticMac(void)
 {
-	const unsigned char *b = (const unsigned char *)sha256Bytes([goInstallId() stringByAppendingString:@"|mac"]).bytes;
+	NSData *digest = sha256Bytes([goInstallId() stringByAppendingString:@"|mac"]);
+	const unsigned char *b = (const unsigned char *)digest.bytes;
 	return [NSString stringWithFormat:@"%02X:%02X:%02X:%02X:%02X:%02X", (b[0] & 0xFE) | 0x02, b[1], b[2], b[3], b[4], b[5]];
 }
 
 static NSString *goSyntheticVolumeSerial(void)
 {
-	const unsigned char *b = (const unsigned char *)sha256Bytes([goInstallId() stringByAppendingString:@"|vol"]).bytes;
+	NSData *digest = sha256Bytes([goInstallId() stringByAppendingString:@"|vol"]);
+	const unsigned char *b = (const unsigned char *)digest.bytes;
 	return [NSString stringWithFormat:@"%02X%02X%02X%02X", b[0], b[1], b[2], b[3]];
 }
 
@@ -953,17 +956,26 @@ static NSString *goSignedInName(void)
 }
 
 // One "key=value" per line, what GeneralsOnline_AndroidGlue.cpp reads (and rewrites on renewal).
+// A field the answer leaves out keeps the marker's earlier value (a renewal need not repeat the
+// name or the WebSocket address).
 static void writeSessionMarker(NSDictionary *auth)
 {
+	NSDictionary<NSString *, NSString *> *previous = readSessionMarker();
+	NSString *(^field)(NSString *) = ^NSString *(NSString *key) {
+		id value = auth[key];
+		NSString *text = value != nil && value != NSNull.null ? [value description] : @"";
+		return text.length > 0 ? text : (previous[key] ?: @"");
+	};
 	NSMutableString *text = [NSMutableString string];
-	[text appendFormat:@"session_token=%@\n", [auth[@"session_token"] description] ?: @""];
-	[text appendFormat:@"user_id=%@\n", [auth[@"user_id"] description] ?: @"-1"];
-	[text appendFormat:@"display_name=%@\n", [auth[@"display_name"] description] ?: @""];
-	[text appendFormat:@"ws_uri=%@\n", [auth[@"ws_uri"] description] ?: @""];
+	[text appendFormat:@"session_token=%@\n", field(@"session_token")];
+	NSString *userId = field(@"user_id");
+	[text appendFormat:@"user_id=%@\n", userId.length > 0 ? userId : @"-1"];
+	[text appendFormat:@"display_name=%@\n", field(@"display_name")];
+	[text appendFormat:@"ws_uri=%@\n", field(@"ws_uri")];
 	[text appendFormat:@"machine_guid=%@\n", goInstallId()];
 	[text appendFormat:@"mac_addr=%@\n", goSyntheticMac()];
 	[text appendFormat:@"vol_serial=%@\n", goSyntheticVolumeSerial()];
-	NSString *refresh = [auth[@"refresh_token"] description];
+	NSString *refresh = field(@"refresh_token");
 	if (refresh.length > 0) {
 		[text appendFormat:@"refresh_token=%@\n", refresh];
 	}
