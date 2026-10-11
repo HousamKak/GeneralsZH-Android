@@ -44,6 +44,20 @@
     <string name="data_offline">Couldn\'t reach the download server. Check your internet connection.</string>
     <string name="data_no_space">Not enough free space: free up about %1$d MB more on your phone first.</string>
     <string name="data_progress">%1$d / %2$d MB</string>
+    <string name="data_stats">%1$d / %2$d MB  ·  %3$s MB/s  ·  %4$s left</string>
+    <string name="data_eta_min">%1$d min</string>
+    <string name="data_eta_sec">%1$d s</string>
+    <string-array name="data_tips">
+        <item>Tip: tap DESELECT above the minimap to clear your selection, or to cancel an aimed power.</item>
+        <item>Tip: tap the minimap to look there; press and hold it to send your selected units.</item>
+        <item>Tip: double tap a unit to select every unit of that type on screen.</item>
+        <item>Tip: GROUPS opens ten control groups. Hold a number to save your selection, tap it to call it back.</item>
+        <item>Tip: ALERT jumps the camera to the last thing that happened, like your base under attack.</item>
+        <item>Tip: plug in a mouse and the game plays just like on a PC.</item>
+        <item>Tip: ZH COMMANDER, Zoom out lets you see more of the battlefield in skirmish and campaign.</item>
+        <item>Tip: online you play with PC players and phones alike, with nothing to set up.</item>
+        <item>Tip: a dozer that is building keeps building when you tap a unit right beside it.</item>
+    </string-array>
     <string name="data_crossplay_body">Getting the GeneralsOnline data, so you can play online with PC players and phones alike. This happens once, and again when GeneralsOnline updates it.</string>
     <string name="data_failed">The download stopped. Tap Download to continue where it left off.</string>
     <string name="data_button_download">Download</string>
