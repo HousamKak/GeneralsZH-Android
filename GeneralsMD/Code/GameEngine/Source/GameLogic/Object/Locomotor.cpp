@@ -48,6 +48,23 @@
 #if !(defined(_MSC_VER) && defined(_M_IX86))
 void gxPhysNote(Char kind, UnsignedInt id, const Real *values, Int count);
 #endif
+
+#if defined(SAGE_RETAIL_RULES)
+// GeneralsX @bugfix ZH Commander 11/10/2026 Retail Zero Hour 1.04 turns with more precision than
+// its own floats. x87 precision control (24 bits, setFPMode) rounds add, subtract, multiply,
+// divide and square root, but not fpatan, whose 64-bit result VC6 keeps in the register for the
+// next operation: retail's disassembly here is "fpatan; fst desiredAngle; fsub angle". So the
+// turn is (float)(atan2 - angle), not atan2 rounded to float first and then subtracted. Found
+// with a VC6 reference build: a dozer's pivot turn was a bit off at frame 90 of a retail replay;
+// this form reproduces every unclamped turn logged. Double stands in for the 64-bit register.
+static Real gxRetailAtan2Turn(Real dy, Real dx, Real angle, Real *desiredAngle)
+{
+	const double desired = atan2((double)dy, (double)dx);
+	*desiredAngle = (Real)desired;
+	return normalizeAngle((Real)(desired - (double)angle));
+}
+#endif
+
 #include "GameLogic/Module/BodyModule.h"
 #include "GameLogic/Module/AIUpdate.h"
 
@@ -1293,8 +1310,13 @@ void Locomotor::moveTowardsPositionWheels(Object* obj, PhysicsBehavior *physics,
 	Real angle = obj->getOrientation();
 //	Real relAngle = ThePartitionManager->getRelativeAngle2D( obj, &goalPos );
 //	Real desiredAngle = angle + relAngle;
+#if defined(SAGE_RETAIL_RULES)
+	Real desiredAngle;
+	Real relAngle = gxRetailAtan2Turn(goalPos.y - obj->getPosition()->y, goalPos.x - obj->getPosition()->x, angle, &desiredAngle);
+#else
 	Real desiredAngle = atan2(goalPos.y - obj->getPosition()->y, goalPos.x - obj->getPosition()->x);
 	Real relAngle = stdAngleDiff(desiredAngle, angle);
+#endif
 
 	Bool moveBackwards = false;
 
@@ -1765,8 +1787,13 @@ void Locomotor::moveTowardsPositionClimb(Object* obj, PhysicsBehavior *physics, 
 	Real angle = obj->getOrientation();
 //	Real relAngle = ThePartitionManager->getRelativeAngle2D( obj, &goalPos );
 //	Real desiredAngle = angle + relAngle;
+#if defined(SAGE_RETAIL_RULES)
+	Real desiredAngle;
+	Real relAngle = gxRetailAtan2Turn(goalPos.y - obj->getPosition()->y, goalPos.x - obj->getPosition()->x, angle, &desiredAngle);
+#else
 	Real desiredAngle = atan2(goalPos.y - obj->getPosition()->y, goalPos.x - obj->getPosition()->x);
 	Real relAngle = stdAngleDiff(desiredAngle, angle);
+#endif
 
 	if (moveBackwards) {
 		desiredAngle = stdAngleDiff(desiredAngle, PI);
@@ -2152,8 +2179,13 @@ PhysicsTurningType Locomotor::rotateObjAroundLocoPivot(Object* obj, const Coord3
 		Real dy = goalPos.y - turnPos.y;
 		// If we are very close to the goal, we twitch due to rounding error.  So just return. jba.
 		if (fabs(dx)<0.1f && fabs(dy)<0.1f) return TURN_NONE;
+#if defined(SAGE_RETAIL_RULES)
+		Real desiredAngle;
+		Real amount = gxRetailAtan2Turn(dy, dx, angle, &desiredAngle);
+#else
 		Real desiredAngle = atan2(dy, dx);
 		Real amount = stdAngleDiff(desiredAngle, angle);
+#endif
 		if (relAngle) *relAngle = amount;
 		if (amount>maxTurnRate) {
 			amount = maxTurnRate;
@@ -2190,8 +2222,13 @@ PhysicsTurningType Locomotor::rotateObjAroundLocoPivot(Object* obj, const Coord3
 	}
 	else
 	{
+#if defined(SAGE_RETAIL_RULES)
+		Real desiredAngle;
+		Real amount = gxRetailAtan2Turn(goalPos.y - obj->getPosition()->y, goalPos.x - obj->getPosition()->x, angle, &desiredAngle);
+#else
 		Real desiredAngle = atan2(goalPos.y - obj->getPosition()->y, goalPos.x - obj->getPosition()->x);
 		Real amount = stdAngleDiff(desiredAngle, angle);
+#endif
 		if (relAngle) *relAngle = amount;
 #if !(defined(_MSC_VER) && defined(_M_IX86))
 		{
@@ -2566,10 +2603,19 @@ void Locomotor::maintainCurrentPositionWings(Object* obj, PhysicsBehavior *physi
 		const Coord3D* pos = obj->getPosition();
 		Real dx = m_maintainPos.x - pos->x;
 		Real dy = m_maintainPos.y - pos->y;
+#if defined(SAGE_RETAIL_RULES)
+		// Retail adds aimDir to fpatan's 64-bit result; see gxRetailAtan2Turn.
+		const double gxTowardExact =
+				(isNearlyZero(dx) && isNearlyZero(dy)) ?
+				(double)obj->getOrientation() :
+				atan2((double)dy, (double)dx);
+		Real angleTowardMaintainPos = (Real)gxTowardExact;
+#else
 		Real angleTowardMaintainPos =
 				(isNearlyZero(dx) && isNearlyZero(dy)) ?
 				obj->getOrientation() :
 				atan2(dy, dx);
+#endif
 
 		Real aimDir = (PI - PI/8);
 		if (turnRadius < 0)
@@ -2577,7 +2623,11 @@ void Locomotor::maintainCurrentPositionWings(Object* obj, PhysicsBehavior *physi
 			turnRadius = -turnRadius;
 			aimDir = -aimDir;
 		}
+#if defined(SAGE_RETAIL_RULES)
+		angleTowardMaintainPos = (Real)(gxTowardExact + (double)aimDir);
+#else
 		angleTowardMaintainPos += aimDir;
+#endif
 
 		// project a spot "radius" dist away from it, in that dir
 		Coord3D desiredPos = m_maintainPos;
