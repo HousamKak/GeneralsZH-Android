@@ -65,6 +65,7 @@ uint64_t s_framesQueued = 0;
 
 SDL_Window *s_window = nullptr;
 SDL_GLContext s_context = nullptr;
+std::atomic<bool> s_contextReplaced{false};  // takeFromMain: a new context after a pause
 SDL_ThreadID s_mainThread = 0;
 bool s_watchInstalled = false;
 
@@ -272,6 +273,14 @@ void takeFromMain()
 	if (g_active || !s_thread.joinable() || s_stop.load())
 		return;
 	SDL_GLContext current = SDL_GL_GetCurrentContext();
+	// GeneralsX @bugfix ZH Commander 11/10/2026 SDL restores the old context on resume, or makes a new
+	// one when the old is gone. A new context has none of the game's buffers, textures or programs,
+	// and the next draw dies in the driver (the Mali glDrawElements crashes after a background).
+	// Say so, so the game can restart cleanly instead (d3d8gles_context_replaced).
+	if (current != nullptr && s_context != nullptr && current != s_context) {
+		s_contextReplaced.store(true);
+		fprintf(stderr, "[d3d8gles] render thread: the GL context was replaced during the pause\n");
+	}
 	if (current != nullptr)
 		s_context = current;
 	SDL_GL_MakeCurrent(s_window, nullptr);
@@ -607,4 +616,11 @@ extern "C" void d3d8gles_write_crash_context(void (*out)(const char *, size_t), 
 		if (len > 0)
 			out(buf, (size_t)len < sizeof(buf) ? (size_t)len : sizeof(buf) - 1);
 	}
+}
+
+// GeneralsX @bugfix ZH Commander 11/10/2026 True once a pause came back with a new GL context (see
+// takeFromMain). Read by SDL3GameEngine, a weak reference like the crash handler's above.
+extern "C" bool d3d8gles_context_replaced()
+{
+	return gxrt::s_contextReplaced.load();
 }

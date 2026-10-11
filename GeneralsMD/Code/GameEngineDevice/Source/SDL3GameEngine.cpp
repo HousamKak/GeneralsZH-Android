@@ -80,6 +80,7 @@ extern "C" void d3d8gles_SetPresentUncapped(bool uncapped);
 #endif
 #include "SDL3Device/GameClient/TouchInput.h"
 #include "SDL3Device/GameClient/AndroidTextEditor.h"
+#include "Common/ZHCommander.h"
 #if defined(__APPLE__)
 #include <TargetConditionals.h>
 #endif
@@ -152,6 +153,27 @@ static inline bool mobileShouldPauseRendering()
 // Logging every window-lifecycle-ish event this watcher already sees (plus a
 // few more that share the "Surface visibility changed" shape) so the next
 // device log can be matched against the freeze by timestamp.
+#if defined(__ANDROID__)
+// GeneralsX @bugfix ZH Commander 11/10/2026 A pause that came back with a new GL context
+// (gles_thread.cpp; a weak reference: builds without the GLES backend leave it null).
+extern "C" bool d3d8gles_context_replaced() __attribute__((weak));
+
+static void gxRestartAfterContextLoss()
+{
+	static bool asked = false;
+	if (asked) {
+		return;
+	}
+	asked = true;
+	fprintf(stderr, "[GX-LIFECYCLE] the graphics context was lost during the pause: restarting the game\n");
+	if (ZHCommander::hooks().restart != nullptr) {
+		ZHCommander::hooks().restart();
+	} else if (TheGameEngine != nullptr) {
+		TheGameEngine->setQuitting(TRUE);
+	}
+}
+#endif
+
 static void logMobileLifecycleEvent(const char *name)
 {
 	fprintf(stderr, "[GX-LIFECYCLE] %s at t=%ums\n", name, SDL_GetTicks());
@@ -2873,8 +2895,22 @@ void SDL3GameEngine::pollSDL3Events(void)
 				}
 				break;
 
+#if defined(__ANDROID__)
+			// GeneralsX @bugfix ZH Commander 11/10/2026 SDL had to make a new GL context on resume:
+			// every buffer, texture and program the game made is gone, and drawing on would crash in
+			// the driver. Restart cleanly instead.
+			case SDL_EVENT_RENDER_DEVICE_RESET:
+				gxRestartAfterContextLoss();
+				break;
+#endif
+
 			case SDL_EVENT_DID_ENTER_FOREGROUND:
 				m_IsActive = true;
+#if defined(__ANDROID__)
+				if (d3d8gles_context_replaced != nullptr && d3d8gles_context_replaced()) {
+					gxRestartAfterContextLoss();
+				}
+#endif
 				if (TheMouse) {
 					TheMouse->regainFocus();
 					TheMouse->refreshCursorCapture();

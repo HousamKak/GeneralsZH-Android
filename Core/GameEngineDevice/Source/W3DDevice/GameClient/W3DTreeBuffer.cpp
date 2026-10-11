@@ -781,8 +781,6 @@ void W3DTreeBuffer::loadTreesInVertexAndIndexBuffers(RefRenderObjListIterator *p
 
 
 			Int startVertex = m_curNumTreeVertices[bNdx];
-			m_trees[curTree].firstIndex = startVertex;
-			m_trees[curTree].bufferNdx = bNdx;
 			Int i;
 			Int numVertex = m_treeTypes[type].m_mesh->Peek_Model()->Get_Vertex_Count();
 			Vector3 *pVert = m_treeTypes[type].m_mesh->Peek_Model()->Get_Vertex_Array();
@@ -798,6 +796,14 @@ void W3DTreeBuffer::loadTreesInVertexAndIndexBuffers(RefRenderObjListIterator *p
 			if (m_curNumTreeIndices[bNdx]+3*numIndex+6 >= MAX_TREE_INDEX) {
 				break;
 			}
+			// GeneralsX @bugfix ZH Commander 11/10/2026 The tree's place in the buffer is recorded only
+			// once it is known to fit. It used to be recorded before the two checks above, so in the
+			// last buffer the tree that did not fit kept a firstIndex at the buffer's end, and when a
+			// unit later pushed or toppled it, updateVertexBuffer wrote its vertices past the end of the
+			// buffer (App Monitor crash #4, SIGSEGV in W3DTreeBuffer::updateVertexBuffer on a phone,
+			// where the vertex buffer is mapped to its exact size).
+			m_trees[curTree].firstIndex = startVertex;
+			m_trees[curTree].bufferNdx = bNdx;
 
 			const Vector2*uvs=m_treeTypes[type].m_mesh->Peek_Model()->Get_UV_Array_By_Index(0);
 
@@ -1020,6 +1026,11 @@ void W3DTreeBuffer::updateVertexBuffer()
 			Int i;
 			Int numVertex = m_treeTypes[type].m_mesh->Peek_Model()->Get_Vertex_Count();
 			Vector3 *pVert = m_treeTypes[type].m_mesh->Peek_Model()->Get_Vertex_Array();
+			// GeneralsX @bugfix ZH Commander 11/10/2026 Only vertices this buffer actually holds: a tree
+			// the last rebuild could not fit has none here (see loadTreesInVertexAndIndexBuffers).
+			if (startVertex < 0 || startVertex + numVertex > m_curNumTreeVertices[bNdx]) {
+				continue;
+			}
 
 			for (i=0; i<numVertex; i++) {
 				Real x = pVert[i].X;
