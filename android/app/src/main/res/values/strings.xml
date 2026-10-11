@@ -44,6 +44,14 @@
     <string name="data_offline">Couldn\'t reach the download server. Check your internet connection.</string>
     <string name="data_no_space">Not enough free space: free up about %1$d MB more on your phone first.</string>
     <string name="data_progress">%1$d / %2$d MB</string>
+    <string name="license_blocked_title">ZH Commander key</string>
+    <string name="license_revoked_body">This key no longer works. If you think this is a mistake, contact us on WhatsApp.</string>
+    <string name="license_revoked_body_reason">This key no longer works (%1$s). If you think this is a mistake, contact us on WhatsApp.</string>
+    <string name="license_moved_body">This key was moved to another phone, so it no longer plays on this one. Contact us on WhatsApp if you need it back here.</string>
+    <string name="license_offline_body">Connect to the internet once to keep playing: the game has not been able to check its key for %1$d days.</string>
+    <string name="license_button_retry">Check again</string>
+    <string name="license_button_contact">WhatsApp</string>
+    <string name="license_button_close">Close</string>
     <string name="data_stats">%1$d / %2$d MB  ·  %3$s MB/s  ·  %4$s left</string>
     <string name="data_eta_min">%1$d min</string>
     <string name="data_eta_sec">%1$d s</string>

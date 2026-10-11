@@ -186,6 +186,15 @@ public class SetupActivity extends Activity {
             // A required release is installed before the game starts. Everything else that a
             // check finds (an optional release, newer game data) the game offers itself, on its
             // main menu (MainMenu.cpp, through ZHBridge).
+            // GeneralsX @feature ZH Commander 11/10/2026 The license's standing (LicenseStatus): asked
+            // in the background for the next start and the game's notice; a phone the server
+            // already said is revoked or moved, or that has been offline too long, stops here.
+            LicenseStatus.refreshAsync(this);
+            String blocked = LicenseStatus.blockReason(this);
+            if (blocked != null) {
+                showLicenseBlocked(blocked);
+                return;
+            }
             // GeneralsX @feature ZH Commander 11/10/2026 ...and the GeneralsOnline data cross-play
             // needs is fetched first, on the game-data screen (ZeroSetup.patchNeeded).
             Class<?> next = ZeroSetup.patchNeeded(this) ? DataDownloadActivity.class : GeneralsZHActivity.class;
@@ -998,6 +1007,56 @@ public class SetupActivity extends Activity {
             w.write(Integer.toString(percent));
         } catch (java.io.IOException e) {
             android.util.Log.w("SetupActivity", "could not write " + file.getName(), e);
+        }
+    }
+
+    // GeneralsX @feature ZH Commander 11/10/2026 A phone LicenseStatus says may not play: why, a way
+    // to reach the owner, and a second look (after an internet hiccup, or a revoke taken back).
+    private void showLicenseBlocked(String why) {
+        String body;
+        if ("revoked".equals(why)) {
+            String reason = LicenseStatus.reason(this);
+            body = reason != null && !reason.isEmpty()
+                ? getString(R.string.license_revoked_body_reason, reason) : getString(R.string.license_revoked_body);
+        } else if ("moved".equals(why)) {
+            body = getString(R.string.license_moved_body);
+        } else {
+            body = getString(R.string.license_offline_body, LicenseStatus.OFFLINE_LIMIT_DAYS);
+        }
+        new android.app.AlertDialog.Builder(this)
+            .setTitle(R.string.license_blocked_title)
+            .setMessage(body)
+            .setCancelable(false)
+            .setPositiveButton(R.string.license_button_retry, (d, w) -> {
+                final android.content.Context app = getApplicationContext();
+                new Thread(() -> {
+                    LicenseStatus.refresh(app);
+                    runOnUiThread(() -> {
+                        startActivity(new Intent(this, SetupActivity.class));
+                        finish();
+                    });
+                }, "GXLicenseRetry").start();
+            })
+            .setNeutralButton(R.string.license_button_contact, (d, w) -> {
+                openOwnerWhatsApp();
+                finish();
+            })
+            .setNegativeButton(R.string.license_button_close, (d, w) -> finish())
+            .show();
+    }
+
+    // The owner's WhatsApp, the number in the activation screen's offer text.
+    private void openOwnerWhatsApp() {
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile("\\+?\\d[\\d ]{6,}\\d")
+            .matcher(getString(R.string.activation_buy, "0", "0"));
+        if (!m.find()) {
+            return;
+        }
+        Uri chat = Uri.parse("https://wa.me/" + m.group().replaceAll("[^0-9]", ""));
+        try {
+            startActivity(new Intent(Intent.ACTION_VIEW, chat));
+        } catch (android.content.ActivityNotFoundException e) {
+            Toast.makeText(this, m.group(), Toast.LENGTH_LONG).show();
         }
     }
 

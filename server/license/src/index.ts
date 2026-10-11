@@ -4,11 +4,14 @@
 // hash of its device id to /v1/activate; the first device to redeem a key owns it, and gets back
 // a license signed with an ECDSA P-256 key that never leaves this Worker. The app verifies that
 // signature offline against the public key compiled into it (LicenseGate.java), so a license
-// cannot be forged and does not move to another phone. Activation is forever: nothing is
-// re-checked after it.
+// cannot be forged and does not move to another phone.
+// ZH Commander 11/10/2026: since 0.1.24 the app also asks /v1/status at start (status.ts), so a
+// revoked key, or one reset to another phone, stops the game the next time the phone is online;
+// the same answer carries the owner's messages to players.
 
 import { json, normalizeCode, readJson } from "./codes";
 import { fail, getKey, listKeys, mintKeys, resetDevice, revokeKey, stats, updateKey } from "./admin";
+import { createMessage, listMessages, status, withdrawMessage } from "./status";
 import { paypalCapture, paypalConfig, paypalKeyLookup, paypalOrder, type PayPalEnv } from "./paypal";
 
 interface Env extends PayPalEnv {
@@ -26,6 +29,10 @@ export default {
 		try {
 			if (request.method === "POST" && url.pathname === "/v1/activate") {
 				return await activate(request, env);
+			}
+			// ZH Commander 11/10/2026: the app's check at start (status.ts).
+			if (request.method === "POST" && url.pathname === "/v1/status") {
+				return await status(request, env);
 			}
 			if (url.pathname.startsWith("/v1/paypal/")) {
 				const route = `${request.method} ${url.pathname.slice("/v1/paypal/".length)}`;
@@ -57,6 +64,12 @@ async function adminRoute(request: Request, url: URL, env: Env): Promise<Respons
 		if (m === "POST") return mintKeys(request, env);
 	}
 	if (path === "/admin/stats" && m === "GET") return stats(env);
+	if (path === "/admin/messages") {
+		if (m === "GET") return listMessages(url, env);
+		if (m === "POST") return createMessage(request, env);
+	}
+	const message = path.match(/^\/admin\/messages\/(\d+)$/);
+	if (message && m === "DELETE") return withdrawMessage(message[1], env);
 	// Older form, kept for gzh-key.sh: POST /admin/keys/revoke {key}.
 	if (path === "/admin/keys/revoke" && m === "POST") {
 		const body = await readJson(request);

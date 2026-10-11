@@ -105,6 +105,45 @@ final class ZHBridge {
             .putExtra(SetupActivity.EXTRA_SHARE_REPORT, true));
     }
 
+    // GeneralsX @feature ZH Commander 11/10/2026 The owner's notice for the game's main menu
+    // (LicenseStatus): "title\u0001body\u0001button\u0001blocking", or null when there is none.
+    private static volatile String sNoticeUrl;
+
+    static String playerNotice() {
+        Activity a = game();
+        String why = LicenseStatus.blockReason(a);
+        if ("revoked".equals(why) || "moved".equals(why)) {
+            String reason = LicenseStatus.reason(a);
+            String body = "moved".equals(why) ? a.getString(R.string.license_moved_body)
+                : reason != null && !reason.isEmpty() ? a.getString(R.string.license_revoked_body_reason, reason)
+                : a.getString(R.string.license_revoked_body);
+            sNoticeUrl = null;
+            return a.getString(R.string.license_blocked_title) + "\u0001" + body + "\u0001\u00011";
+        }
+        org.json.JSONObject m = LicenseStatus.takeMessage(a);
+        if (m == null) {
+            return null;
+        }
+        String label = m.isNull("button_label") ? "" : m.optString("button_label", "");
+        String url = m.isNull("button_url") ? "" : m.optString("button_url", "");
+        sNoticeUrl = url.isEmpty() ? null : url;
+        return m.optString("title", "") + "\u0001" + m.optString("body", "") + "\u0001"
+            + (sNoticeUrl != null ? label : "") + "\u00010";
+    }
+
+    static void openNoticeLink() {
+        String url = sNoticeUrl;
+        if (url == null) {
+            return;
+        }
+        Activity a = game();
+        try {
+            a.startActivity(new Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url)));
+        } catch (android.content.ActivityNotFoundException e) {
+            android.util.Log.w("ZHBridge", "no app for " + url);
+        }
+    }
+
     /** GeneralsOnline's screen, where cross-play ("Play with PC players") is switched on. */
     static void openCrossPlay() {
         Activity a = game();

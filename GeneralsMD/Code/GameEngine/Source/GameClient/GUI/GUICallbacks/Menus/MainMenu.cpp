@@ -852,6 +852,49 @@ static void zhCommanderUpdate()
 		}
 	}
 
+	// GeneralsX @feature ZH Commander 11/10/2026 The owner's notices (LicenseStatus in the shell):
+	// a message for everyone, this key or this phone, shown once; or that this key no longer plays
+	// on this phone, which ends the game. The shell learns either in the background a few seconds
+	// after start, which is why this is asked on every poll rather than once.
+	if (h.playerNotice != nullptr)
+	{
+		static char notice[4096];
+		if (h.playerNotice(notice, sizeof(notice)))
+		{
+			const char *parts[4] = { notice, "", "", "0" };
+			Int count = 1;
+			for (char *p = notice; *p && count < 4; ++p)
+			{
+				if (*p == '\x01')
+				{
+					*p = '\0';
+					parts[count++] = p + 1;
+				}
+			}
+			const UnicodeString title = utf8ToUnicode( parts[0] );
+			const UnicodeString body = utf8ToUnicode( parts[1] );
+			const UnicodeString button = utf8ToUnicode( parts[2] );
+			if (parts[3][0] == '1')
+			{
+				if (!zhNotesBox( title, UnicodeString::TheEmptyString, body, UnicodeString( L"QUIT" ), quitCallback,
+						UnicodeString::TheEmptyString, nullptr ))
+					MessageBoxOk( title, body, quitCallback );
+			}
+			else if (!button.isEmpty())
+			{
+				if (!zhNotesBox( title, UnicodeString::TheEmptyString, body, button, h.openNoticeLink,
+						UnicodeString( L"CLOSE" ), nullptr ))
+					MessageBoxYesNo( title, body, h.openNoticeLink, nullptr );
+			}
+			else if (!zhNotesBox( title, UnicodeString::TheEmptyString, body, UnicodeString( L"OK" ), nullptr,
+					UnicodeString::TheEmptyString, nullptr ))
+			{
+				MessageBoxOk( title, body, nullptr );
+			}
+			return;
+		}
+	}
+
 	char version[32];
 	bool mandatory = false;
 	if (!s_appOfferAsked && h.appUpdateOffer(version, sizeof(version), &mandatory))

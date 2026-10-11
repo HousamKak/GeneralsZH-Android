@@ -17,6 +17,12 @@ How it works:
 Reinstalling the app on the same phone re-activates with the same key. A factory reset changes
 `ANDROID_ID`, so that phone needs a new key. `revoke` only stops a key that has not been used yet.
 
+Since app 0.1.24 the app also asks `POST /v1/status` at every start (`src/status.ts`): a revoked
+key, or one reset to another phone (`moved`), stops the game at that phone's next online start, and
+a phone offline for 30 days must connect once. The same answer carries the owner's messages to
+players (`/admin/messages`, migration `0004`); see
+the App Monitor spec `specs/zh-commander-player-messages.md`.
+
 The code being public does not weaken it: what protects it is the private key. Anyone can still
 patch the check out of an APK; this stops casual sharing, not a determined cracker.
 

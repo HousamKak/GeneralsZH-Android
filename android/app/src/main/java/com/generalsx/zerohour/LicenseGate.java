@@ -26,8 +26,8 @@ import java.security.spec.X509EncodedKeySpec;
  * <p>The player types a one-time key the owner minted; {@link #activate} sends it with a hash of
  * this device's id, and the server answers with a license signed by a key that never leaves it.
  * The license is verified here against {@link #PUBLIC_KEY_B64} on every start, offline, and must
- * name this device -- so it can be neither forged nor copied to another phone. Once activated,
- * nothing is checked online again.
+ * name this device -- so it can be neither forged nor copied to another phone. Since 0.1.24 the
+ * key's standing (revoked, moved to another phone) is also asked at start: LicenseStatus.
  */
 final class LicenseGate {
     private LicenseGate() {}

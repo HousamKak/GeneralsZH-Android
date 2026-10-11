@@ -70,6 +70,12 @@ namespace ZHCommander
 		// GeneralsX @feature ZH Commander 11/10/2026 The shell's GeneralsOnline screen, where "Play
 		// with PC players" is (cross-play: the PC data, 60 Hz and the PC client's checksum).
 		void (*openCrossPlay)();
+		// GeneralsX @feature ZH Commander 11/10/2026 A notice from the owner (LicenseStatus): the
+		// next message not shown yet, or that this key no longer plays on this phone. Written as
+		// "title\x01body\x01button label\x01blocking" (blocking "1": the game must end). The
+		// button, when there is one, opens the message's link (openNoticeLink).
+		bool (*playerNotice)(char *text, int size);
+		void (*openNoticeLink)();
 
 		// Release notes (UTF-8, in the game's text language): this version's, once after an update
 		// ("What's new"), and an offered version's, for the update dialog. Body lines start "• ".

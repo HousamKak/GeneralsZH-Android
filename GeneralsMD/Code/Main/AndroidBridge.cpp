@@ -203,6 +203,8 @@ static void onlineSignIn() { callVoid("onlineSignIn"); }
 static void onlineSignOut() { callVoid("onlineSignOut"); }
 static void onlineCreateAccount() { callVoid("onlineCreateAccount"); }
 static void openCrossPlay() { callVoid("openCrossPlay"); }
+static void openNoticeLink() { callVoid("openNoticeLink"); }
+static bool playerNotice(char *text, int size) { return callString("playerNotice", nullptr, text, size); }
 static void startAppUpdate() { callVoid("startAppUpdate"); }
 static void startDataUpdate() { callVoid("startDataUpdate"); }
 static void shareSupportReport() { callVoid("shareSupportReport"); }
@@ -241,6 +243,8 @@ void ZHAndroidInstallHooks()
 	h.onlineSignOut = onlineSignOut;
 	h.onlineCreateAccount = onlineCreateAccount;
 	h.openCrossPlay = openCrossPlay;
+	h.playerNotice = playerNotice;
+	h.openNoticeLink = openNoticeLink;
 	h.openMods = openMods;
 	h.modsSummary = modsSummary;
 	h.gameplayMods = gameplayMods;
