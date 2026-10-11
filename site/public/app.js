@@ -56,7 +56,7 @@
 		f3_t: "30 أو 60 هرتز",
 		f3_b: "سرعة اللعبة الأصلية، أو 60 هرتز لتطابق نسخة GeneralsOnline على الكمبيوتر.",
 		f4_t: "أونلاين وشبكة محلية",
-		f4_b: "غرف GeneralsOnline واللعب السريع واللعب مع الكمبيوتر، ومباريات بين الهواتف على نفس شبكة الواي فاي.",
+		f4_b: "غرف GeneralsOnline واللعب السريع و<a href=\"/pc\">اللعب مع الكمبيوتر</a>، ومباريات بين الهواتف على نفس شبكة الواي فاي.",
 		f5_t: "محرّكا رسوميات",
 		f5_b: "OpenGL ES افتراضيًا، وVulkan إذا كان هاتفك يدعمه.",
 		f6_t: "13 لغة منها العربية",
@@ -71,6 +71,7 @@
 		q4: "مقابل ماذا أدفع ثمن المفتاح؟",
 		a4: "لبناء هذه النسخة ودعمها. الكود المصدري يبقى مفتوحًا بترخيص GPL: <a href=\"https://github.com/HousamKak/GeneralsZH-Android\" rel=\"noopener\" dir=\"ltr\">github.com/HousamKak/GeneralsZH-Android</a>.",
 		disclaimer: "ZH Commander مشروع غير رسمي من المعجبين، غير تابع لشركة Electronic Arts ولا معتمد منها. Command &amp; Conquer وGenerals علامتان تجاريتان لشركة Electronic Arts.",
+		pc_link: "العب مع أصدقائك على الكمبيوتر",
 		privacy_link: "الخصوصية"
 	};
 
