@@ -385,6 +385,29 @@ WebGLPipeline *WebGLPipeline::get()
 	return s_instance;
 }
 
+// gles_thread.cpp: true once a pause came back with a new GL context.
+extern "C" bool d3d8gles_context_replaced();
+
+// GeneralsX @bugfix ZH Commander 11/10/2026 App Monitor #7: SIGSEGV reading address 0x955d8 inside
+// glDrawElements on a Galaxy A55 (Xclipse). When SDL brings the app back with a NEW GL context,
+// every name this pipeline holds (buffers, VAOs, programs, textures) belongs to the old one. The
+// game is asked to restart (SDL3GameEngine's gxRestartAfterContextLoss), but the process only
+// ends ~400 ms later and the engine keeps drawing in between: glBindVertexArray of a cached VAO
+// fails in the new context, the default VAO stays bound with no element buffer, and the next
+// indexed draw hands its byte offset to the driver as a client pointer. The persistent mappings
+// (index stream, dynamic VBs/IBs) are the old context's too. So from that moment the backend
+// issues no GL work at all; the screen holds still until the restart.
+bool WebGLPipeline::contextLive()
+{
+	if (!m_ctxReady)
+		return false;
+	if (!m_ctxLost && d3d8gles_context_replaced()) {
+		m_ctxLost = true;
+		fprintf(stderr, "[d3d8gles] GL context replaced during a pause: no more GL work until the restart\n");
+	}
+	return !m_ctxLost;
+}
+
 bool WebGLPipeline::initContext(int w, int h, SDL_Window *window)
 {
 	if (m_ctxReady) {
@@ -2535,6 +2558,22 @@ void WebGLPipeline::bindVertexLayout(const FVFLayout &l, GLuint vbo, GLuint ibo,
 
 	const uint64_t hash = hashVAOKey(key);
 	auto it = m_vaoCache.find(hash);
+	// GeneralsX @bugfix ZH Commander 11/10/2026 A hash match is not a key match. A colliding
+	// entry is another (vbo, ibo) pair's VAO, possibly one built for a non-indexed draw with no
+	// element buffer at all, and an indexed draw through it reads its offset as a client pointer
+	// (the App Monitor #7 signature). Unlike a wrong program, that is a crash, not a wrong
+	// colour, so check the key the entry already carries; a collision binds uncached.
+	if (it != m_vaoCache.end() && !(it->second.key == key)) {
+		WARN_ONCE(s_vaoCollision, "VAO cache hash collision (vbo %u ibo %u fvf 0x%x): binding uncached",
+		          vbo, ibo, fvf);
+		glBindVertexArray(0);
+		bindArrayBuffer(vbo);
+		enableAttribs(l);
+		setAttribPointers(l, stride, base);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
+		m_haveLastVAOKey = false;
+		return;
+	}
 	if (it != m_vaoCache.end()) {
 		// GeneralsX @build Android port GLES experiment - this counts as a
 		// hit, not a miss: the VAO *object* is reused either way, which is
@@ -3028,7 +3067,7 @@ void WebGLPipeline::stretchVirtualBackbuffer()
 
 bool WebGLPipeline::upscaleSceneNow()
 {
-	if (!m_ctxReady || !m_vbActive || m_vbUpscaled)
+	if (!contextLive() || !m_vbActive || m_vbUpscaled)
 		return false;
 	// A scene in this frame: the next frames render it below the game's resolution again.
 	m_vbSceneSeen = true;
@@ -3149,6 +3188,18 @@ void WebGLPipeline::drawCommon(WebGLDevice *dev, unsigned primType, unsigned pri
 	FVFLayout l;
 	if (!parseFVF(fvf, &l)) {
 		WARN_ONCE(s_fvf, "unsupported FVF 0x%x", fvf);
+		return;
+	}
+	// GeneralsX @bugfix ZH Commander 11/10/2026 An indexed draw with no index buffer is
+	// D3DERR_INVALIDCALL in Direct3D 8: nothing is drawn. Issued to GL instead, glDrawElements
+	// takes the byte offset as a client-memory pointer, and a Galaxy A55 died reading address
+	// 0x955d8 inside its driver (App Monitor #7). Refuse it the way D3D does. A non-zero name
+	// that is no longer a live buffer is not tested here (glIsBuffer would wait for the render
+	// thread on every draw): names this pipeline deletes leave the VAO cache with them
+	// (evictVAOsForBuffer), and names from a replaced context never reach a draw (contextLive).
+	if (indexFormat != 0 && ibo == 0) {
+		WARN_ONCE(s_noIbo, "indexed draw with no index buffer (fvf 0x%x, start index %u, %u primitives) refused, as D3D8 does",
+			fvf, startIndex, primCount);
 		return;
 	}
 	if (stride == 0) stride = l.stride;
@@ -3670,7 +3721,7 @@ bool WebGLPipeline::streamIndices(const void *src, size_t bytes, GLuint *name, s
 void WebGLPipeline::drawIndexed(WebGLDevice *dev, unsigned primType, unsigned minIndex,
                                 unsigned numVertices, unsigned startIndex, unsigned primCount)
 {
-	if (!m_ctxReady) return;
+	if (!contextLive()) return;
 	WebGLVertexBuffer *vb = dev->getStream0();
 	WebGLIndexBuffer *ib = dev->getIndices();
 	if (!vb || !ib) return;
@@ -3741,7 +3792,7 @@ void WebGLPipeline::drawIndexed(WebGLDevice *dev, unsigned primType, unsigned mi
 
 void WebGLPipeline::draw(WebGLDevice *dev, unsigned primType, unsigned startVertex, unsigned primCount)
 {
-	if (!m_ctxReady) return;
+	if (!contextLive()) return;
 	WebGLVertexBuffer *vb = dev->getStream0();
 	if (!vb) return;
 
@@ -3759,7 +3810,7 @@ void WebGLPipeline::drawUP(WebGLDevice *dev, unsigned primType, unsigned primCou
                            const void *vertexData, unsigned stride)
 {
 	s_gxDrawAfterWrite = true; // streamed right before the draw
-	if (!m_ctxReady || !vertexData) return;
+	if (!contextLive() || !vertexData) return;
 	const unsigned fvf = dev->getFVF();
 	FVFLayout l;
 	if (!parseFVF(fvf, &l)) return;
@@ -3787,7 +3838,7 @@ void WebGLPipeline::drawIndexedUP(WebGLDevice *dev, unsigned primType, unsigned 
                                   const void *vertexData, unsigned stride)
 {
 	s_gxDrawAfterWrite = true; // streamed right before the draw
-	if (!m_ctxReady || !vertexData || !indexData) return;
+	if (!contextLive() || !vertexData || !indexData) return;
 	const unsigned fvf = dev->getFVF();
 	FVFLayout l;
 	if (!parseFVF(fvf, &l)) return;
@@ -3824,7 +3875,7 @@ void WebGLPipeline::drawIndexedUP(WebGLDevice *dev, unsigned primType, unsigned 
 
 void WebGLPipeline::clear(WebGLDevice *dev, unsigned flags, uint32_t argb, float z, unsigned stencil)
 {
-	if (!m_ctxReady) return;
+	if (!contextLive()) return;
 
 
 	// D3D clears the viewport region only.
@@ -3895,7 +3946,7 @@ void WebGLPipeline::clear(WebGLDevice *dev, unsigned flags, uint32_t argb, float
 
 void WebGLPipeline::setRenderTarget(WebGLDevice * /*dev*/, WebGLTexture *tex)
 {
-	if (!m_ctxReady) return;
+	if (!contextLive()) return;
 
 	if (tex == nullptr) {
 		glBindFramebuffer(GL_FRAMEBUFFER, backbufferFBO());
@@ -4005,7 +4056,7 @@ void WebGLPipeline::setRenderTarget(WebGLDevice * /*dev*/, WebGLTexture *tex)
 // which is why the symptom looked aircraft-specific.
 void WebGLPipeline::readbackRenderTarget(WebGLTexture *tex)
 {
-	if (!m_ctxReady || tex == nullptr || tex->m_gl.fbo == 0 || tex->m_levels.empty()) return;
+	if (!contextLive() || tex == nullptr || tex->m_gl.fbo == 0 || tex->m_levels.empty()) return;
 
 	WebGLSurface *s = tex->m_levels[0];
 	const int w = (int)s->m_width;
@@ -4057,7 +4108,7 @@ void WebGLPipeline::debugSampleRenderTarget(WebGLTexture *tex, const char *tag)
 {
 	static int s_samplesLeft = 4;
 	if (s_samplesLeft <= 0) return;
-	if (!m_ctxReady || tex == nullptr || tex->m_gl.fbo == 0 || tex->m_levels.empty()) return;
+	if (!contextLive() || tex == nullptr || tex->m_gl.fbo == 0 || tex->m_levels.empty()) return;
 
 	const int w = (int)tex->m_levels[0]->m_width;
 	const int h = (int)tex->m_levels[0]->m_height;
@@ -4102,7 +4153,7 @@ void WebGLPipeline::debugSampleRenderTarget(WebGLTexture *tex, const char *tag)
 
 void WebGLPipeline::present()
 {
-	if (!m_ctxReady) return;
+	if (!contextLive()) return;
 	m_frame++;
 
 

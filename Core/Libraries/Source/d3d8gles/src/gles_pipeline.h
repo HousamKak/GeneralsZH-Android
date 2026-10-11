@@ -151,6 +151,8 @@ public:
 	bool initContext(int backbufferWidth, int backbufferHeight, SDL_Window *window);
 	void resize(int backbufferWidth, int backbufferHeight);
 	bool ready() const { return m_ctxReady; }
+	// m_ctxReady and the context it was made for is still the current one (see the .cpp).
+	bool contextLive();
 
 	// D3D entry points (called from WebGLDevice with `this` device state).
 	void clear(WebGLDevice *dev, unsigned flags, uint32_t argbColor, float z, unsigned stencil);
@@ -548,6 +550,7 @@ private:
 	uint64_t computeProgramKey(WebGLDevice *dev, unsigned fvf) const;
 
 	bool m_ctxReady = false;
+	bool m_ctxLost = false; // GeneralsX @bugfix ZH Commander 11/10/2026 the context was replaced: contextLive()
 	bool m_hasS3TC = false;
 	int m_fbWidth = 0;
 	int m_fbHeight = 0;
