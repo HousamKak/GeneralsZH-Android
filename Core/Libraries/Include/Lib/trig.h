@@ -23,11 +23,21 @@
 
 #pragma once
 
+#if defined(SAGE_RETAIL_RULES)
+// GeneralsX @feature ZH Commander 11/10/2026 Retail returns these unrounded; see Lib/X87Real.h.
+#include "Lib/X87Real.h"
+X87Real Sin(Real);
+X87Real Cos(Real);
+X87Real Tan(Real);
+X87Real ACos(Real);
+X87Real ASin(Real x);
+#else
 Real Sin(Real);
 Real Cos(Real);
 Real Tan(Real);
 Real ACos(Real);
 Real ASin(Real x);
+#endif
 // GeneralsX @feature fbraz 03/05/2026 Add shared Sqrt gateway to route core geometry math.
 // Upstream reference: Okladnoj, PR #2670
 // https://github.com/TheSuperHackers/GeneralsGameCode/pull/2670

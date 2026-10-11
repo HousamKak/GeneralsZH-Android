@@ -998,18 +998,39 @@ Real BaseHeightMapRenderObjClass::getHeightMapHeight(Real x, Real y, Coord3D* no
 		// Interpolate to get the smoothed valued.
 		Real deltaZ_X_Left = deltaZ_X0*(1.0f-fx) + fx*deltaZ_X3;
 		Real deltaZ_X_Right = deltaZ_X1*(1.0f-fx) + fx*deltaZ_X2;
+#if defined(SAGE_RETAIL_RULES)
+		// GeneralsX @bugfix ZH Commander 11/10/2026 Retail rules: retail's x87 runs at 24-bit
+		// precision, so "1.0 - fy" and every product and sum here round to float, where IEEE double
+		// arithmetic (the 1.0 is a double) rounds only once at the store.
+		Real deltaZ_X = deltaZ_X_Left*(1.0f-fy) + fy*deltaZ_X_Right;
+#else
 		Real deltaZ_X = deltaZ_X_Left*(1.0-fy) + fy*deltaZ_X_Right;
+#endif
 
 		Real deltaZ_Y_Left = deltaZ_Y0*(1.0f-fx) + fx*deltaZ_Y3;
 		Real deltaZ_Y_Right = deltaZ_Y1*(1.0f-fx) + fx*deltaZ_Y2;
+#if defined(SAGE_RETAIL_RULES)
+		Real deltaZ_Y = deltaZ_Y_Left*(1.0f-fy) + fy*deltaZ_Y_Right;
+#else
 		Real deltaZ_Y = deltaZ_Y_Left*(1.0-fy) + fy*deltaZ_Y_Right;
+#endif
 
 
 
+#if defined(SAGE_RETAIL_RULES)
+			// GeneralsX @bugfix ZH Commander 11/10/2026 Retail rules: the cross product as retail's
+			// machine code computes it. VC6 folded the constant terms (0*t to 0, 0-t to -t), leaving
+			// x = deltaZ_X*-A, y = deltaZ_Y*-A, z = A*A: on flat ground that is -0 where IEEE gives
+			// +0, and a Nuke bunker built there had -0 in its matrix in a retail replay.
+			const Real gxA = 2*MAP_XY_FACTOR/MAP_HEIGHT_SCALE;
+			Vector3 normalAtTexel(deltaZ_X * -gxA, deltaZ_Y * -gxA, gxA * gxA);
+			normalAtTexel.Normalize();
+#else
 			Vector3 l2r, n2f, normalAtTexel;
 			l2r.Set(2*MAP_XY_FACTOR/MAP_HEIGHT_SCALE, 0, deltaZ_X);
 			n2f.Set(0, 2*MAP_XY_FACTOR/MAP_HEIGHT_SCALE, deltaZ_Y);
 			Vector3::Normalized_Cross_Product(l2r,n2f, &normalAtTexel);
+#endif
 			normal->x = normalAtTexel.X;
 			normal->y = normalAtTexel.Y;
 			normal->z = normalAtTexel.Z;
