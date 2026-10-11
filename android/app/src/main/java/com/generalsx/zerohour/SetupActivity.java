@@ -78,6 +78,8 @@ public class SetupActivity extends Activity {
 
     static final String PREFS_NAME = "generalszh_setup";
     static final String PREF_SKIP_INTRO = "skip_intro";
+    // The GPU name from the last probe (detectGpuName), for when probing is not safe.
+    static final String PREF_GPU_NAME = "gpu_name";
 
     static boolean isSkipIntroEnabled(android.content.Context ctx) {
         return ctx.getSharedPreferences(PREFS_NAME, MODE_PRIVATE).getBoolean(PREF_SKIP_INTRO, false);
@@ -1491,6 +1493,16 @@ public class SetupActivity extends Activity {
         if (cachedGpuName != null) {
             return cachedGpuName;
         }
+        // GeneralsX @bugfix ZH Commander 11/10/2026 Never probe while the game is running in this
+        // process. The probe ends in eglTerminate(EGL_DEFAULT_DISPLAY), and the game's context lives
+        // on that same display: back from these settings, the game's next draw ran in a destroyed
+        // context and the Mali driver died in glDrawElements (crash.log of 11/10, twice). The name
+        // from an earlier probe, made before the game started, is shown instead.
+        SharedPreferences gpuPrefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        Activity runningGame = ZHBridge.gameActivity();
+        if (runningGame != null && !runningGame.isFinishing()) {
+            return gpuPrefs.getString(PREF_GPU_NAME, "");
+        }
         cachedGpuName = "";
         android.opengl.EGLDisplay display = android.opengl.EGL14.EGL_NO_DISPLAY;
         android.opengl.EGLContext context = android.opengl.EGL14.EGL_NO_CONTEXT;
@@ -1536,6 +1548,7 @@ public class SetupActivity extends Activity {
             String renderer = android.opengl.GLES20.glGetString(android.opengl.GLES20.GL_RENDERER);
             if (renderer != null && !renderer.isEmpty()) {
                 cachedGpuName = renderer;
+                gpuPrefs.edit().putString(PREF_GPU_NAME, renderer).apply();
             }
         } catch (Throwable t) {
             // A launcher must never fail to open because a driver misbehaved while
