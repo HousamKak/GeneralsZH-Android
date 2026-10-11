@@ -30,33 +30,85 @@
 
 #if defined(__ANDROID__)
 #include <cstdio>
+#include <ctime>
 #include <unistd.h>
 #endif
 
-// The cursor size the launcher's slider chose, in percent (50-200), kept as the marker's content.
-// 100 when the marker is empty or unreadable.
+// Milliseconds on a monotonic clock, for the re-read throttle below.
+inline long long GXMouseModeNowMs()
+{
+#if defined(__ANDROID__)
+	timespec ts;
+	clock_gettime(CLOCK_MONOTONIC, &ts);
+	return (long long)ts.tv_sec * 1000 + ts.tv_nsec / 1000000;
+#else
+	return 0;
+#endif
+}
+
+// GeneralsX @feature ZH Commander 11/10/2026 A percent the launcher keeps in a small file in the
+// app's files directory (SetupActivity.writePercentFile), or `fallback` when the file is missing or
+// out of [lo, hi]. Read again every two seconds at most: the launcher's settings open over a running
+// game, and a slider moved there applies when the player comes back, with no restart.
+inline int GXReadPercentFile(const char *name, int lo, int hi, int fallback)
+{
+#if defined(__ANDROID__)
+	char path[256];
+	const int userId = (int)(getuid() / 100000);
+	snprintf(path, sizeof(path), "/data/user/%d/com.housamkak.zhcommander/files/%s", userId, name);
+	int percent = fallback;
+	FILE *fp = fopen(path, "r");
+	if (fp != nullptr)
+	{
+		int value = 0;
+		if (fscanf(fp, "%d", &value) == 1 && value >= lo && value <= hi)
+			percent = value;
+		fclose(fp);
+	}
+	return percent;
+#else
+	return fallback;
+#endif
+}
+
+// The cursor size the launcher's slider chose, in percent (50-200). 100 when unset.
 //
 // GeneralsX @bugfix ZH Commander 11/10/2026 The marker is looked for under this app's own package
 // (com.housamkak.zhcommander). The upstream path (com.generalsx.zerohour) never exists here, so the
 // switch did nothing at all: the launcher wrote the marker and the game never saw it.
+// GeneralsX @feature ZH Commander 11/10/2026 Kept in its own file (cursor_size) since a real mouse
+// has a cursor with the switch off too; the marker's content, where the upstream launcher kept it,
+// is the fallback.
 inline int GXMouseCursorPercent()
 {
 #if defined(__ANDROID__)
-	static int percent = -1;
-	if (percent < 0)
+	static int percent = 100;
+	static long long readAt = -1;
+	const long long now = GXMouseModeNowMs();
+	if (readAt < 0 || now - readAt >= 2000)
 	{
-		percent = 100;
-		char path[256];
-		const int userId = (int)(getuid() / 100000);
-		snprintf(path, sizeof(path), "/data/user/%d/com.housamkak.zhcommander/files/mouse_mode", userId);
-		FILE *fp = fopen(path, "r");
-		if (fp != nullptr)
-		{
-			int value = 0;
-			if (fscanf(fp, "%d", &value) == 1 && value >= 50 && value <= 200)
-				percent = value;
-			fclose(fp);
-		}
+		readAt = now;
+		percent = GXReadPercentFile("cursor_size", 50, 200, GXReadPercentFile("mouse_mode", 50, 200, 100));
+	}
+	return percent;
+#else
+	return 100;
+#endif
+}
+
+// GeneralsX @feature ZH Commander 11/10/2026 How far the touchpad cursor moves for a finger's
+// movement, in percent of the original speed (50-300). 100 when unset. A real mouse's speed is
+// Android's own pointer speed setting: its positions arrive already accelerated.
+inline int GXTouchpadSpeedPercent()
+{
+#if defined(__ANDROID__)
+	static int percent = 100;
+	static long long readAt = -1;
+	const long long now = GXMouseModeNowMs();
+	if (readAt < 0 || now - readAt >= 2000)
+	{
+		readAt = now;
+		percent = GXReadPercentFile("touchpad_speed", 50, 300, 100);
 	}
 	return percent;
 #else

@@ -472,6 +472,12 @@ void SDL3Mouse::initCursorResources(void)
 	}
 }
 
+#if defined(__ANDROID__)
+// The macOS-style arrow, defined with the touchpad's cursor drawing further down.
+static bool gxIsPlainPointer(Int cursor);
+static SDL_Cursor *gxMacArrowCursor();
+#endif
+
 /**
  * Set mouse cursor type
  * GeneralsX @bugfix BenderAI 22/02/2026 Implement cursor animation and selection
@@ -489,6 +495,14 @@ void SDL3Mouse::setCursor(MouseCursor cursor)
 	{
 		bUseDefaultCursor = true;
 	}
+#if defined(__ANDROID__)
+	// GeneralsX @feature ZH Commander 11/10/2026 A real mouse's plain pointer is the macOS-style
+	// arrow (gxMacArrowCursor), sized by the launcher's cursor size.
+	else if (gxIsPlainPointer(cursor) && gxMacArrowCursor() != nullptr)
+	{
+		SDL_SetCursor(gxMacArrowCursor());
+	}
+#endif
 	else
 	{
 		AnimatedCursor* currentCursor = cursorResources[cursor][m_directionFrame];
@@ -643,6 +657,127 @@ static Image *gxCursorFrameImage(SDL_Surface *frame, TextureClass **outTexture)
 	return image;
 }
 
+// GeneralsX @feature ZH Commander 11/10/2026 The plain pointer as a macOS-style arrow (owner's
+// request): black, a white outline and a soft shadow, drawn for the normal and arrow cursors only.
+// The game's own cursors still show what a click will do (attack, move, sell, ...). Rendered from
+// its outline at any height, so it stays sharp both as the touchpad's drawn cursor and as the
+// system pointer a real mouse moves. The hot spot is the tip, at (margin, margin).
+static int gxMacArrowMargin(int height)
+{
+	return height / 8 + 2;
+}
+
+static SDL_Surface *gxMacArrowSurface(int height)
+{
+	// The arrow's outline in units of its height, the tip at the origin.
+	static const float shape[][2] = {
+		{ 0.000f, 0.000f }, { 0.000f, 0.860f }, { 0.195f, 0.680f }, { 0.335f, 1.000f },
+		{ 0.455f, 0.950f }, { 0.330f, 0.655f }, { 0.585f, 0.655f },
+	};
+	const int count = (int)(sizeof(shape) / sizeof(shape[0]));
+	const float h = (float)height;
+	const float border = h * 0.065f;
+	const float shadowX = h * 0.03f, shadowY = h * 0.05f;
+	const int margin = gxMacArrowMargin(height);
+	const int w = (int)(0.6f * h) + margin * 2;
+	const int hh = height + margin * 2;
+
+	SDL_Surface *surface = SDL_CreateSurface(w, hh, SDL_PIXELFORMAT_ARGB8888);
+	if (surface == nullptr) {
+		return nullptr;
+	}
+
+	// Inside the arrow, and how far from its outline, for a point in arrow pixels.
+	auto sample = [&](float px, float py, float &edge) -> bool {
+		bool inside = false;
+		edge = 1e9f;
+		for (int i = 0, j = count - 1; i < count; j = i++) {
+			const float ax = shape[j][0] * h, ay = shape[j][1] * h;
+			const float bx = shape[i][0] * h, by = shape[i][1] * h;
+			if ((by > py) != (ay > py) && px < (ax - bx) * (py - by) / (ay - by) + bx) {
+				inside = !inside;
+			}
+			const float ex = ax - bx, ey = ay - by;
+			const float len2 = ex * ex + ey * ey;
+			float t = len2 > 0.0f ? ((px - bx) * ex + (py - by) * ey) / len2 : 0.0f;
+			t = t < 0.0f ? 0.0f : (t > 1.0f ? 1.0f : t);
+			const float dx = px - (bx + t * ex), dy = py - (by + t * ey);
+			const float d = sqrtf(dx * dx + dy * dy);
+			if (d < edge) {
+				edge = d;
+			}
+		}
+		return inside;
+	};
+
+	const int SS = 4;  // 4x4 samples a pixel
+	for (int y = 0; y < hh; ++y) {
+		Uint32 *row = (Uint32 *)((Uint8 *)surface->pixels + y * surface->pitch);
+		for (int x = 0; x < w; ++x) {
+			float black = 0.0f, white = 0.0f, shadow = 0.0f;
+			for (int sy = 0; sy < SS; ++sy) {
+				for (int sx = 0; sx < SS; ++sx) {
+					const float px = (float)(x - margin) + (sx + 0.5f) / SS;
+					const float py = (float)(y - margin) + (sy + 0.5f) / SS;
+					float edge;
+					const bool inside = sample(px, py, edge);
+					if (inside && edge > border) {
+						black += 1.0f;
+					} else if (inside || edge <= border) {
+						white += 1.0f;
+					} else {
+						float shadowEdge;
+						if (sample(px - shadowX, py - shadowY, shadowEdge) || shadowEdge <= border * 2.0f) {
+							shadow += 1.0f;
+						}
+					}
+				}
+			}
+			const float n = (float)(SS * SS);
+			const float arrowA = (black + white) / n;
+			const float shadowA = shadow / n * 0.35f;
+			const float a = arrowA + shadowA * (1.0f - arrowA);
+			const float grey = (a > 0.0f) ? (white / n) / a : 0.0f;
+			const Uint32 A = (Uint32)(a * 255.0f + 0.5f);
+			const Uint32 G = (Uint32)(grey * 255.0f + 0.5f);
+			row[x] = (A << 24) | (G << 16) | (G << 8) | G;
+		}
+	}
+	return surface;
+}
+
+static bool gxIsPlainPointer(Int cursor)
+{
+	return cursor == Mouse::NORMAL || cursor == Mouse::ARROW;
+}
+
+// The system pointer for a real mouse, at the cursor size the launcher chose. Remade when the size
+// changes.
+static SDL_Cursor *gxMacArrowCursor()
+{
+	static SDL_Cursor *cursor = nullptr;
+	static int madeHeight = 0;
+	const float screenH = TheDisplay != nullptr ? (float)TheDisplay->getHeight() : 1080.0f;
+	const int height = (int)(screenH * 0.026f * (float)GXMouseCursorPercent() / 100.0f + 0.5f);
+	if (cursor != nullptr && madeHeight == height) {
+		return cursor;
+	}
+	SDL_Surface *surface = gxMacArrowSurface(height);
+	if (surface == nullptr) {
+		return cursor;
+	}
+	SDL_Cursor *made = SDL_CreateColorCursor(surface, gxMacArrowMargin(height), gxMacArrowMargin(height));
+	SDL_DestroySurface(surface);
+	if (made != nullptr) {
+		if (cursor != nullptr) {
+			SDL_DestroyCursor(cursor);
+		}
+		cursor = made;
+		madeHeight = height;
+	}
+	return cursor;
+}
+
 /**
  * GeneralsX @feature Android port 05/10/2026 Draw the touchpad pointer (issue #39).
  *
@@ -704,6 +839,30 @@ void SDL3Mouse::draw()
 	if (scale > 6.0f) scale = 6.0f;
 	const Int x = m_currMouse.pos.x;
 	const Int y = m_currMouse.pos.y;
+
+	// GeneralsX @feature ZH Commander 11/10/2026 The plain pointer is the macOS-style arrow, drawn
+	// from one 64-pixel render, at the same height as a real mouse's (gxMacArrowCursor).
+	if (gxIsPlainPointer(m_currentCursor)) {
+		static Image *macImage = nullptr;
+		static TextureClass *macTexture = nullptr;
+		const int RENDER_HEIGHT = 64;
+		if (macImage == nullptr) {
+			SDL_Surface *surface = gxMacArrowSurface(RENDER_HEIGHT);
+			if (surface != nullptr) {
+				macImage = gxCursorFrameImage(surface, &macTexture);
+				SDL_DestroySurface(surface);
+			}
+		}
+		if (macImage != nullptr) {
+			const Real target = (Real)TheDisplay->getHeight() * 0.026f * (Real)GXMouseCursorPercent() / 100.0f;
+			const Real s = target / (Real)RENDER_HEIGHT;
+			const Int margin = (Int)(gxMacArrowMargin(RENDER_HEIGHT) * s);
+			const Int w = (Int)(macImage->getImageWidth() * s);
+			const Int h = (Int)(macImage->getImageHeight() * s);
+			TheDisplay->drawImage(macImage, x - margin, y - margin, x - margin + w, y - margin + h);
+			return;
+		}
+	}
 
 	if (cursor != nullptr && cursor->m_frameCount > 0) {
 		const Uint64 rate = cursor->m_frameRate > 0 ? (Uint64)cursor->m_frameRate : 4;

@@ -1235,8 +1235,11 @@ Bool handleTouchpadEvent(SDL_Window *window, const SDL_Event &event, Int &clickX
 		s_pad.fx[i] = wx;
 		s_pad.fy[i] = wy;
 		s_pad.travel += fabsf(dx) + fabsf(dy);
-		s_pad.pendingDX += dx * PAD_SPEED;
-		s_pad.pendingDY += dy * PAD_SPEED;
+		// GeneralsX @feature ZH Commander 11/10/2026 Times the launcher's touchpad speed (100% is
+		// the original PAD_SPEED).
+		const float padSpeed = PAD_SPEED * (float)GXTouchpadSpeedPercent() / 100.0f;
+		s_pad.pendingDX += dx * padSpeed;
+		s_pad.pendingDY += dy * padSpeed;
 		if (s_pad.travel <= slop) {
 			break;	// may still be a tap: do not jiggle the pointer
 		}

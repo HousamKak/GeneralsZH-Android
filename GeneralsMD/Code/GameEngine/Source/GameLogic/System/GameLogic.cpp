@@ -132,6 +132,7 @@ extern NGMPGame* TheNGMPGame;
 #include "GXTrace.h"
 #include "Common/GXReplayCheck.h"
 #include "Common/GXCrcStream.h"
+#include "Common/GXZoomOut.h"
 
 struct QuitGameException {};
 
@@ -2213,6 +2214,10 @@ void GameLogic::tryStartNewGame( Bool loadingSaveGame )
 
 	// update the loadscreen
 	updateLoadProgress(LOAD_PROGRESS_POST_PRELOAD_ASSETS);
+
+	// GeneralsX @feature ZH Commander 11/10/2026 The player's zoom-out limit (GXZoomOut.h), except
+	// in a multiplayer match.
+	GXApplyZoomOut(isInMultiplayerGame());
 
 	// TheSuperHackers @info Initialize the camera height limits to default if the resolution was changed
 	TheTacticalView->setCameraHeightAboveGroundLimitsToDefault();

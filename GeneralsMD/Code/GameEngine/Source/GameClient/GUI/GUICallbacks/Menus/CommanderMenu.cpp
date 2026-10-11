@@ -33,6 +33,7 @@
 
 #include "Common/NameKeyGenerator.h"
 #include "Common/OptionPreferences.h"
+#include "Common/GXZoomOut.h"
 #include "Common/ZHCommander.h"
 #include "GameClient/Gadget.h"
 #include "GameClient/GadgetPushButton.h"
@@ -43,6 +44,8 @@
 #include "GameClient/KeyDefs.h"
 #include "GameClient/MessageBox.h"
 #include "GameClient/Shell.h"
+#include "GameClient/View.h"
+#include "GameLogic/GameLogic.h"
 #include "GameClient/WindowLayout.h"
 
 namespace
@@ -73,6 +76,11 @@ namespace
 	const Int UI_SCALE_MIN = 100, UI_SCALE_MAX = 200, UI_SCALE_STEP = 10;
 	// -1 is "the game's own size" (ResolutionFontAdjustment absent).
 	const Int TEXT_SIZE_MIN = 50, TEXT_SIZE_MAX = 150, TEXT_SIZE_STEP = 10;
+	// GeneralsX @feature ZH Commander 11/10/2026 The zoom-out limit (GXZoomOut.h): a maximum camera
+	// height, 0 for the game's own. Off in multiplayer matches.
+	const Int ZOOM_OUT[] = { 0, 450, 550, 700 };
+	const wchar_t *const ZOOM_OUT_LABELS[] = { L"GAME DEFAULT", L"FAR", L"FARTHER", L"MAXIMUM" };
+	const Int ZOOM_OUT_COUNT = (Int)(sizeof(ZOOM_OUT) / sizeof(ZOOM_OUT[0]));
 
 	// One row: a value that a button steps through, the value it had on entry, and its widgets.
 	struct Row
@@ -84,10 +92,10 @@ namespace
 		Int initial;
 	};
 
-	enum { ROW_SIM_HZ, ROW_RENDERER, ROW_UPSCALE, ROW_UI_SCALE, ROW_TEXT_SIZE, ROW_TELEMETRY, ROW_COUNT };
+	enum { ROW_SIM_HZ, ROW_RENDERER, ROW_UPSCALE, ROW_UI_SCALE, ROW_TEXT_SIZE, ROW_ZOOM_OUT, ROW_TELEMETRY, ROW_COUNT };
 
 	Row s_rows[ROW_COUNT] = {
-		{ "SimHz" }, { "Renderer" }, { "Upscale" }, { "UiScale" }, { "TextSize" }, { "Telemetry" },
+		{ "SimHz" }, { "Renderer" }, { "Upscale" }, { "UiScale" }, { "TextSize" }, { "ZoomOut" }, { "Telemetry" },
 	};
 
 	GameWindow *s_buttonReport = nullptr;
@@ -143,6 +151,7 @@ namespace
 				else
 					text.format(L"%d%%", r.value);
 				break;
+			case ROW_ZOOM_OUT: text = ZOOM_OUT_LABELS[r.value]; break;
 			case ROW_TELEMETRY: text = r.value ? L"ON" : L"OFF"; break;
 		}
 		GadgetButtonSetText(r.button, text);
@@ -165,6 +174,25 @@ namespace
 				else
 					r.value = r.value >= TEXT_SIZE_MAX ? -1 : r.value + TEXT_SIZE_STEP;
 				break;
+			case ROW_ZOOM_OUT:
+			{
+				// Takes effect at once, in the match being played too, so it is not one of Apply's
+				// changes either.
+				r.value = (r.value + 1) % ZOOM_OUT_COUNT;
+				r.initial = r.value;
+				OptionPreferences pref;
+				if (ZOOM_OUT[r.value] == 0)
+					pref.erase(AsciiString("GXZoomOut"));
+				else
+					pref.setInt("GXZoomOut", ZOOM_OUT[r.value]);
+				pref.write();
+				if (TheGameLogic != nullptr && TheGameLogic->isInGame() && TheTacticalView != nullptr)
+				{
+					GXApplyZoomOut(TheGameLogic->isInMultiplayerGame());
+					TheTacticalView->setCameraHeightAboveGroundLimitsToDefault();
+				}
+				break;
+			}
 			case ROW_TELEMETRY:
 				// Takes effect at once and needs no restart, so it is not one of Apply's changes.
 				r.value = !r.value;
@@ -318,6 +346,7 @@ void CommanderMenuInit(WindowLayout *layout, void *userData)
 	setLabel(s_rows[ROW_UPSCALE].label, L"Upscaling (OpenGL ES)");
 	setLabel(s_rows[ROW_UI_SCALE].label, L"Interface size");
 	setLabel(s_rows[ROW_TEXT_SIZE].label, L"Text size");
+	setLabel(s_rows[ROW_ZOOM_OUT].label, L"Zoom out (not online)");
 	setLabel(s_rows[ROW_TELEMETRY].label, L"Usage data (anonymous)");
 	setLabel(find("LabelSectionGame"), L"GAME");
 	setLabel(find("LabelSectionOnline"), L"ONLINE");
@@ -360,6 +389,11 @@ void CommanderMenuInit(WindowLayout *layout, void *userData)
 	s_rows[ROW_UPSCALE].value = indexOf(UPSCALE, pref.getAsciiString("GXUpscale", "off").str());
 	const Int uiScale = pref.getInt("GXUiScale", UI_SCALE_MIN);
 	s_rows[ROW_UI_SCALE].value = max(UI_SCALE_MIN, min(UI_SCALE_MAX, uiScale - uiScale % UI_SCALE_STEP));
+	const Int zoomOut = GXZoomOutChoice();
+	s_rows[ROW_ZOOM_OUT].value = 0;
+	for (Int i = 0; i < ZOOM_OUT_COUNT; ++i)
+		if (ZOOM_OUT[i] == zoomOut)
+			s_rows[ROW_ZOOM_OUT].value = i;
 	const Int textSize = pref.getInt("ResolutionFontAdjustment", -1);
 	s_rows[ROW_TEXT_SIZE].value = textSize < 0 ? -1
 		: max(TEXT_SIZE_MIN, min(TEXT_SIZE_MAX, textSize - textSize % TEXT_SIZE_STEP));

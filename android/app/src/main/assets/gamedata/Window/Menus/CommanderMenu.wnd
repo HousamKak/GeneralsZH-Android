@@ -717,8 +717,103 @@ WINDOW
     CHILD
     WINDOW
             WINDOWTYPE = STATICTEXT;
-            SCREENRECT = UPPERLEFT: 152 274,
-                         BOTTOMRIGHT: 635 294,
+            SCREENRECT = UPPERLEFT: 160 271,
+                         BOTTOMRIGHT: 384 301,
+                         CREATIONRESOLUTION: 800 600;
+            NAME = "CommanderMenu.wnd:LabelZoomOut";
+            STATUS = ENABLED;
+            STYLE = STATICTEXT+MOUSETRACK;
+            SYSTEMCALLBACK = "[None]";
+            INPUTCALLBACK = "[None]";
+            TOOLTIPCALLBACK = "[None]";
+            DRAWCALLBACK = "[None]";
+            FONT = NAME: "Arial", SIZE: 12, BOLD: 0;
+            HEADERTEMPLATE = "LabelRegular";
+            TOOLTIPDELAY = -1;
+            TEXTCOLOR = ENABLED:  254 254 254 255, ENABLEDBORDER:  0 0 0 255,
+                        DISABLED: 192 192 192 255, DISABLEDBORDER: 64 64 64 255,
+                        HILITE:   254 254 254 255, HILITEBORDER:   0 0 0 255;
+            ENABLEDDRAWDATA = IMAGE: NoImage, COLOR: 2 2 2 0, BORDERCOLOR: 0 0 0 0,
+                              IMAGE: NoImage, COLOR: 255 255 255 0, BORDERCOLOR: 255 255 255 0,
+                              IMAGE: NoImage, COLOR: 255 255 255 0, BORDERCOLOR: 255 255 255 0,
+                              IMAGE: NoImage, COLOR: 255 255 255 0, BORDERCOLOR: 255 255 255 0,
+                              IMAGE: NoImage, COLOR: 255 255 255 0, BORDERCOLOR: 255 255 255 0,
+                              IMAGE: NoImage, COLOR: 255 255 255 0, BORDERCOLOR: 255 255 255 0,
+                              IMAGE: NoImage, COLOR: 255 255 255 0, BORDERCOLOR: 255 255 255 0,
+                              IMAGE: NoImage, COLOR: 255 255 255 0, BORDERCOLOR: 255 255 255 0,
+                              IMAGE: NoImage, COLOR: 255 255 255 0, BORDERCOLOR: 255 255 255 0;
+            DISABLEDDRAWDATA = IMAGE: NoImage, COLOR: 64 64 64 0, BORDERCOLOR: 192 192 192 0,
+                               IMAGE: NoImage, COLOR: 255 255 255 0, BORDERCOLOR: 255 255 255 0,
+                               IMAGE: NoImage, COLOR: 255 255 255 0, BORDERCOLOR: 255 255 255 0,
+                               IMAGE: NoImage, COLOR: 255 255 255 0, BORDERCOLOR: 255 255 255 0,
+                               IMAGE: NoImage, COLOR: 255 255 255 0, BORDERCOLOR: 255 255 255 0,
+                               IMAGE: NoImage, COLOR: 255 255 255 0, BORDERCOLOR: 255 255 255 0,
+                               IMAGE: NoImage, COLOR: 255 255 255 0, BORDERCOLOR: 255 255 255 0,
+                               IMAGE: NoImage, COLOR: 255 255 255 0, BORDERCOLOR: 255 255 255 0,
+                               IMAGE: NoImage, COLOR: 255 255 255 0, BORDERCOLOR: 255 255 255 0;
+            HILITEDRAWDATA = IMAGE: NoImage, COLOR: 0 128 0 0, BORDERCOLOR: 128 255 128 0,
+                             IMAGE: NoImage, COLOR: 255 255 255 0, BORDERCOLOR: 255 255 255 0,
+                             IMAGE: NoImage, COLOR: 255 255 255 0, BORDERCOLOR: 255 255 255 0,
+                             IMAGE: NoImage, COLOR: 255 255 255 0, BORDERCOLOR: 255 255 255 0,
+                             IMAGE: NoImage, COLOR: 255 255 255 0, BORDERCOLOR: 255 255 255 0,
+                             IMAGE: NoImage, COLOR: 255 255 255 0, BORDERCOLOR: 255 255 255 0,
+                             IMAGE: NoImage, COLOR: 255 255 255 0, BORDERCOLOR: 255 255 255 0,
+                             IMAGE: NoImage, COLOR: 255 255 255 0, BORDERCOLOR: 255 255 255 0,
+                             IMAGE: NoImage, COLOR: 255 255 255 0, BORDERCOLOR: 255 255 255 0;
+            STATICTEXTDATA = CENTERED: 0;
+    END
+    CHILD
+    WINDOW
+            WINDOWTYPE = PUSHBUTTON;
+            SCREENRECT = UPPERLEFT: 390 271,
+                         BOTTOMRIGHT: 635 301,
+                         CREATIONRESOLUTION: 800 600;
+            NAME = "CommanderMenu.wnd:ButtonZoomOut";
+            STATUS = ENABLED+IMAGE;
+            STYLE = PUSHBUTTON+MOUSETRACK;
+            SYSTEMCALLBACK = "[None]";
+            INPUTCALLBACK = "[None]";
+            TOOLTIPCALLBACK = "[None]";
+            DRAWCALLBACK = "[None]";
+            FONT = NAME: "Generals", SIZE: 13, BOLD: 0;
+            HEADERTEMPLATE = "MainButton";
+            TOOLTIPDELAY = -1;
+            TEXTCOLOR = ENABLED:  255 255 255 255, ENABLEDBORDER:  0 0 0 255,
+                        DISABLED: 62 64 92 255, DISABLEDBORDER: 31 32 47 255,
+                        HILITE:   186 255 12 255, HILITEBORDER:   0 2 0 255;
+            ENABLEDDRAWDATA = IMAGE: Buttons-Left, COLOR: 255 0 0 255, BORDERCOLOR: 255 128 128 255,
+                              IMAGE: NoImage, COLOR: 47 55 168 255, BORDERCOLOR: 254 254 254 255,
+                              IMAGE: NoImage, COLOR: 255 255 255 0, BORDERCOLOR: 255 255 255 0,
+                              IMAGE: NoImage, COLOR: 255 255 255 0, BORDERCOLOR: 255 255 255 0,
+                              IMAGE: NoImage, COLOR: 255 255 255 0, BORDERCOLOR: 255 255 255 0,
+                              IMAGE: Buttons-Middle, COLOR: 255 255 255 0, BORDERCOLOR: 255 255 255 0,
+                              IMAGE: Buttons-Right, COLOR: 255 255 255 0, BORDERCOLOR: 255 255 255 0,
+                              IMAGE: NoImage, COLOR: 255 255 255 0, BORDERCOLOR: 255 255 255 0,
+                              IMAGE: NoImage, COLOR: 255 255 255 0, BORDERCOLOR: 255 255 255 0;
+            DISABLEDDRAWDATA = IMAGE: Buttons-Disabled-Left, COLOR: 128 128 128 255, BORDERCOLOR: 192 192 192 255,
+                               IMAGE: NoImage, COLOR: 192 192 192 255, BORDERCOLOR: 128 128 128 255,
+                               IMAGE: NoImage, COLOR: 255 255 255 0, BORDERCOLOR: 255 255 255 0,
+                               IMAGE: NoImage, COLOR: 255 255 255 0, BORDERCOLOR: 255 255 255 0,
+                               IMAGE: NoImage, COLOR: 255 255 255 0, BORDERCOLOR: 255 255 255 0,
+                               IMAGE: Buttons-Disabled-Middle, COLOR: 255 255 255 0, BORDERCOLOR: 255 255 255 0,
+                               IMAGE: Buttons-Disabled-Right, COLOR: 255 255 255 0, BORDERCOLOR: 255 255 255 0,
+                               IMAGE: NoImage, COLOR: 255 255 255 0, BORDERCOLOR: 255 255 255 0,
+                               IMAGE: NoImage, COLOR: 255 255 255 0, BORDERCOLOR: 255 255 255 0;
+            HILITEDRAWDATA = IMAGE: Buttons-HiLite-Left, COLOR: 209 253 4 255, BORDERCOLOR: 59 60 52 255,
+                             IMAGE: Buttons-Pushed-Left, COLOR: 47 55 168 255, BORDERCOLOR: 254 254 254 255,
+                             IMAGE: NoImage, COLOR: 255 255 255 0, BORDERCOLOR: 255 255 255 0,
+                             IMAGE: Buttons-Pushed-Middle, COLOR: 255 255 255 0, BORDERCOLOR: 255 255 255 0,
+                             IMAGE: Buttons-Pushed-Right, COLOR: 255 255 255 0, BORDERCOLOR: 255 255 255 0,
+                             IMAGE: Buttons-HiLite-Middle, COLOR: 255 255 255 0, BORDERCOLOR: 255 255 255 0,
+                             IMAGE: Buttons-HiLite-Right, COLOR: 255 255 255 0, BORDERCOLOR: 255 255 255 0,
+                             IMAGE: NoImage, COLOR: 255 255 255 0, BORDERCOLOR: 255 255 255 0,
+                             IMAGE: NoImage, COLOR: 255 255 255 0, BORDERCOLOR: 255 255 255 0;
+    END
+    CHILD
+    WINDOW
+            WINDOWTYPE = STATICTEXT;
+            SCREENRECT = UPPERLEFT: 152 307,
+                         BOTTOMRIGHT: 635 327,
                          CREATIONRESOLUTION: 800 600;
             NAME = "CommanderMenu.wnd:LabelSectionOnline";
             STATUS = ENABLED;
@@ -765,8 +860,8 @@ WINDOW
     CHILD
     WINDOW
             WINDOWTYPE = STATICTEXT;
-            SCREENRECT = UPPERLEFT: 160 296,
-                         BOTTOMRIGHT: 384 326,
+            SCREENRECT = UPPERLEFT: 160 329,
+                         BOTTOMRIGHT: 384 359,
                          CREATIONRESOLUTION: 800 600;
             NAME = "CommanderMenu.wnd:LabelOnline";
             STATUS = ENABLED;
@@ -813,8 +908,8 @@ WINDOW
     CHILD
     WINDOW
             WINDOWTYPE = PUSHBUTTON;
-            SCREENRECT = UPPERLEFT: 390 296,
-                         BOTTOMRIGHT: 635 326,
+            SCREENRECT = UPPERLEFT: 390 329,
+                         BOTTOMRIGHT: 635 359,
                          CREATIONRESOLUTION: 800 600;
             NAME = "CommanderMenu.wnd:ButtonOnline";
             STATUS = ENABLED+IMAGE;
@@ -860,8 +955,8 @@ WINDOW
     CHILD
     WINDOW
             WINDOWTYPE = STATICTEXT;
-            SCREENRECT = UPPERLEFT: 152 334,
-                         BOTTOMRIGHT: 635 354,
+            SCREENRECT = UPPERLEFT: 152 367,
+                         BOTTOMRIGHT: 635 387,
                          CREATIONRESOLUTION: 800 600;
             NAME = "CommanderMenu.wnd:LabelSupport";
             STATUS = ENABLED;
@@ -908,8 +1003,8 @@ WINDOW
     CHILD
     WINDOW
             WINDOWTYPE = STATICTEXT;
-            SCREENRECT = UPPERLEFT: 160 356,
-                         BOTTOMRIGHT: 384 386,
+            SCREENRECT = UPPERLEFT: 160 389,
+                         BOTTOMRIGHT: 384 419,
                          CREATIONRESOLUTION: 800 600;
             NAME = "CommanderMenu.wnd:LabelTelemetry";
             STATUS = ENABLED;
@@ -956,8 +1051,8 @@ WINDOW
     CHILD
     WINDOW
             WINDOWTYPE = PUSHBUTTON;
-            SCREENRECT = UPPERLEFT: 390 356,
-                         BOTTOMRIGHT: 635 386,
+            SCREENRECT = UPPERLEFT: 390 389,
+                         BOTTOMRIGHT: 635 419,
                          CREATIONRESOLUTION: 800 600;
             NAME = "CommanderMenu.wnd:ButtonTelemetry";
             STATUS = ENABLED+IMAGE;
@@ -1003,8 +1098,8 @@ WINDOW
     CHILD
     WINDOW
             WINDOWTYPE = PUSHBUTTON;
-            SCREENRECT = UPPERLEFT: 152 392,
-                         BOTTOMRIGHT: 390 422,
+            SCREENRECT = UPPERLEFT: 152 425,
+                         BOTTOMRIGHT: 390 455,
                          CREATIONRESOLUTION: 800 600;
             NAME = "CommanderMenu.wnd:ButtonReport";
             STATUS = ENABLED+IMAGE;
@@ -1050,8 +1145,8 @@ WINDOW
     CHILD
     WINDOW
             WINDOWTYPE = PUSHBUTTON;
-            SCREENRECT = UPPERLEFT: 397 392,
-                         BOTTOMRIGHT: 635 422,
+            SCREENRECT = UPPERLEFT: 397 425,
+                         BOTTOMRIGHT: 635 455,
                          CREATIONRESOLUTION: 800 600;
             NAME = "CommanderMenu.wnd:ButtonMore";
             STATUS = ENABLED+IMAGE;
@@ -1097,8 +1192,8 @@ WINDOW
     CHILD
     WINDOW
             WINDOWTYPE = PUSHBUTTON;
-            SCREENRECT = UPPERLEFT: 152 428,
-                         BOTTOMRIGHT: 390 458,
+            SCREENRECT = UPPERLEFT: 152 461,
+                         BOTTOMRIGHT: 390 491,
                          CREATIONRESOLUTION: 800 600;
             NAME = "CommanderMenu.wnd:ButtonMods";
             STATUS = ENABLED+IMAGE;
@@ -1144,8 +1239,8 @@ WINDOW
     CHILD
     WINDOW
             WINDOWTYPE = PUSHBUTTON;
-            SCREENRECT = UPPERLEFT: 397 428,
-                         BOTTOMRIGHT: 635 458,
+            SCREENRECT = UPPERLEFT: 397 461,
+                         BOTTOMRIGHT: 635 491,
                          CREATIONRESOLUTION: 800 600;
             NAME = "CommanderMenu.wnd:ButtonUpdate";
             STATUS = ENABLED+IMAGE;
@@ -1191,7 +1286,7 @@ WINDOW
     CHILD
     WINDOW
             WINDOWTYPE = STATICTEXT;
-            SCREENRECT = UPPERLEFT: 152 464,
+            SCREENRECT = UPPERLEFT: 152 497,
                          BOTTOMRIGHT: 635 524,
                          CREATIONRESOLUTION: 800 600;
             NAME = "CommanderMenu.wnd:LabelStatus";

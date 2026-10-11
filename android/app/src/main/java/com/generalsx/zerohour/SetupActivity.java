@@ -852,39 +852,89 @@ public class SetupActivity extends Activity {
         final File marker = new File(getFilesDir(), MOUSE_MODE_MARKER);
         mouse.setChecked(marker.isFile());
 
-        // GeneralsX @feature Android port 05/10/2026 Cursor size for the touchpad pointer, 50-200%,
-        // shown only while the mode is on. Kept as the marker's content (GXMouseCursorPercent).
-        final LinearLayout cursorBox = new LinearLayout(this);
-        cursorBox.setOrientation(LinearLayout.VERTICAL);
-        final TextView cursorLabel = UiKit.body(cursorBox, null);
-        final Slider cursorSlider = new Slider(this);
-        cursorSlider.setValueFrom(50f);
-        cursorSlider.setValueTo(200f);
-        cursorSlider.setStepSize(10f);
-        cursorSlider.setValue(readMouseCursorPercent(marker));
-        cursorSlider.setLabelBehavior(LabelFormatter.LABEL_GONE);
-        cursorSlider.setTrackActiveTintList(UiKit.tint(this, R.color.gzh_primary));
-        cursorSlider.setTrackInactiveTintList(UiKit.tint(this, R.color.gzh_surface_container_highest));
-        cursorSlider.setThumbTintList(UiKit.tint(this, R.color.gzh_primary));
-        cursorSlider.setHaloTintList(UiKit.tint(this, R.color.gzh_ripple_primary));
+        // GeneralsX @feature Android port 05/10/2026 Cursor size for the touchpad pointer, 50-200%.
+        // GeneralsX @feature ZH Commander 11/10/2026 For a real mouse too, so always shown, and kept
+        // in its own file (cursor_size, GXMouseCursorPercent) rather than in the marker. The game
+        // reads it again within two seconds, so a change made over a running game applies at once.
+        final File cursorFile = new File(getFilesDir(), CURSOR_SIZE_FILE);
+        int cursorPercent = readPercentFile(cursorFile, 50, 200, -1);
+        if (cursorPercent < 0) {
+            cursorPercent = readMouseCursorPercent(marker);
+        }
+        final TextView cursorLabel = UiKit.body(content, null);
+        final Slider cursorSlider = percentSlider(content, 50f, 200f, 10f, cursorPercent);
         cursorLabel.setText(getString(R.string.setup_cursor_size_label, (int) cursorSlider.getValue()));
         cursorSlider.addOnChangeListener((slider, value, fromUser) -> {
             cursorLabel.setText(getString(R.string.setup_cursor_size_label, (int) value));
             if (fromUser) {
-                writeMouseMode(marker, true, (int) value);
+                writePercentFile(cursorFile, (int) value);
             }
         });
-        cursorBox.addView(cursorSlider, new LinearLayout.LayoutParams(
+
+        // GeneralsX @feature ZH Commander 11/10/2026 How fast a finger moves the touchpad cursor,
+        // 50-300% (touchpad_speed, GXTouchpadSpeedPercent). Shown only while the touchpad is on: a
+        // real mouse moves at Android's own pointer speed.
+        final LinearLayout speedBox = new LinearLayout(this);
+        speedBox.setOrientation(LinearLayout.VERTICAL);
+        final File speedFile = new File(getFilesDir(), TOUCHPAD_SPEED_FILE);
+        final TextView speedLabel = UiKit.body(speedBox, null);
+        final Slider speedSlider = percentSlider(speedBox, 50f, 300f, 10f,
+            readPercentFile(speedFile, 50, 300, 100));
+        speedLabel.setText(getString(R.string.setup_touchpad_speed_label, (int) speedSlider.getValue()));
+        speedSlider.addOnChangeListener((slider, value, fromUser) -> {
+            speedLabel.setText(getString(R.string.setup_touchpad_speed_label, (int) value));
+            if (fromUser) {
+                writePercentFile(speedFile, (int) value);
+            }
+        });
+        content.addView(speedBox, new LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
-        content.addView(cursorBox, new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
-        cursorBox.setVisibility(marker.isFile() ? android.view.View.VISIBLE : android.view.View.GONE);
+        speedBox.setVisibility(marker.isFile() ? android.view.View.VISIBLE : android.view.View.GONE);
 
         mouse.setOnCheckedChangeListener((button, checked) -> {
             writeMouseMode(marker, checked, (int) cursorSlider.getValue());
-            cursorBox.setVisibility(checked ? android.view.View.VISIBLE : android.view.View.GONE);
+            speedBox.setVisibility(checked ? android.view.View.VISIBLE : android.view.View.GONE);
         });
         UiKit.helpText(content, getString(R.string.setup_mouse_mode_help));
+        UiKit.helpText(content, getString(R.string.setup_mouse_speed_help));
+    }
+
+    static final String CURSOR_SIZE_FILE = "cursor_size";
+    static final String TOUCHPAD_SPEED_FILE = "touchpad_speed";
+
+    private Slider percentSlider(LinearLayout parent, float from, float to, float step, int value) {
+        Slider slider = new Slider(this);
+        slider.setValueFrom(from);
+        slider.setValueTo(to);
+        slider.setStepSize(step);
+        slider.setValue(Math.max(from, Math.min(to, Math.round(value / step) * step)));
+        slider.setLabelBehavior(LabelFormatter.LABEL_GONE);
+        slider.setTrackActiveTintList(UiKit.tint(this, R.color.gzh_primary));
+        slider.setTrackInactiveTintList(UiKit.tint(this, R.color.gzh_surface_container_highest));
+        slider.setThumbTintList(UiKit.tint(this, R.color.gzh_primary));
+        slider.setHaloTintList(UiKit.tint(this, R.color.gzh_ripple_primary));
+        parent.addView(slider, new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+        return slider;
+    }
+
+    // A percent the game reads with GXReadPercentFile (GXMouseMode.h); `fallback` when unset.
+    private static int readPercentFile(File file, int lo, int hi, int fallback) {
+        try (java.io.BufferedReader r = new java.io.BufferedReader(new java.io.FileReader(file))) {
+            String line = r.readLine();
+            int value = line == null ? fallback : Integer.parseInt(line.trim());
+            return value >= lo && value <= hi ? value : fallback;
+        } catch (java.io.IOException | NumberFormatException e) {
+            return fallback;
+        }
+    }
+
+    private static void writePercentFile(File file, int percent) {
+        try (java.io.FileWriter w = new java.io.FileWriter(file, false)) {
+            w.write(Integer.toString(percent));
+        } catch (java.io.IOException e) {
+            android.util.Log.w("SetupActivity", "could not write " + file.getName(), e);
+        }
     }
 
     private static int readMouseCursorPercent(File marker) {
