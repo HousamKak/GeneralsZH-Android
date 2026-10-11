@@ -720,11 +720,6 @@ static WindowMsgHandledType ZHNotesSystem( GameWindow *window, UnsignedInt msg, 
 				*(Bool *)mData2 = TRUE;
 			return MSG_HANDLED;
 
-		// The list is for reading: a tapped row must not stay highlighted.
-		case GLM_SELECTED:
-			GadgetListBoxSetSelected( (GameWindow *)mData1, -1 );
-			return MSG_HANDLED;
-
 		case GBM_SELECTED:
 		{
 			static const NameKeyType primaryID = TheNameKeyGenerator->nameToKey( "ZHNotes.wnd:ButtonPrimary" );

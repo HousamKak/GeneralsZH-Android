@@ -157,7 +157,7 @@ WINDOW
       INPUTCALLBACK = "[None]";
       TOOLTIPCALLBACK = "[None]";
       DRAWCALLBACK = "[None]";
-      FONT = NAME: "Arial", SIZE: 11, BOLD: 1;
+      FONT = NAME: "Arial", SIZE: 13, BOLD: 1;
       HEADERTEMPLATE = "[NONE]";
       TOOLTIPDELAY = -1;
       TEXT = "";
@@ -206,7 +206,7 @@ WINDOW
       INPUTCALLBACK = "[None]";
       TOOLTIPCALLBACK = "[None]";
       DRAWCALLBACK = "[None]";
-      FONT = NAME: "Arial", SIZE: 12, BOLD: 0;
+      FONT = NAME: "Arial", SIZE: 14, BOLD: 0;
       HEADERTEMPLATE = "[NONE]";
       TOOLTIPDELAY = -1;
       TEXTCOLOR = ENABLED:  255 255 255 255, ENABLEDBORDER:  0 0 0 255,
