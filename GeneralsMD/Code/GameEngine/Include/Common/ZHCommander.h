@@ -67,6 +67,9 @@ namespace ZHCommander
 		void (*onlineSignOut)();
 		// Opens the site of the easiest account to sign in with (GameReplays).
 		void (*onlineCreateAccount)();
+		// GeneralsX @feature ZH Commander 11/10/2026 The shell's GeneralsOnline screen, where "Play
+		// with PC players" is (cross-play: the PC data, 60 Hz and the PC client's checksum).
+		void (*openCrossPlay)();
 
 		// Release notes (UTF-8, in the game's text language): this version's, once after an update
 		// ("What's new"), and an offered version's, for the update dialog. Body lines start "• ".

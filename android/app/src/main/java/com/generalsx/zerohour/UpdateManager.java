@@ -452,7 +452,10 @@ final class UpdateManager {
             return false;
         }
         String latest = datapackLatestSeen(ctx);
-        return (latest != null && !latest.equals(installed)) || !DataPackInstaller.hasPcExeCrcSeed(ctx);
+        // GeneralsX @bugfix ZH Commander 11/10/2026 Not when this very version was installed and had no
+        // PC executable to compute from: fetching it again cannot help.
+        return (latest != null && !latest.equals(installed))
+            || (!DataPackInstaller.hasPcExeCrcSeed(ctx) && !DataPackInstaller.installedWithoutPcExe(ctx));
     }
 
     static boolean isUnmeteredNetwork(Context ctx) {

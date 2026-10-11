@@ -71,12 +71,48 @@
 #include "GameNetwork/RankPointValue.h"
 #include "GameNetwork/GeneralsOnline/NGMP_interfaces.h"
 #include "Common/ZHCommander.h"
+#include "Common/GXRemoteConfig.h"
 
 // GeneralsX @feature ZH Commander 10/10/2026 Why a lobby join was refused, for the usage monitor
 // (the reason only: no lobby, host or player names).
 static void reportJoinRefused(const char *reason)
 {
 	ZHCommander::Event("online_join_refused").add("reason", reason).add("sim_hz", (int)LOGICFRAMES_PER_SECOND).send();
+}
+
+// GeneralsX @feature ZH Commander 11/10/2026 What a refused join tells the player to change. Cross-play
+// ("Play with PC players" in the shell's GeneralsOnline screen) is the GeneralsOnline data the PC
+// players mount, 60 Hz and the PC client's EXE checksum, all from one switch; when the shell can open
+// that screen, the refusal offers it.
+static void openCrossPlayNow()
+{
+	if (ZHCommander::hooks().openCrossPlay)
+		ZHCommander::hooks().openCrossPlay();
+}
+
+static void refuseJoin(const wchar_t *body, Bool offerCrossPlay)
+{
+	UnicodeString text(body);
+	if (offerCrossPlay && ZHCommander::hooks().openCrossPlay != nullptr)
+	{
+		text.concat(L" Open that setting now?");
+		GSMessageBoxYesNo(TheGameText->fetch("GUI:JoinFailedDefault"), text, openCrossPlayNow, nullptr);
+	}
+	else
+	{
+		GSMessageBoxOk(TheGameText->fetch("GUI:JoinFailedDefault"), text);
+	}
+}
+
+// The cross-play marker the shell's switch writes into the game folder (GlobalData::init reads it).
+static Bool crossPlayOn()
+{
+	if (FILE *marker = fopen("gx_pc_compat.txt", "r"))
+	{
+		fclose(marker);
+		return TRUE;
+	}
+	return FALSE;
 }
 
 void refreshGameList( Bool forceRefresh = FALSE );
@@ -2614,16 +2650,30 @@ WindowMsgHandledType WOLLobbyMenuSystem( GameWindow *window, UnsignedInt msg,
 									// GeneralsX @tweak ZH Commander 10/10/2026 Between phones this is almost always
 									// a different game speed (30 or 60 Hz, part of this checksum since 0.1.15) or
 									// different game data; say which settings to compare, not only the PC case.
-									GSMessageBoxOk(TheGameText->fetch("GUI:JoinFailedDefault"),
-										UnicodeString(L"This game was set up differently from yours, so the match would fall out of sync. "
-											L"If the host is a phone: use the same Game speed (30 or 60 Hz, in Options, ZH COMMANDER) "
-											L"and accept the newest game data, then join again. "
-											L"If the host is a PC: Android joins PC games only at 60 Hz, with cross-play on in the GeneralsOnline account screen."));
+									// GeneralsX @bugfix ZH Commander 11/10/2026 A PC host (its EXE checksum is the
+									// PC client's, or its INI data is not retail) needs cross-play, which a player
+									// could not find from here: offer it.
+									const UnsignedInt pcExe = (UnsignedInt)strtoul(GXRemoteConfig::get("pc_exe_crc", "560676586").c_str(), nullptr, 10);
+									const Bool hostIsPC = Lobby.exe_crc == pcExe || Lobby.ini_crc != VANILLA_INI_CRC;
+									if (hostIsPC && !crossPlayOn())
+										refuseJoin(L"This game is hosted on a PC. To play with PC players, turn on Play with PC players: "
+											L"it downloads the GeneralsOnline data they use and switches the game to 60 Hz. "
+											L"Then start the game again and join.", TRUE);
+									else
+										refuseJoin(L"This game was set up differently from yours, so the match would fall out of sync. "
+											L"Every player needs the same Game speed (30 or 60 Hz, in ZH COMMANDER), the newest game "
+											L"data, and the same Play with PC players setting.", FALSE);
 								}
 								else if (TheGlobalData->m_iniCRC != VANILLA_INI_CRC)
 								{
 									reportJoinRefused("ini_local");
-									GSMessageBoxOk(TheGameText->fetch("GUI:JoinFailedDefault"), UnicodeString(L"You have modified INI files or a modification."));
+									// GeneralsX @tweak ZH Commander 11/10/2026 Usually cross-play's data meeting a phone
+									// host without it, or a gameplay mod; say which.
+									refuseJoin(crossPlayOn()
+										? L"Your phone has Play with PC players on, and its PC data does not match this game. "
+										  L"It plays with PC players and with phones that have it on too; to join this game, turn it off."
+										: L"Your game data does not match this game's. A mod that changes gameplay does this "
+										  L"(MODS, in ZH COMMANDER): every player needs the same.", crossPlayOn());
 								}
 								else if (Lobby.ini_crc != VANILLA_INI_CRC)
 								{
@@ -2640,8 +2690,9 @@ WindowMsgHandledType WOLLobbyMenuSystem( GameWindow *window, UnsignedInt msg,
 									// data. The fix is to obtain theirs, not to accuse them; there is
 									// no honest way to fake it, since the numbers are computed from
 									// the files the match will actually be played with.
-									GSMessageBoxOk(TheGameText->fetch("GUI:JoinFailedDefault"),
-										UnicodeString(L"This game's INI data differs from yours. The PC client ships its own INI files; copy them into your game folder to join games hosted by it. The startup log line tagged [GX-CRC] shows whether they took."));
+									// GeneralsX @tweak ZH Commander 11/10/2026 That data is now one switch away.
+									refuseJoin(L"This game uses the GeneralsOnline data the PC players have. Turn on Play with PC players "
+										L"to download it, then start the game again and join.", TRUE);
 								}
 								else
 								{

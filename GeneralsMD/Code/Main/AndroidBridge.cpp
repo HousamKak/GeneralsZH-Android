@@ -202,6 +202,7 @@ static bool gameplayMods()
 static void onlineSignIn() { callVoid("onlineSignIn"); }
 static void onlineSignOut() { callVoid("onlineSignOut"); }
 static void onlineCreateAccount() { callVoid("onlineCreateAccount"); }
+static void openCrossPlay() { callVoid("openCrossPlay"); }
 static void startAppUpdate() { callVoid("startAppUpdate"); }
 static void startDataUpdate() { callVoid("startDataUpdate"); }
 static void shareSupportReport() { callVoid("shareSupportReport"); }
@@ -239,6 +240,7 @@ void ZHAndroidInstallHooks()
 	h.onlineSignIn = onlineSignIn;
 	h.onlineSignOut = onlineSignOut;
 	h.onlineCreateAccount = onlineCreateAccount;
+	h.openCrossPlay = openCrossPlay;
 	h.openMods = openMods;
 	h.modsSummary = modsSummary;
 	h.gameplayMods = gameplayMods;

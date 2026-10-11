@@ -106,6 +106,8 @@ final class DataPackInstaller {
 
     private static final String PREFS_NAME = "generals_online";
     private static final String PREF_INSTALLED_VERSION = "datapack_version";
+    // The package version that had no PC executable to compute the checksum from (writePcExeCrcSeed).
+    private static final String PREF_NO_PC_EXE_VERSION = "datapack_no_pc_exe_version";
 
     /**
      * Presence turns the patch off without removing it, and the engine is the
@@ -624,7 +626,14 @@ final class DataPackInstaller {
         File file = new File(dir, PC_EXE_SEED_FILE);
         if (seed < 0) {
             // A package without the PC executable: the settings' number is the better guess.
+            // GeneralsX @bugfix ZH Commander 11/10/2026 Said in the log, and remembered for this
+            // version: a release that renames or moves the executable would otherwise leave
+            // hasPcExeCrcSeed false for good and the card asking for the same update forever.
             file.delete();
+            ctx.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit()
+                .putString(PREF_NO_PC_EXE_VERSION, version).apply();
+            NetworkTrace.write(ctx, "[datapack] " + PC_EXE_NAME + " not found in package " + version
+                + "; cross-play uses the PC checksum from the update settings");
             return;
         }
         if (!dir.isDirectory() && !dir.mkdirs()) {
@@ -638,6 +647,13 @@ final class DataPackInstaller {
     }
 
     /** Whether the installed package's PC checksum has been computed (see PC_EXE_NAME). */
+    /** True when the installed package version was seen to carry no PC executable at all. */
+    static boolean installedWithoutPcExe(Context ctx) {
+        String version = installedVersion(ctx);
+        return version != null && version.equals(ctx.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .getString(PREF_NO_PC_EXE_VERSION, null));
+    }
+
     static boolean hasPcExeCrcSeed(Context ctx) {
         File file = new File(new File(ctx.getFilesDir(), "update"), PC_EXE_SEED_FILE);
         if (!file.isFile()) {

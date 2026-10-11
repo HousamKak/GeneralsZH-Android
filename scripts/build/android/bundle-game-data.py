@@ -11,6 +11,7 @@ bundle-game-data.sh wraps this with zipalign and apksigner.
 
 Usage: bundle-game-data.py <in.apk> <out-unsigned.apk> <zero_hour_dir> <base_generals_dir>
 """
+import hashlib
 import os
 import sys
 import zipfile
@@ -21,6 +22,21 @@ zipfile.ZIP64_LIMIT = (1 << 32) - 1
 
 # Mods and community add-ons, not retail data: they change the INI checksum online play compares.
 SKIP_PREFIXES = ("!hotkeys", "340_controlbarpro", "customcontent")
+
+# GeneralsX @bugfix ZH Commander 11/10/2026 The retail INI archive of Zero Hour 1.04. A local edit
+# (one on the dev PC sets 150000 starting money) changes the INI checksum, and then no PC lobby on
+# GeneralsOnline takes the phone. Same list as site/upload-data.py.
+RETAIL_INI_SHA256 = {
+    "inizh.big": "1a6d41a7a2cb31e67ad2f868aca9264ad069c275e0074f8a0d970a336071e9a0",
+}
+
+
+def sha256_of(path):
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(1 << 20), b""):
+            h.update(chunk)
+    return h.hexdigest()
 
 
 def retail_archives(folder):
@@ -43,6 +59,10 @@ def main():
     for required, folder in (("INIZH.big", zh_dir), ("INI.big", base_dir)):
         if not os.path.isfile(os.path.join(folder, required)):
             sys.exit(f"{required} not found in {folder}")
+    for name, want in RETAIL_INI_SHA256.items():
+        path = os.path.join(zh_dir, "INIZH.big") if name == "inizh.big" else None
+        if path and sha256_of(path) != want:
+            sys.exit(f"{path} is not the retail archive (sha256 {want} expected): it would break online play")
 
     total = 0
     with zipfile.ZipFile(src) as zin, zipfile.ZipFile(dst, "w", allowZip64=False) as zout:

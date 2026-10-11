@@ -458,8 +458,16 @@ public class GeneralsOnlineActivity extends Activity {
     }
 
     private void onUpdateDataPacks() {
+        onUpdateDataPacks(false);
+    }
+
+    // forCrossPlay: started by the cross-play switch, which says how it went in a toast too.
+    private void onUpdateDataPacks(boolean forCrossPlay) {
         if (dataPackBusy) {
             return;
+        }
+        if (forCrossPlay) {
+            Toast.makeText(this, R.string.online_crossplay_downloading, Toast.LENGTH_LONG).show();
         }
         dataPackBusy = true;
         dataPackButton.setEnabled(false);
@@ -478,6 +486,12 @@ public class GeneralsOnlineActivity extends Activity {
                     ? getString(R.string.online_datapacks_done,
                         result.version, result.filesWritten)
                     : getString(R.string.online_datapacks_failed, result.error));
+                if (forCrossPlay) {
+                    Toast.makeText(this, result.ok
+                        ? getString(R.string.online_crossplay_ready)
+                        : getString(R.string.online_crossplay_failed, result.error),
+                        Toast.LENGTH_LONG).show();
+                }
             });
         }).start();
     }
@@ -545,8 +559,23 @@ public class GeneralsOnlineActivity extends Activity {
                         .setPositiveButton(android.R.string.ok, null)
                         .show();
                 }
+                // GeneralsX @bugfix ZH Commander 11/10/2026 One switch for all of cross-play. The
+                // INI half (the GeneralsOnline community patch every PC player mounts) used to be a
+                // separate Update button on the card above, behind sign-in, and nothing led a player
+                // to it: phones joined PC lobbies with the claimed EXE checksum and a retail INI one,
+                // and were turned away every time (support report of 11/10). Now the switch turns the
+                // patch on and fetches it when it is missing.
+                DataPackInstaller.setEnabled(this, true);
+                if (!DataPackInstaller.communityPatchFile().isFile()) {
+                    onUpdateDataPacks(true);
+                }
+                refreshDataPackCard();
             } else {
                 marker.delete();
+                // ...and off for all of it: with the patch mounted the INI checksum is the PC's, so
+                // a phone that left cross-play would no longer match phones that never had it.
+                DataPackInstaller.setEnabled(this, false);
+                refreshDataPackCard();
             }
         });
 

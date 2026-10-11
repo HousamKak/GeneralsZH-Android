@@ -573,6 +573,19 @@ public class SetupActivity extends Activity {
             sb.append(e.getKey()).append(" = ").append(sensitive ? "(hidden)" : e.getValue()).append("\n");
         }
 
+        // GeneralsX @feature ZH Commander 11/10/2026 Cross-play's state and the checksums a lobby
+        // compares: a report from a player turned away by every lobby (11/10) carried none of it.
+        sb.append("\n== Online ==\n");
+        sb.append("Signed in: ").append(GeneralsOnlineActivity.getSignedInDisplayName(this) != null).append("\n");
+        String gameFolder = getSavedGamePath();
+        sb.append("Play with PC players: ").append(gameFolder != null
+            && new File(gameFolder, "gx_pc_compat.txt").isFile()).append("\n");
+        String patchVersion = DataPackInstaller.installedVersion(this);
+        sb.append("GeneralsOnline data: ").append(patchVersion != null ? patchVersion : "not installed")
+            .append(DataPackInstaller.isEnabled() ? "" : " (switched off)")
+            .append(", PC checksum seed: ").append(DataPackInstaller.hasPcExeCrcSeed(this)).append("\n");
+        appendCrcLines(sb);
+
         sb.append("\n== Game data ==\n");
         String path = getSavedGamePath();
         if (path == null) {
@@ -594,6 +607,55 @@ public class SetupActivity extends Activity {
             }
         }
         return sb.toString();
+    }
+
+    // The game's own checksum line and its last few lobby comparisons (numbers only: the lobby
+    // names are other players'), from the newest game log that has them.
+    private void appendCrcLines(StringBuilder sb) {
+        File extDir = getExternalFilesDir(null);
+        if (extDir == null) {
+            return;
+        }
+        java.util.regex.Pattern join = java.util.regex.Pattern.compile(
+            "host exe_crc=(\\d+) ini_crc=(\\d+), local exe_crc=(\\d+) ini_crc=(\\d+)");
+        for (String name : new String[] { "generals-stderr.log", "generals-stderr-prev.log" }) {
+            File log = new File(extDir, name);
+            if (!log.isFile()) {
+                continue;
+            }
+            String crcLine = null;
+            java.util.ArrayDeque<String> joins = new java.util.ArrayDeque<>();
+            try (java.io.BufferedReader r = new java.io.BufferedReader(new java.io.FileReader(log))) {
+                String line;
+                while ((line = r.readLine()) != null) {
+                    if (line.startsWith("[GX-CRC] ini_crc=")) {
+                        crcLine = line;
+                    } else if (line.startsWith("DEBUG-JOIN: CRC check")) {
+                        java.util.regex.Matcher m = join.matcher(line);
+                        if (m.find()) {
+                            joins.addLast("join: host exe " + m.group(1) + " ini " + m.group(2)
+                                + ", this phone exe " + m.group(3) + " ini " + m.group(4));
+                            if (joins.size() > 5) {
+                                joins.removeFirst();
+                            }
+                        }
+                    }
+                }
+            } catch (java.io.IOException e) {
+                continue;
+            }
+            if (crcLine == null && joins.isEmpty()) {
+                continue;
+            }
+            sb.append("From ").append(name).append(":\n");
+            if (crcLine != null) {
+                sb.append(crcLine).append("\n");
+            }
+            for (String j : joins) {
+                sb.append(j).append("\n");
+            }
+            return;
+        }
     }
 
     private static void appendArchives(StringBuilder sb, File dir, String prefix) {

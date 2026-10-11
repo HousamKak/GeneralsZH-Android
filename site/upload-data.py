@@ -46,6 +46,10 @@ DEFAULT_SITE = "https://zh-commander.housam-kak20.workers.dev"
 SEGMENT_RE = re.compile(r"^[A-Za-z0-9._ !-]{1,120}$")
 PACK_ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]{0,39}$")
 PACKS_DIR = "_packs"
+# The retail INI archive of Zero Hour 1.04: its INI checksum is the one GeneralsOnline expects.
+RETAIL_INI_SHA256 = {
+    "inizh.big": "1a6d41a7a2cb31e67ad2f868aca9264ad069c275e0074f8a0d970a336071e9a0",
+}
 REQUIRED = ["data/scripts/skirmishscripts.scb", "data/scripts/multiplayerscripts.scb", "data/scripts/scripts.ini"]
 # What makes a pack "gameplay": the simulation reads these, so players online must match.
 GAMEPLAY_RE = re.compile(r"^data/(ini|scripts)/|\.(ini|scb)$")
@@ -139,7 +143,10 @@ def archive_order_report(entries, published_paths):
         for name in e["inner"]:
             owners.setdefault(name, []).append(e)
     loose = {e["path"].lower() for e in entries if not e["path"].lower().endswith(".big")}
-    rank = lambda e: os.path.basename(e["path"]).lower()  # noqa: E731
+    # GeneralsX @bugfix ZH Commander 11/10/2026 The base game's archives (ZH_Generals/) are mounted
+    # after Zero Hour's, never overwriting (StdBIGFileSystem.cpp, loadBaseGeneralsAssetsForZH): they
+    # lose to every Zero Hour archive, whatever their names.
+    rank = lambda e: (e["path"].lower().startswith("zh_generals/"), os.path.basename(e["path"]).lower())  # noqa: E731
     lines = []
     for e in sorted(archives, key=rank):
         if e["path"] in published_paths:
@@ -169,6 +176,8 @@ def main():
     ap.add_argument("--reuse", action="store_true",
                     help="keep the existing uploads of files that did not change since the last publish")
     ap.add_argument("--check", action="store_true", help="inspect only, upload nothing")
+    ap.add_argument("--allow-modified-ini", action="store_true",
+                    help="publish INI archives that are not the retail ones (breaks online play with PCs)")
     a = ap.parse_args()
     if not re.match(r"^[A-Za-z0-9._-]{1,64}$", a.version):
         sys.exit("version may use letters, digits, '.', '_' and '-' only")
@@ -186,6 +195,16 @@ def main():
     if missing:
         sys.exit("the game data is missing %s (copy the Data/Scripts folder of the game into %s)"
                  % (", ".join(missing), a.folder))
+    # GeneralsX @bugfix ZH Commander 11/10/2026 The game's own INI archives must be the retail ones.
+    # The data published until 2026-10-11 carried an INIZH.big edited on the owner's PC (150000
+    # starting money as the default): every phone got a different INI checksum from the PC
+    # GeneralsOnline players and from retail, so no PC lobby would take it. Changed gameplay data
+    # belongs in a pack with "gameplay": true, never in these files.
+    for e_rel, e_full in base:
+        want = RETAIL_INI_SHA256.get(e_rel.lower())
+        if want is not None and sha256_of(e_full) != want and not a.allow_modified_ini:
+            sys.exit("%s is not the retail archive (sha256 %s expected); publish a gameplay change "
+                     "as a pack, or pass --allow-modified-ini" % (e_rel, want))
     packs = read_packs(a.folder)
 
     print("==> Hashing %d files%s" % (len(base) + sum(len(p["files"]) for p in packs),

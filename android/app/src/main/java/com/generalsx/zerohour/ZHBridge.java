@@ -105,6 +105,12 @@ final class ZHBridge {
             .putExtra(SetupActivity.EXTRA_SHARE_REPORT, true));
     }
 
+    /** GeneralsOnline's screen, where cross-play ("Play with PC players") is switched on. */
+    static void openCrossPlay() {
+        Activity a = game();
+        a.startActivity(new Intent(a, GeneralsOnlineActivity.class));
+    }
+
     /** The mods screen (optional packs of the game data). */
     static void openMods() {
         Activity a = game();
