@@ -754,7 +754,7 @@ void WOLWelcomeMenuInit( WindowLayout *layout, void *userData )
             });
 
         // And also initialize it
-        if (buttonBuddies != nullptr && pSocialInterface->GetNumTotalNotifications() > 0)
+        if (buttonBuddies != nullptr && pSocialInterface != nullptr && pSocialInterface->GetNumTotalNotifications() > 0)
         {
             UnicodeString buttonText;
             buttonText.format(L"%s [%d]", TheGameText->fetch("GUI:Buddies").str(), pSocialInterface->GetNumTotalNotifications());
