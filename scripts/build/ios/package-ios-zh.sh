@@ -167,11 +167,24 @@ if [[ "${RUNTIME_ONLY}" == "1" ]]; then
     cp "${FONTS_SRC}"/*.ttf "${APP}/Runtime/fonts/"
     cp "${CONFIG_SRC}/dxvk.conf" "${APP}/Runtime/dxvk.conf"
     cp "${CONFIG_SRC}/Options.ini" "${APP}/Runtime/DefaultOptions.ini"
-    # The ZH Commander screen of the game's Options menu (CommanderMenu.cpp); shared with Android.
-    mkdir -p "${APP}/Runtime/Window/Menus"
-    cp "${PROJECT_ROOT}/android/app/src/main/assets/gamedata/Window/Menus/CommanderMenu.wnd" \
-        "${APP}/Runtime/Window/Menus/CommanderMenu.wnd"
 fi
+# GeneralsX @feature ZH Commander 11/10/2026 The loose layouts this port adds to the game, the same
+# tree the Android app ships in assets/gamedata: the touch group panel with GROUPS / ALERT / DESELECT
+# (Window/GroupPanel.wnd), the ZH COMMANDER screen (Window/Menus/CommanderMenu.wnd) and the release
+# notes window (Window/Menus/ZHNotes.wnd). Only CommanderMenu.wnd used to come along, so an iPhone
+# or iPad had no group panel and its notes fell back to a cramped message box. SDL3Main copies
+# <app>/Runtime into Documents and always overwrites what is under Window/. With assets in the
+# bundle they go into GameData, which is the working directory then (only then: a GameData folder
+# makes SDL3Main take the bundle as the game folder).
+LAYOUTS_SRC="${PROJECT_ROOT}/android/app/src/main/assets/gamedata"
+if [[ "${DEV_MODE}" == "1" ]]; then
+    LAYOUTS_DEST="${APP}/Runtime"
+else
+    LAYOUTS_DEST="${APP}/GameData"
+fi
+mkdir -p "${LAYOUTS_DEST}"
+cp -R "${LAYOUTS_SRC}/." "${LAYOUTS_DEST}/"
+echo "    layouts: $(cd "${LAYOUTS_SRC}" && find . -type f | sed 's|^\./||' | tr '\n' ' ')"
 # This version's release notes (English and Arabic) for the game's "What's new" after an update
 # (IOSGate.mm reads <app>/whatsnew.json). Not a release: none, and the game shows nothing.
 NOTES_VERSION="${GX_VERSION_NAME:-$(sed -n "s/.*androidVersionName : '\([^']*\)'.*/\1/p" "${PROJECT_ROOT}/android/app/build.gradle")}"

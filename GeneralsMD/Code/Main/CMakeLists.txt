@@ -155,6 +155,10 @@ if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
         SKIP_PRECOMPILE_HEADERS ON)
     target_link_libraries(z_generals PRIVATE "-framework UIKit" "-framework Security" "-framework Foundation"
         "-framework CoreText" "-framework CoreGraphics")
+    # GeneralsX @feature ZH Commander 11/10/2026 The loading screen's animations (QuartzCore) and
+    # the GeneralsOnline community data, a zip the gate unpacks itself (zlib, already in vcpkg.json).
+    find_package(ZLIB REQUIRED)
+    target_link_libraries(z_generals PRIVATE "-framework QuartzCore" ZLIB::ZLIB)
 endif()
 
 if(NOT MSVC)

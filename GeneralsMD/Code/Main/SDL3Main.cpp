@@ -529,6 +529,20 @@ int main(int argc, char* argv[])
 	__argv = argv;
 
 #if defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE
+	// GeneralsX @bugfix ZH Commander 11/10/2026 SDL 3.4 starts main() from its scene delegate's
+	// willConnectToSession, and UIKit can connect a second scene to a running app (an external
+	// display, AirPlay mirroring, a scene reconnected after the system dropped it): SDL then calls
+	// main() again, from inside this one's run loop (libsdl-org/SDL#16465, #16161). The engine
+	// cannot run twice in one process; the second call leaves at once and the first keeps going.
+	{
+		static bool s_mainEntered = false;
+		if (s_mainEntered) {
+			fprintf(stderr, "WARNING: main() entered again (another scene connected); ignored\n");
+			return 0;
+		}
+		s_mainEntered = true;
+	}
+
 	// Diagnostic capture: an icon-launched app's stderr goes nowhere we can read,
 	// so mirror it to a file in Library/Caches (purgeable, not user-visible). This
 	// lets us pull a full engine log after an on-device session — essential for
@@ -666,9 +680,13 @@ int main(int argc, char* argv[])
 			mkdir(cacheDir, 0755);
 			setenv("DXVK_STATE_CACHE_PATH", cacheDir, 0);
 
-			if (usingBundleData) {
-				// Seed default settings on first run (full detail instead of the
-				// 2003 auto-detect, which drops unknown GPUs to Low).
+			// Seed default settings on first run (full detail instead of the
+			// 2003 auto-detect, which drops unknown GPUs to Low).
+			// GeneralsX @bugfix ZH Commander 11/10/2026 In the Documents layout (the released
+			// IPA: game data downloaded, DefaultOptions.ini copied from <bundle>/Runtime) too, not
+			// only with assets in the bundle: every iPhone and iPad started on the auto-detected
+			// settings.
+			{
 				char userDataDir[1024], optionsPath[1024];
 				snprintf(userDataDir, sizeof(userDataDir),
 				         "%s/Library/Application Support/GeneralsX/GeneralsZH", home);
@@ -681,7 +699,9 @@ int main(int argc, char* argv[])
 						fprintf(stderr, "INFO: Seeded default Options.ini\n");
 					}
 				}
+			}
 
+			if (usingBundleData) {
 				// One-time tidy-up: remove asset copies from Documents now that
 				// the bundle carries them. Guarded by a sentinel so it truly runs
 				// once — Documents is exposed via the Files app, and anything the

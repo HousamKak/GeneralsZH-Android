@@ -36,6 +36,27 @@ offered the update by AltStore/SideStore.
 ## On the device
 
 `GeneralsMD/Code/Main/IOSGate.mm` runs before the engine: activation (same keys and license
-server as Android), then the game-data download (license-checked, resumable, SHA-256 per file),
-then the game. A small button in the game's top corner shares a support report with the session
-logs (`Documents/generals-stderr.log`).
+server as Android), then the game-data download (license-checked, resumable, SHA-256 per file) on
+a loading screen like Android's, then what online play needs (the cross-play marker, the
+GeneralsOnline community data, a renewed GeneralsOnline session), then the game.
+
+The game's own menus reach the app through `ZHCommander.h`: the version, update offers, the
+support report (SUPPORT, or ZH COMMANDER, SEND A REPORT; it includes the session logs,
+`Documents/generals-stderr.log`), mods, the GeneralsOnline sign-in, and an ONLINE screen (ZH
+COMMANDER, ADVANCED, or a lobby's refusal) with the account, "Play with PC players" and the
+GeneralsOnline data.
+
+What differs from Android:
+
+- **One engine, 60 Hz.** An iOS app carries one executable, so the `ios-vulkan` preset builds the
+  engine with `SAGE_HIGH_FPS_SIM` (the PC client's rate). There is no game-speed choice; iPhones
+  and iPads play with 60 Hz phones and, with "Play with PC players" on (the default), with PCs.
+- **No restart.** An iOS app cannot start itself again: settings, mods and new game data apply the
+  next time the player opens the game.
+- **Not yet:** App Monitor events, the in-app language packs, the signed update settings
+  (`remote_config.ini`; the engine's built-in defaults apply).
+
+Where things are on the device: game data, `gx_pc_compat.txt` and the logs in `Documents`; the
+engine's user data (Options.ini, saves, replays, Maps, `GeneralsOnlineGameData/`) in
+`Library/Application Support/GeneralsX/GeneralsZH`; the GeneralsOnline session and the PC checksum
+seed (`update/pc_exe_crc_seed.txt`) in `Library/Application Support/GeneralsX`.
