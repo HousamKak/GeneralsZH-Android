@@ -281,7 +281,6 @@
                 "RTS_BUILD_ZEROHOUR_TOOLS": "OFF",
                 "RTS_BUILD_ZEROHOUR_EXTRAS": "OFF",
                 "SAGE_HIGH_FPS_SIM": "ON",
-                "GENERALS_ONLINE_ENABLE_P2P_TRANSPORT": "OFF",
                 "Vulkan_INCLUDE_DIR": "$env{VULKAN_SDK}/include",
                 "Vulkan_LIBRARY": "$env{VULKAN_SDK}/lib/MoltenVK.xcframework/ios-arm64/libMoltenVK.a",
                 "Vulkan_MoltenVK_LIBRARY": "$env{VULKAN_SDK}/lib/MoltenVK.xcframework/ios-arm64/libMoltenVK.a",
