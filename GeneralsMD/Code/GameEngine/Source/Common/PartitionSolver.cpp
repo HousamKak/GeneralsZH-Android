@@ -55,6 +55,7 @@ Some info about partitioning problems:
 #include <algorithm>
 #include "GameLogic/GameLogic.h"
 #include "GXTrace.h"
+#include "Common/RetailSort.h"
 
 static Bool greater_than(PairObjectIDAndUInt a, PairObjectIDAndUInt b)
 {
@@ -63,6 +64,13 @@ static Bool greater_than(PairObjectIDAndUInt a, PairObjectIDAndUInt b)
 
 static void gxSortLikeMsvc(std::vector<PairObjectIDAndUInt> &v, const char *what)
 {
+#if defined(SAGE_RETAIL_RULES)
+	// GeneralsX @bugfix ZH Commander 12/10/2026 Retail rules: retail's std::sort is STLport's
+	// (Common/RetailSort.h), which orders equal sizes its own way above 16 elements.
+	(void)what;
+	RetailSort::sort(v.begin(), v.end(), greater_than);
+	return;
+#endif
 	const size_t MSVC_INSERTION_SORT_MAX = 32;
 	if (v.size() > MSVC_INSERTION_SORT_MAX)
 		GX_NET_TRACE("partition solver frame %u: %u %s to sort, above MSVC's insertion-sort size; order of equal sizes may differ from the PC\n",
