@@ -105,13 +105,12 @@ template<typename T> inline X87IfFloating<T> operator/=(T &a, X87Real b) { a = (
 // GeneralsX @bugfix HousamKak 12/10/2026 The retail-rules engine is built with -freciprocal-math,
 // because VC6 compiled "x / 100.0f" as "x * 0.01f" (see CMakeLists.txt). That flag also lets clang
 // merge "a / len; b / len; c / len" into one reciprocal and hoist a loop-invariant divisor, which
-// VC6 never did: it divided each time. Code where that happens sits between these two macros, which
-// turn reciprocal math off again (and keep contraction off, since "precise" would turn it on). Inside
-// the fence a division by a constant is a real division, so write those as the multiply VC6 made.
+// VC6 never did: it divided each time. GX_VC6_DIVISIONS, written first in a block, turns reciprocal
+// math off for that block (and keeps contraction off, which "precise" would turn on); the flags stay
+// on the instructions, so it holds after inlining too. Inside such a block a division by a constant
+// is a real division, so write those as the multiplication VC6 made.
 #if defined(SAGE_RETAIL_RULES) && defined(__clang__)
-#define GX_VC6_DIVISIONS_BEGIN _Pragma("float_control(precise, on, push)") _Pragma("clang fp contract(off)")
-#define GX_VC6_DIVISIONS_END _Pragma("float_control(pop)")
+#define GX_VC6_DIVISIONS _Pragma("float_control(precise, on)") _Pragma("clang fp contract(off)")
 #else
-#define GX_VC6_DIVISIONS_BEGIN
-#define GX_VC6_DIVISIONS_END
+#define GX_VC6_DIVISIONS
 #endif
