@@ -58,6 +58,7 @@
 
 #include "WWMath/plane.h"
 #include "WWMath/tri.h"
+#include "Lib/X87Real.h"
 
 
 // GLOBALS ////////////////////////////////////////////////////////////////////////////////////////
@@ -2888,7 +2889,7 @@ void TerrainLogic::createCraterInTerrain(Object *obj)
 				gridPos.y = j;
 
 
-        Real displacementAmount = radius * (1.0f - distance / radius );
+        Real displacementAmount = radius * (1.0f - gxVc6Div( distance, radius ) ); // GeneralsX @bugfix HousamKak 12/10/2026 a real division, as VC6 made it
 
         Int targetHeight = MAX( 1, TheTerrainVisual->getRawMapHeight( &gridPos ) - displacementAmount );
 

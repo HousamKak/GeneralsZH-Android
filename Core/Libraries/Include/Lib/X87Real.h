@@ -114,3 +114,11 @@ template<typename T> inline X87IfFloating<T> operator/=(T &a, X87Real b) { a = (
 #else
 #define GX_VC6_DIVISIONS
 #endif
+
+// GeneralsX @bugfix HousamKak 12/10/2026 One division VC6 performed as a division, for a divisor that
+// stays fixed through a loop: with -freciprocal-math clang would compute its reciprocal once.
+template<typename A, typename B> inline auto gxVc6Div(A a, B b)
+{
+	GX_VC6_DIVISIONS
+	return a / b;
+}

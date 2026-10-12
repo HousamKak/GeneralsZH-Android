@@ -61,6 +61,7 @@
 #include "GameLogic/Module/SupplyTruckAIUpdate.h"
 #include "GameLogic/Module/SupplyWarehouseDockUpdate.h"
 #include "GameLogic/PartitionManager.h"
+#include "Lib/X87Real.h"
 
 
 #define SUPPLY_CENTER_CLOSE_DIST (20*PATHFIND_CELL_SIZE_F)
@@ -1243,8 +1244,8 @@ Bool AIPlayer::computeSuperweaponTarget(const SpecialPowerTemplate *power, Coord
 		yIndex = yStart;
 		for( y = 0; y < yCount; y++, yIndex += yDelta )
 		{
-			pos.x = bounds.lo.x + ( bounds.width() * xIndex ) / xCount;
-			pos.y = bounds.lo.y + ( bounds.height() * yIndex ) / yCount;
+			pos.x = bounds.lo.x + gxVc6Div( bounds.width() * xIndex, xCount ); // GeneralsX @bugfix HousamKak 12/10/2026 a real division, as VC6 made it
+			pos.y = bounds.lo.y + gxVc6Div( bounds.height() * yIndex, yCount ); // GeneralsX @bugfix HousamKak 12/10/2026 a real division, as VC6 made it
 			pos.z = 0;
 			Int curCash = getPlayerSuperweaponValue( &pos, playerNdx, 2*weaponRadius, targetMilitaryUnits );
 			if ( curCash > cash)
@@ -1361,7 +1362,7 @@ Int AIPlayer::getPlayerSuperweaponValue(Coord3D *center, Int playerNdx, Real rad
 				if (dx*dx+dy*dy<radSqr)
 				{
 					Real dist = sqrt(dx*dx+dy*dy);
-					Real factor = 1.0f - (dist/(2*radius)); // 1.0 in center, 0.5 on edges.
+					Real factor = 1.0f - gxVc6Div(dist, 2*radius); // 1.0 in center, 0.5 on edges. GeneralsX @bugfix HousamKak 12/10/2026 a real division, as VC6 made it
 					Real value = pObj->getTemplate()->calcCostToBuild(pPlayer);
 					if (pObj->isKindOf(KINDOF_COMMANDCENTER))
 					{

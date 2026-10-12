@@ -46,6 +46,7 @@
 #include "GameLogic/GameLogic.h"
 #include "GameLogic/Object.h"
 #include "GameLogic/PartitionManager.h"
+#include "Lib/X87Real.h"
 
 
 //-------------------------------------------------------------------------------------------------
@@ -313,7 +314,7 @@ void CountermeasuresBehavior::launchVolley()
 		if( volleySize != 1.0f )
 		{
 			//ratio between -1.0 and +1.0f
-			ratio = currentVolley / (volleySize - 1.0f) * 2.0f - 1.0f;
+			ratio = gxVc6Div(currentVolley, volleySize - 1.0f) * 2.0f - 1.0f; // GeneralsX @bugfix HousamKak 12/10/2026 a real division, as VC6 made it
 		}
 		//Now calculate the angle. Simply multiply it by the ratio!
 		Real angle = ratio * data->m_volleyArcAngle;
