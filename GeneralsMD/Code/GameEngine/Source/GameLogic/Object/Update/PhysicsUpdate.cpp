@@ -1012,7 +1012,13 @@ Real PhysicsBehavior::getVelocityMagnitude() const
 {
 	if (m_velMag == INVALID_VEL_MAG)
 	{
+#if defined(SAGE_RETAIL_RULES)
+		// GeneralsX @bugfix ZH Commander 12/10/2026 VC6 regrouped the sum (no /Op): the linked
+		// getVelocityMagnitude loads x, y, z and adds from the top of the x87 stack, (z*z + y*y) + x*x.
+		m_velMag = (Real)sqrtf( (sqr(m_vel.z) + sqr(m_vel.y)) + sqr(m_vel.x) );
+#else
 		m_velMag = (Real)sqrtf( sqr(m_vel.x) + sqr(m_vel.y) + sqr(m_vel.z) );
+#endif
 	}
 	return m_velMag;
 }
@@ -1378,7 +1384,12 @@ void PhysicsBehavior::onCollide( Object *other, const Coord3D *loc, const Coord3
 		// do 3d testing.
 		usRadius = obj->getGeometryInfo().getBoundingSphereRadius();
 		themRadius = other->getGeometryInfo().getBoundingSphereRadius();
+#if defined(SAGE_RETAIL_RULES)
+		// GeneralsX @bugfix ZH Commander 12/10/2026 Summed (z + y) + x in the reference listing.
+		distSqr = (sqr(delta.z) + sqr(delta.y)) + sqr(delta.x);
+#else
 		distSqr = sqr(delta.x) + sqr(delta.y) + sqr(delta.z);
+#endif
 	}
 	else
 	{
