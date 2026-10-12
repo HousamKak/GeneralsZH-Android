@@ -55,6 +55,7 @@
 #include "GameLogic/Module/StealthUpdate.h"
 #include "GameLogic/Module/SpecialPowerUpdateModule.h"
 #include "GameLogic/ObjectIter.h"
+#include "Lib/X87Real.h"
 
 
 /**
@@ -370,9 +371,13 @@ Bool AIGroup::getCenter( Coord3D *center )
 		}
 	}
 
-	center->x /= count;
-	center->y /= count;
-	center->z /= count;
+	{
+		// GeneralsX @bugfix HousamKak 12/10/2026 VC6 divided each time; keep clang from sharing one reciprocal.
+		GX_VC6_DIVISIONS
+		center->x /= count;
+		center->y /= count;
+		center->z /= count;
+	}
 
 	return count > 0;
 }
@@ -422,9 +427,13 @@ Bool AIGroup::getMinMaxAndCenter( Coord2D *min, Coord2D *max, Coord3D *center )
 		}
 	}
 
-	center->x /= count;
-	center->y /= count;
-	center->z /= count;
+	{
+		// GeneralsX @bugfix HousamKak 12/10/2026 VC6 divided each time; keep clang from sharing one reciprocal.
+		GX_VC6_DIVISIONS
+		center->x /= count;
+		center->y /= count;
+		center->z /= count;
+	}
 	Bool isFormation = (id!=NO_FORMATION_ID);
 	if (count<2) isFormation = false;
 	return isFormation;

@@ -69,6 +69,7 @@ const Real MAX_FRICTION = 0.99f;
 const Real STUN_RELIEF_EPSILON = 0.5f;
 
 #include "Common/CRCDebug.h"
+#include "Lib/X87Real.h"
 
 #if !(defined(_MSC_VER) && defined(_M_IX86))
 void gxPhysNote(Char kind, UnsignedInt id, const Real *values, Int count);
@@ -1500,9 +1501,13 @@ void PhysicsBehavior::onCollide( Object *other, const Coord3D *loc, const Coord3
 			factor = -overlap;
 		}
 
-		force.x = factor * delta.x / dist;
-		force.y = factor * delta.y / dist;
-		force.z = factor * delta.z / dist;	// will be zero for 2d case.
+		{
+			// GeneralsX @bugfix HousamKak 12/10/2026 VC6 divided each time; keep clang from sharing one reciprocal.
+			GX_VC6_DIVISIONS
+			force.x = factor * delta.x / dist;
+			force.y = factor * delta.y / dist;
+			force.z = factor * delta.z / dist;	// will be zero for 2d case.
+		}
 		DEBUG_ASSERTCRASH(!(_isnan(force.x) || _isnan(force.y) || _isnan(force.z)), ("PhysicsBehavior::onCollide force NAN!"));
 
 		applyForce( &force );

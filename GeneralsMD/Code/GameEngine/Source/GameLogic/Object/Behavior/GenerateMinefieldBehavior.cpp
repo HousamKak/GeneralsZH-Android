@@ -52,6 +52,7 @@
 #include "GameLogic/ObjectCreationList.h"
 #include "GameLogic/PartitionManager.h"
 #include "GameLogic/Weapon.h"
+#include "Lib/X87Real.h"
 
 
 //-------------------------------------------------------------------------------------------------
@@ -258,6 +259,8 @@ void GenerateMinefieldBehavior::placeMinesAlongLine(const Coord3D& posStart, con
 	Real inc = len/numMines;
 	for (Real place = skipOneAtStart ? inc : 0; place <= len; place += inc)
 	{
+		// GeneralsX @bugfix HousamKak 12/10/2026 VC6 divided each time; keep clang from sharing one reciprocal.
+		GX_VC6_DIVISIONS
 		Coord3D pt;
 		pt.x = posStart.x + place * dx / len;
 		pt.y = posStart.y + place * dy / len;

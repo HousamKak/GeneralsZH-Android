@@ -85,6 +85,7 @@
 #include "GameLogic/Weapon.h"
 #include "GameLogic/VictoryConditions.h"
 #include "GameLogic/AIPathfind.h"
+#include "Lib/X87Real.h"
 
 
 // Kind of hacky, but we need to dance on the guts of the terrain.
@@ -1729,9 +1730,13 @@ void ScriptActions::doTeamFollowSkirmishApproachPath(const AsciiString& teamName
 		}
 	}
 	if (count==0) return; // empty team.
-	pos.x /= count;
-	pos.y /= count;
-	pos.z /= count;
+	{
+		// GeneralsX @bugfix HousamKak 12/10/2026 VC6 divided each time; keep clang from sharing one reciprocal.
+		GX_VC6_DIVISIONS
+		pos.x /= count;
+		pos.y /= count;
+		pos.z /= count;
+	}
 
 	Player *enemyPlayer = TheScriptEngine->getSkirmishEnemyPlayer();
 	if (enemyPlayer==nullptr) return;
@@ -1792,9 +1797,13 @@ void ScriptActions::doTeamMoveToSkirmishApproachPath(const AsciiString& teamName
 		count++;
 	}
 	if (count==0) return; // empty team.
-	pos.x /= count;
-	pos.y /= count;
-	pos.z /= count;
+	{
+		// GeneralsX @bugfix HousamKak 12/10/2026 VC6 divided each time; keep clang from sharing one reciprocal.
+		GX_VC6_DIVISIONS
+		pos.x /= count;
+		pos.y /= count;
+		pos.z /= count;
+	}
 
 	Player *enemyPlayer = TheScriptEngine->getSkirmishEnemyPlayer();
 	if (enemyPlayer==nullptr) return;
@@ -1844,9 +1853,13 @@ void ScriptActions::doTeamFollowWaypoints(const AsciiString& teamName, const Asc
 		count++;
 	}
 	if (count==0) return; // empty team.
-	pos.x /= count;
-	pos.y /= count;
-	pos.z /= count;
+	{
+		// GeneralsX @bugfix HousamKak 12/10/2026 VC6 divided each time; keep clang from sharing one reciprocal.
+		GX_VC6_DIVISIONS
+		pos.x /= count;
+		pos.y /= count;
+		pos.z /= count;
+	}
 
 	Waypoint *way = TheTerrainLogic->getClosestWaypointOnPath( &pos, waypointPathLabel );
 	if (!way) {
@@ -1895,9 +1908,13 @@ void ScriptActions::doTeamFollowWaypointsExact(const AsciiString& teamName, cons
 		count++;
 	}
 	if (count==0) return; // empty team.
-	pos.x /= count;
-	pos.y /= count;
-	pos.z /= count;
+	{
+		// GeneralsX @bugfix HousamKak 12/10/2026 VC6 divided each time; keep clang from sharing one reciprocal.
+		GX_VC6_DIVISIONS
+		pos.x /= count;
+		pos.y /= count;
+		pos.z /= count;
+	}
 
 	Waypoint *way = TheTerrainLogic->getClosestWaypointOnPath( &pos, waypointPathLabel );
 	if (!way) {

@@ -67,6 +67,7 @@ static Real gxRetailAtan2Turn(Real dy, Real dx, Real angle, Real *desiredAngle)
 
 #include "GameLogic/Module/BodyModule.h"
 #include "GameLogic/Module/AIUpdate.h"
+#include "Lib/X87Real.h"
 
 
 static const Real DONUT_TIME_DELAY_SECONDS=2.5f;
@@ -273,9 +274,13 @@ static void calcDirectionToApplyThrust(
 			// plug it in.
 			if (!isNearlyZero(t))
 			{
-				goalDir.X = (vecToGoal.X / t) - curVel.X;
-				goalDir.Y = (vecToGoal.Y / t) - curVel.Y;
-				goalDir.Z = (vecToGoal.Z / t) - curVel.Z;
+				{
+					// GeneralsX @bugfix HousamKak 12/10/2026 VC6 divided each time; keep clang from sharing one reciprocal.
+					GX_VC6_DIVISIONS
+					goalDir.X = (vecToGoal.X / t) - curVel.X;
+					goalDir.Y = (vecToGoal.Y / t) - curVel.Y;
+					goalDir.Z = (vecToGoal.Z / t) - curVel.Z;
+				}
 				goalDir.Normalize();
 				foundSolution = true;
 			}

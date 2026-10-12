@@ -76,6 +76,7 @@
 #include "GameLogic/Module/ProjectileStreamUpdate.h"
 #include "GameLogic/Module/PhysicsUpdate.h"
 #include "GameLogic/TerrainLogic.h"
+#include "Lib/X87Real.h"
 
 #define RATIONALIZE_ATTACK_RANGE
 #define ATTACK_RANGE_IS_2D
@@ -2235,9 +2236,13 @@ Bool Weapon::computeApproachTarget(const Object *source, const Object *target, c
 			return false;
 		}
 
-		dir.x /= dist;
-		dir.y /= dist;
-		dir.z /= dist;
+		{
+			// GeneralsX @bugfix HousamKak 12/10/2026 VC6 divided each time; keep clang from sharing one reciprocal.
+			GX_VC6_DIVISIONS
+			dir.x /= dist;
+			dir.y /= dist;
+			dir.z /= dist;
+		}
 
 		if (angleOffset != 0.0f)
 		{

@@ -33,6 +33,7 @@
 #include "Lib/trig.h"
 #include <string.h>
 #include <math.h>
+#include "Lib/X87Real.h"
 
 //-----------------------------------------------------------------------------
 typedef wchar_t WideChar;  ///< multi-byte character representations
@@ -358,6 +359,8 @@ struct Coord2D
 		Real len = length();
 		if( len != 0 )
 		{
+			// GeneralsX @bugfix HousamKak 12/10/2026 VC6 divided each time; keep clang from sharing one reciprocal.
+			GX_VC6_DIVISIONS
 			x /= len;
 			y /= len;
 		}
@@ -595,6 +598,8 @@ struct Coord3D
 
 		if( len != 0 )
 		{
+			// GeneralsX @bugfix HousamKak 12/10/2026 VC6 divided each time; keep clang from sharing one reciprocal.
+			GX_VC6_DIVISIONS
 			x /= len;
 			y /= len;
 			z /= len;
