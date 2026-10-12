@@ -1487,7 +1487,21 @@ void makeAlignToNormalMatrix( Real angle, const Coord3D& pos, const Coord3D& nor
 	if (z.z != 0.0f)
 	{
 		x.z = -(x.x*z.x + x.y*z.y) / z.z;
+#if defined(SAGE_RETAIL_RULES)
+		// GeneralsX @bugfix ZH Commander 12/10/2026 The linked makeAlignToNormalMatrix keeps x.z in
+		// the x87 register and so starts the inlined normalize's sum with it: (z*z + y*y) + x*x, not
+		// Coord3D::length's (x*x + y*y) + z*z. y.normalize() below keeps the source order.
+		const Real xLen = (Real)Sqrt( (x.z*x.z + x.y*x.y) + x.x*x.x );
+		if( xLen != 0 )
+		{
+			GX_VC6_DIVISIONS
+			x.x /= xLen;
+			x.y /= xLen;
+			x.z /= xLen;
+		}
+#else
 		x.normalize();
+#endif
 	}
 
 	DEBUG_ASSERTCRASH(fabs(x.x*z.x + x.y*z.y + x.z*z.z)<0.0001,("dot is not zero (%f)",fabs(x.x*z.x + x.y*z.y + x.z*z.z)));

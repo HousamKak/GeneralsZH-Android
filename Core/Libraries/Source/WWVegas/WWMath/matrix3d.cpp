@@ -302,11 +302,22 @@ float Matrix3D::Get_Z_Rotation() const
  *=============================================================================================*/
 Vector3 Matrix3D::Rotate_Vector(const Vector3 &vect) const
 {
+#if defined(SAGE_RETAIL_RULES)
+	// GeneralsX @bugfix ZH Commander 12/10/2026 Retail's linked Rotate_Vector (VC6 /O2, no /Op)
+	// regroups every row: x = (r02*z + r01*y) + r00*x, y = (r12*z + r10*x) + r11*y,
+	// z = (r22*z + r20*x) + r21*y. A missile's thrust in a retail replay parted by one bit here.
+	return Vector3(
+		(Row[0][2]*vect[2] + Row[0][1]*vect[1]) + Row[0][0]*vect[0],
+		(Row[1][2]*vect[2] + Row[1][0]*vect[0]) + Row[1][1]*vect[1],
+		(Row[2][2]*vect[2] + Row[2][0]*vect[0]) + Row[2][1]*vect[1]
+	);
+#else
 	return Vector3(
 		(Row[0][0]*vect[0] + Row[0][1]*vect[1] + Row[0][2]*vect[2]),
 		(Row[1][0]*vect[0] + Row[1][1]*vect[1] + Row[1][2]*vect[2]),
 		(Row[2][0]*vect[0] + Row[2][1]*vect[1] + Row[2][2]*vect[2])
 	);
+#endif
 }
 
 
@@ -739,6 +750,30 @@ void Matrix3D::Multiply(const Matrix3D & A,const Matrix3D & B,Matrix3D * set_res
 	(*set_res)[0][3] = (*Aptr)[0][0]*tmp1 + (*Aptr)[0][1]*tmp2 + (*Aptr)[0][2]*tmp3 + (*Aptr)[0][3];
 	(*set_res)[1][3] = (*Aptr)[1][0]*tmp1 + (*Aptr)[1][1]*tmp2 + (*Aptr)[1][2]*tmp3 + (*Aptr)[1][3];
 	(*set_res)[2][3] = (*Aptr)[2][0]*tmp1 + (*Aptr)[2][1]*tmp2 + (*Aptr)[2][2]*tmp3 + (*Aptr)[2][3];
+#elif defined(SAGE_RETAIL_RULES)
+	// GeneralsX @bugfix ZH Commander 12/10/2026 Retail's linked Multiply (mul inlined, VC6 /O2 without
+	// /Op) loads B's column as t1, t2, t3 and regroups each row differently: row 0 is
+	// (a00*t1 + a02*t3) + a01*t2, rows 1 and 2 are (a12*t3 + a11*t2) + a10*t1. The translation
+	// column then adds a[r][3] last. HTree bone evaluation calls this, so weapon fire points use it.
+	const Matrix3D & a = *Aptr;
+	for (int c = 0; c < 4; ++c)
+	{
+		const float t1 = B.Row[0][c];
+		const float t2 = B.Row[1][c];
+		const float t3 = B.Row[2][c];
+		float r0 = (a.Row[0][0]*t1 + a.Row[0][2]*t3) + a.Row[0][1]*t2;
+		float r1 = (a.Row[1][2]*t3 + a.Row[1][1]*t2) + a.Row[1][0]*t1;
+		float r2 = (a.Row[2][2]*t3 + a.Row[2][1]*t2) + a.Row[2][0]*t1;
+		if (c == 3)
+		{
+			r0 = r0 + a.Row[0][3];
+			r1 = r1 + a.Row[1][3];
+			r2 = r2 + a.Row[2][3];
+		}
+		set_res->Row[0][c] = r0;
+		set_res->Row[1][c] = r1;
+		set_res->Row[2][c] = r2;
+	}
 #else
 	set_res->mul(*Aptr, B);
 #endif

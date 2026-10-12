@@ -81,7 +81,17 @@ GarrisonContainModuleData::GarrisonContainModuleData()
 //-----------------------------------------------------------------------------
 inline Real calcDistSqr(const Coord3D& a, const Coord3D& b)
 {
+#if defined(SAGE_RETAIL_RULES)
+	// GeneralsX @bugfix ZH Commander 12/10/2026 Retail links this as one out-of-line copy (all three
+	// GarrisonContain callers call it), which loads dx, dy, dz and sums from the top of the x87
+	// stack: (dz*dz + dy*dy) + dx*dx.
+	const Real dx = a.x - b.x;
+	const Real dy = a.y - b.y;
+	const Real dz = a.z - b.z;
+	return (dz*dz + dy*dy) + dx*dx;
+#else
 	return sqr(a.x - b.x) + sqr(a.y - b.y) + sqr(a.z - b.z);
+#endif
 }
 
 // ------------------------------------------------------------------------------------------------

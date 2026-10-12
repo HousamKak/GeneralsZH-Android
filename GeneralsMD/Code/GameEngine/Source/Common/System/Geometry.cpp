@@ -523,7 +523,18 @@ void GeometryInfo::calcBoundingStuff()
 		case GEOMETRY_BOX:
 		{
 			m_boundingCircleRadius = sqrt(sqr(m_majorRadius) + sqr(m_minorRadius));
+#if defined(SAGE_RETAIL_RULES)
+			{
+				// GeneralsX @bugfix ZH Commander 12/10/2026 m_height*0.5 is a double, so here the square
+				// and the last sum ran in double; the linked calcBoundingStuff does all of it at x87
+				// 24-bit precision, rounding the square, the sum and the root to float each.
+				const Real halfHeight = m_height*0.5f;
+				const Real sumSqr = (sqr(m_majorRadius) + sqr(m_minorRadius)) + halfHeight*halfHeight;
+				m_boundingSphereRadius = sqrtf(sumSqr);
+			}
+#else
 			m_boundingSphereRadius = sqrt(sqr(m_majorRadius) + sqr(m_minorRadius) + sqr(m_height*0.5));
+#endif
 			break;
 		}
 	};

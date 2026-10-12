@@ -437,8 +437,70 @@ no_negative:
 	}
 }
 #else
+#if defined(SAGE_RETAIL_RULES)
+// GeneralsX @bugfix ZH Commander 12/10/2026 WWMath::Fast_Sin's table step, given the value its first
+// multiply produced, for Fast_Slerp below: retail multiplies an x87 register value there.
+static float gxRetailFastSinScaled(float val)
+{
+	int idx0=WWMath::Float_To_Int_Floor(val);
+	int idx1=idx0+1;
+	float frac=val-(float)idx0;
+
+	idx0 = ((unsigned)idx0) & (SIN_TABLE_SIZE-1);
+	idx1 = ((unsigned)idx1) & (SIN_TABLE_SIZE-1);
+
+	return (1.0f - frac) * _FastSinTable[idx0] + frac * _FastSinTable[idx1];
+}
+#endif
+
 void __cdecl Fast_Slerp(Quaternion& res, const Quaternion & p,const Quaternion & q,float alpha)
 {
+#if defined(SAGE_RETAIL_RULES)
+	// GeneralsX @bugfix ZH Commander 12/10/2026 Retail's linked Fast_Slerp (VC6 /O2, no /Op; animation
+	// orientations, so the bone positions weapons fire from) sums the dot product as
+	// ((X + Z) + Y) + W, and keeps theta in the x87 register: when Fast_Acos takes its acos branch
+	// (|cos| > 0.975) theta is the unrounded runtime result, which each Fast_Sin scale, alpha*theta
+	// and theta - alpha*theta then use before rounding. The table branch's theta is a float.
+	float beta;
+	int qflip;
+	float cos_t = ((p.X * q.X + p.Z * q.Z) + p.Y * q.Y) + q.W * p.W;
+
+	if (cos_t < 0.0f) {
+		cos_t = -cos_t;
+		qflip = true;
+	} else {
+		qflip = false;
+	}
+
+	if (1.0f - cos_t < WWMATH_EPSILON * WWMATH_EPSILON) {
+		beta = 1.0f - alpha;
+	} else {
+		const float sinScale = float(SIN_TABLE_SIZE) / (2.0f * WWMATH_PI);
+		double theta;
+		if (WWMath::Fabs(cos_t) > 0.975f) {
+			const float oneMinus = 1.0f - cos_t;
+			const float onePlus = 1.0f + cos_t;
+			const float product = oneMinus * onePlus;
+			theta = atan2((double)sqrtf(product), (double)cos_t);
+		} else {
+			theta = (double)WWMath::Fast_Acos(cos_t);
+		}
+		const float oo_sin_t = 1.0f / gxRetailFastSinScaled((float)(theta * (double)sinScale));
+		const float alphaTheta = (float)(theta * (double)alpha);
+		const float thetaLessAlphaTheta = (float)(theta - (double)alphaTheta);
+		beta = gxRetailFastSinScaled(thetaLessAlphaTheta * sinScale) * oo_sin_t;
+		alpha = gxRetailFastSinScaled(alphaTheta * sinScale) * oo_sin_t;
+	}
+
+	if (qflip) {
+		alpha = -alpha;
+	}
+
+	res.X = beta*p.X + alpha*q.X;
+	res.Y = beta*p.Y + alpha*q.Y;
+	res.Z = beta*p.Z + alpha*q.Z;
+	res.W = beta*p.W + alpha*q.W;
+#else
 	float beta;			// complementary interploation parameter
 	float theta;		// angle between p and q
 	float cos_t; 		// sine, cosine of theta
@@ -479,6 +541,7 @@ void __cdecl Fast_Slerp(Quaternion& res, const Quaternion & p,const Quaternion &
 	res.Y = beta*p.Y + alpha*q.Y;
 	res.Z = beta*p.Z + alpha*q.Z;
 	res.W = beta*p.W + alpha*q.W;
+#endif
 }
 
 #endif	// MSC_VER

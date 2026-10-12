@@ -1542,7 +1542,36 @@ WWINLINE void Matrix3D::postMul(const Matrix3D& that)
 	assert(this != &that);
 
 #define AVOID_TEMP_IN_POSTMUL
-#ifdef AVOID_TEMP_IN_POSTMUL
+#if defined(SAGE_RETAIL_RULES)
+	// GeneralsX @bugfix ZH Commander 12/10/2026 Every simulation caller (Weapon::calcProjectileLaunchPosition,
+	// and the HTree bone updates behind weapon fire points) calls retail's one out-of-line postMul, which
+	// VC6 regrouped. With r a row and t1, t2, t3 that's column: row 0 is X = (Y*t2 + X*t1) + Z*t3,
+	// Y and Z = (Y*t2 + Z*t3) + X*t1, W += (X*t1 + Z*t3) + Y*t2; every element of rows 1 and 2 is
+	// (Y*t2 + Z*t3) + X*t1. Only Drawable::draw inlines it, and that is rendering.
+	for (int r = 0; r < 3; ++r)
+	{
+		const float rx = this->Row[r].X;
+		const float ry = this->Row[r].Y;
+		const float rz = this->Row[r].Z;
+		float tmp[4];
+		for (int c = 0; c < 4; ++c)
+		{
+			const float t1 = that.Row[0][c];
+			const float t2 = that.Row[1][c];
+			const float t3 = that.Row[2][c];
+			if (r == 0 && c == 0)
+				tmp[c] = (ry*t2 + rx*t1) + rz*t3;
+			else if (r == 0 && c == 3)
+				tmp[c] = (rx*t1 + rz*t3) + ry*t2;
+			else
+				tmp[c] = (ry*t2 + rz*t3) + rx*t1;
+		}
+		this->Row[r].X = tmp[0];
+		this->Row[r].Y = tmp[1];
+		this->Row[r].Z = tmp[2];
+		this->Row[r].W += tmp[3];
+	}
+#elif defined(AVOID_TEMP_IN_POSTMUL)
   float tmpX, tmpY, tmpZ, tmpW;
 
 	tmpX = submul(this->Row[0], that.Row[0].X, that.Row[1].X, that.Row[2].X);
