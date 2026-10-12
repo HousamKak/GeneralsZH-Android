@@ -352,17 +352,33 @@ function maintenancePage(): Response {
 	h1 { font-size: 1.6rem; margin: 0 0 12px; }
 	p { line-height: 1.6; margin: 0 0 12px; color: #c9c7c3; }
 	.ar { margin-top: 28px; padding-top: 24px; border-top: 1px solid #2a2f37; }
+	.links { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin: 16px 0 4px; }
+	.btn { display: inline-block; padding: 10px 18px; border-radius: 8px; background: #2b6cb0; color: #fff;
+		text-decoration: none; font-weight: 600; }
+	.btn:hover { background: #3182ce; }
+	.btn.discord { background: #5865f2; }
+	.btn.discord:hover { background: #4752c4; }
 </style>
 </head>
 <body>
 <main>
 	<h1>We'll be back soon</h1>
-	<p>ZH Commander is under maintenance because of huge demand. Downloads are paused for now.</p>
+	<p>ZH Commander is under maintenance because of huge demand. We are adding a payment gateway, and downloads are paused until it is ready.</p>
 	<p>If the game is already installed on your phone, it keeps working.</p>
+	<p>Meanwhile, follow us and join the community for news and the reopening:</p>
+	<div class="links">
+		<a class="btn" href="https://www.instagram.com/zhcommander" rel="noopener">Instagram @zhcommander</a>
+		<a class="btn discord" href="https://discord.gg/3yZVh969x" rel="noopener">Join our Discord</a>
+	</div>
 	<div class="ar" dir="rtl" lang="ar">
 		<h1>سنعود قريبا</h1>
-		<p>ZH Commander تحت الصيانة بسبب الإقبال الكبير. التنزيلات متوقفة حاليا.</p>
+		<p>ZH Commander تحت الصيانة بسبب الإقبال الكبير. نحن نضيف بوابة دفع، والتنزيلات متوقفة حتى تصبح جاهزة.</p>
 		<p>إذا كانت اللعبة مثبتة على هاتفك، فهي تعمل كالمعتاد.</p>
+		<p>في هذه الأثناء، تابعونا وانضموا إلى مجتمعنا لمعرفة الأخبار وموعد العودة:</p>
+		<div class="links">
+			<a class="btn" href="https://www.instagram.com/zhcommander" rel="noopener">انستغرام @zhcommander</a>
+			<a class="btn discord" href="https://discord.gg/3yZVh969x" rel="noopener">انضم إلى ديسكورد</a>
+		</div>
 	</div>
 </main>
 </body>
