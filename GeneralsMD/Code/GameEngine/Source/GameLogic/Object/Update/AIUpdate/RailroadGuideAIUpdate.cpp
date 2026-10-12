@@ -1307,7 +1307,14 @@ void RailroadBehavior::updatePositionTrackDistance( PullInfo *pullerInfo, PullIn
 	Real desiredAngle = atan2(dy, dx);
 
 
+#if defined(SAGE_RETAIL_RULES)
+	// GeneralsX @bugfix ZH Commander 12/10/2026 Retail's Get_Z_Rotation is "fpatan; ret" and the
+	// reference listing subtracts that register value from desiredAngle without storing it.
+	const Matrix3D *carTransform = obj->getTransformMatrix();
+	Real relAngle = normalizeAngle((Real)((double)desiredAngle - atan2((double)(*carTransform)[1][0], (double)(*carTransform)[0][0])));
+#else
 	Real relAngle = stdAngleDiff(desiredAngle, obj->getTransformMatrix()->Get_Z_Rotation());
+#endif
 
 
 	Matrix3D mtx;
