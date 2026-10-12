@@ -944,7 +944,20 @@ Real Bridge::getBridgeHeight(const Coord3D *pLoc, Coord3D* normal)
 	Vector3 bottom(pLoc->x, pLoc->y, 0);
 	Vector3 top(pLoc->x, pLoc->y, factor);
 	Real t;
+#if defined(SAGE_RETAIL_RULES)
+	// GeneralsX @bugfix ZH Commander 12/10/2026 VC6 regrouped the plane's sums when it inlined
+	// PlaneClass here (reference disassembly of Bridge::getBridgeHeight): D = N.left1 is summed
+	// (y + z) + x, and N.bottom is y + x (bottom.z is 0). Reproduced on a retail replay's bridge,
+	// where a dozer's height came out one bit higher with the source order.
+	{
+		const Real planeD = (plane.N.Y * left1.Y + plane.N.Z * left1.Z) + plane.N.X * left1.X;
+		const Real den = (plane.N.X * (top.X - bottom.X) + plane.N.Y * (top.Y - bottom.Y)) + plane.N.Z * factor;
+		const Real num = -((plane.N.Y * bottom.Y + plane.N.X * bottom.X) - planeD);
+		t = (den != 0.0f) ? num / den : 0.0f;
+	}
+#else
 	plane.Compute_Intersection(bottom, top, &t);
+#endif
 	if (normal) {
 		normal->x = plane.N.X;
 		normal->y = plane.N.Y;
