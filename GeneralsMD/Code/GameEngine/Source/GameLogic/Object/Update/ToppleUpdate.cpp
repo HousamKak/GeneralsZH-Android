@@ -29,6 +29,8 @@
 
 // INCLUDES ///////////////////////////////////////////////////////////////////////////////////////
 #include "PreRTS.h"	// This must go first in EVERY cpp file in the GameEngine
+#include <stdio.h>
+bool gxProbeWanted(UnsignedInt id);
 
 #include "Common/ThingTemplate.h"
 #include "Common/ThingFactory.h"
@@ -286,6 +288,14 @@ UpdateSleepTime ToppleUpdate::update()
 	if (m_angularAccumulation + curVelToUse > ANGULAR_LIMIT)
 		curVelToUse = ANGULAR_LIMIT - m_angularAccumulation;
 
+	if (gxProbeWanted(obj->getID()))
+	{
+		fprintf(stderr, "[GX-NET] topple frame %u vel %08X acc %08X cur %08X dir %08X %08X %08X nadx %d adx %08X\n",
+			(unsigned)TheGameLogic->getFrame(), *(const unsigned *)&m_angularVelocity, *(const unsigned *)&m_angularAccumulation,
+			*(const unsigned *)&curVelToUse, *(const unsigned *)&m_toppleDirection.x, *(const unsigned *)&m_toppleDirection.y,
+			*(const unsigned *)&m_toppleDirection.z, (int)m_numAngleDeltaX, *(const unsigned *)&m_angleDeltaX);
+		fflush(stderr);
+	}
 	Matrix3D xfrm = *obj->getTransformMatrix();
 	// GeneralsX @bugfix ZH Commander 12/10/2026 The reference listing stores each cosine and keeps each sine.
 	xfrm.In_Place_Pre_Rotate_X(-curVelToUse * m_toppleDirection.y, GX_KEEP_SIN);
