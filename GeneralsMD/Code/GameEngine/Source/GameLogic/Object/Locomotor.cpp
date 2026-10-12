@@ -194,6 +194,19 @@ static Real tryToRotateVector3D(
 		actualDir = rotMtx.Rotate_Vector(curDir);
 	}
 
+	{
+		const unsigned frame = (unsigned)TheGameLogic->getFrame();
+		if (frame >= 2590 && frame <= 2610)
+		{
+			const float in[10] = { maxAngle, inCurDir.X, inCurDir.Y, inCurDir.Z, inGoalDir.X, inGoalDir.Y, inGoalDir.Z, actualDir.X, actualDir.Y, actualDir.Z };
+			const float ab = angleBetween;
+			fprintf(stderr, "[GX-NET] rot3d frame %u: max %08X cur %08X %08X %08X goal %08X %08X %08X -> angle %08X dir %08X %08X %08X\n", frame,
+				*(const unsigned *)&in[0], *(const unsigned *)&in[1], *(const unsigned *)&in[2], *(const unsigned *)&in[3],
+				*(const unsigned *)&in[4], *(const unsigned *)&in[5], *(const unsigned *)&in[6], *(const unsigned *)&ab,
+				*(const unsigned *)&in[7], *(const unsigned *)&in[8], *(const unsigned *)&in[9]);
+			fflush(stderr);
+		}
+	}
 	return angleBetween;
 }
 
