@@ -7013,6 +7013,27 @@ namespace
 
 // GeneralsX @feature ZH Commander 13/10/2026 With gx_script_frames.txt ("FROM TO") in the game data
 // folder and the net trace on, one line per script whose actions run in that window.
+// GeneralsX @feature ZH Commander 13/10/2026 With gx_script_frames.txt ("FROM TO NAME") in the game
+// data folder and the net trace on, each condition of script NAME, its type and its result.
+static void gxConditionTrace(const char *name, int type, int result)
+{
+	static int s_from = -2, s_to = -1;
+	static char s_name[128] = "";
+	if (s_from == -2)
+	{
+		s_from = -1;
+		if (FILE *f = fopen("gx_script_frames.txt", "r"))
+		{
+			if (fscanf(f, "%d %d %127[^\n]", &s_from, &s_to, s_name) < 3) s_name[0] = 0;
+			fclose(f);
+		}
+	}
+	if (s_from < 0 || s_name[0] == 0 || TheGameLogic == nullptr || strcmp(name, s_name) != 0) return;
+	const int frame = (int)TheGameLogic->getFrame();
+	if (frame < s_from || frame > s_to) return;
+	GX_NET_TRACE("script cond frame %d '%s' type %d -> %d\n", frame, name, type, result);
+}
+
 static void gxScriptRanTrace(const char *name, int which)
 {
 	static int s_from = -2, s_to = -1;
@@ -7703,7 +7724,9 @@ Bool ScriptEngine::evaluateConditions( Script *pScript, Team *thisTeam, Player *
 		if (!pCondition) continue; // No conditions, so go to the next or.
 		Bool andTerm = true;
 		while (pCondition && andTerm) {
-			if (!evaluateCondition(pCondition)) {
+			const Bool gxResult = evaluateCondition(pCondition);
+			gxConditionTrace(pScript->getName().str(), (int)pCondition->getConditionType(), (int)gxResult);
+			if (!gxResult) {
 				andTerm = false;
 				break; // Short circuit the and evauation - after the first false, we can quit.
 			}

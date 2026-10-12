@@ -386,7 +386,14 @@ void ToppleUpdate::onCollide( Object *other, const Coord3D *loc, const Coord3D *
 			vel = *phys->getVelocity();
 		else
 			vel.zero();
+#if defined(SAGE_RETAIL_RULES)
+		// GeneralsX @bugfix ZH Commander 13/10/2026 vel.length() inlined here sums (z + y) + x in the
+		// reference listing. The topple speed sets the tree's velocity and acceleration, which a retail
+		// replay showed two bits apart once a felled palm bounced (frame 4196).
+		getObject()->topple( &toppleVector, (Real)sqrtf( (vel.z*vel.z + vel.y*vel.y) + vel.x*vel.x ), TOPPLE_OPTIONS_NONE );
+#else
 		getObject()->topple( &toppleVector, vel.length(), TOPPLE_OPTIONS_NONE );
+#endif
 
 	}
 
