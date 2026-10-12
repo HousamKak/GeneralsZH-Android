@@ -6783,6 +6783,13 @@ void ScriptEngine::setTimer( ScriptAction *pAction, Bool millisecondTimer, Bool 
 #if defined(GENERALS_ONLINE_HIGH_FPS_SERVER)
 		const int LEGACY_FPS_INT = BaseFps;
 		m_counters[counterNdx].value = REAL_TO_INT_CEIL(value * (Real)LEGACY_FPS_INT);
+#elif defined(SAGE_RETAIL_RULES)
+		// GeneralsX @bugfix ZH Commander 13/10/2026 VC6 reassociated the product (reference listing:
+		// "fmul LOGICFRAMES_PER_MSEC_REAL; fmul 1000.0"): (value * 0.03) * 1000, not (value * 1000) * 0.03.
+		// For a 10 second timer that is 299.99997 frames, which ceils to 300; the source order gives
+		// 300.0, which fast_float_ceil turns into 301. Every millisecond timer in a retail replay
+		// expired one frame late (a skirmish AI's expansion script fired at 2911 instead of 2910).
+		m_counters[counterNdx].value = REAL_TO_INT_CEIL((value * LOGICFRAMES_PER_MSEC_REAL) * 1000.0f);
 #else
 		m_counters[counterNdx].value = REAL_TO_INT_CEIL(ConvertDurationFromMsecsToFrames(value*1000));
 #endif
@@ -6842,7 +6849,12 @@ void ScriptEngine::adjustTimer( ScriptAction *pAction, Bool millisecondTimer, Bo
 		Real value = pAction->getParameter(0)->getReal();
 		if (!add)
 			value = -value;
+#if defined(SAGE_RETAIL_RULES)
+		// GeneralsX @bugfix ZH Commander 13/10/2026 (value * 0.03) * 1000, as VC6 reassociated it (see setTimer).
+		m_counters[counterNdx].value += REAL_TO_INT_CEIL((value * LOGICFRAMES_PER_MSEC_REAL) * 1000.0f);
+#else
 		m_counters[counterNdx].value += REAL_TO_INT_CEIL(ConvertDurationFromMsecsToFrames(value*1000));
+#endif
 	} else {
 		Int value = pAction->getParameter(0)->getInt();
 		if (!add)
