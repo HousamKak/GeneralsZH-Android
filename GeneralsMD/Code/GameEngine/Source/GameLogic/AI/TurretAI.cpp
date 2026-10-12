@@ -1123,10 +1123,21 @@ StateReturnType TurretAIAimTurretState::update()
 			//The point to fire from should be intrinsic to the turret, but in reality it is very slow to look it up.
 
  			Real actualPitch;
+#if defined(SAGE_RETAIL_RULES)
+			// GeneralsX @bugfix ZH Commander 12/10/2026 The length inside ASin is summed (y*y + z*z) + x*x
+			// in the reference listing (the test above sums (z + y) + x, the same value). A retail
+			// replay's Dragon tank aimed two bits lower and its flame left on frame 3537.
+			const Real gxPitchLen = (Real)sqrtf( (v.y*v.y + v.z*v.z) + v.x*v.x );
+ 			if( gxPitchLen > 0 )
+ 				actualPitch = ASin( v.z / gxPitchLen );
+ 			else
+ 				actualPitch = 0;// Don't point at NAN, just point at 0 if they are right on us
+#else
  			if( v.length() > 0 )
  				actualPitch = ASin( v.z / v.length() );
  			else
  				actualPitch = 0;// Don't point at NAN, just point at 0 if they are right on us
+#endif
 
 			desiredPitch = actualPitch;
 			if( desiredPitch < turret->getMinPitch() )
