@@ -252,6 +252,18 @@ static void calcDirectionToApplyThrust(
 		be able to apply the force in the optimal direction!
 	*/
 
+	{
+		const unsigned frame = (unsigned)TheGameLogic->getFrame();
+		if (frame >= 2585 && frame <= 2592)
+		{
+			const float v[10] = { ingoalPos.x, ingoalPos.y, ingoalPos.z, obj->getPosition()->x, obj->getPosition()->y, obj->getPosition()->z,
+				physics->getVelocity()->x, physics->getVelocity()->y, physics->getVelocity()->z, maxAccel };
+			fprintf(stderr, "[GX-NET] thrust frame %u id %u: goal %08X %08X %08X pos %08X %08X %08X vel %08X %08X %08X accel %08X\n", frame, (unsigned)obj->getID(),
+				*(const unsigned *)&v[0], *(const unsigned *)&v[1], *(const unsigned *)&v[2], *(const unsigned *)&v[3], *(const unsigned *)&v[4],
+				*(const unsigned *)&v[5], *(const unsigned *)&v[6], *(const unsigned *)&v[7], *(const unsigned *)&v[8], *(const unsigned *)&v[9]);
+			fflush(stderr);
+		}
+	}
 	// convert to Vector3, to use all its handy stuff
 	Vector3 objPos(obj->getPosition()->x, obj->getPosition()->y, obj->getPosition()->z);
 	Vector3 goalPos(ingoalPos.x, ingoalPos.y, ingoalPos.z);
