@@ -1181,7 +1181,13 @@ void Locomotor::locoUpdate_moveTowardsPosition(Object* obj, const Coord3D& goalP
 			// retail replay's Patriot missile came out one bit lower on frame 3917 with the source order.
 			dist = sqrt((dz*dz + dx*dx) + dy*dy);
 #else
+#if defined(SAGE_RETAIL_RULES)
+			// GeneralsX @bugfix ZH Commander 12/10/2026 The reference listing reuses dx*dx and dy*dy from the
+			// 2D distance above and sums (z + x) + y.
+			dist = sqrt((dz*dz+dx*dx)+dy*dy);
+#else
 			dist = sqrt(dx*dx+dy*dy+dz*dz);
+#endif
 #endif
 			Real vel = physics->getVelocityMagnitude();
 			if (vel < MIN_VEL)
@@ -2053,7 +2059,12 @@ void Locomotor::moveTowardsPositionThrust(Object* obj, PhysicsBehavior *physics,
 			// align to target, cause that's where we're going anyway.
 
 			vel.Set(goalPos.x - pos.x, goalPos.y-pos.y, goalPos.z-pos.z);
+#if defined(SAGE_RETAIL_RULES)
+			// GeneralsX @bugfix ZH Commander 12/10/2026 Summed (z + y) + x in the reference listing.
+			if (isNearlyZero((sqr(vel.Z)+sqr(vel.Y))+sqr(vel.X))) {
+#else
 			if (isNearlyZero(sqr(vel.X)+sqr(vel.Y)+sqr(vel.Z))) {
+#endif
 				// we are at target.
 				adjust = false;
 			}

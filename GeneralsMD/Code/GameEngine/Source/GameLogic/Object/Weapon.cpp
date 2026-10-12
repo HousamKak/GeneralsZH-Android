@@ -1043,7 +1043,12 @@ UnsignedInt WeaponTemplate::fireWeaponTemplate
 		v.y = victimPos->y - sourcePos->y;
 		v.z = victimPos->z - sourcePos->z;
 		// don't round the result; we WANT a fractional-frame-delay in this case.
+#if defined(SAGE_RETAIL_RULES)
+		// GeneralsX @bugfix ZH Commander 12/10/2026 v.length() inlined here sums (y + z) + x in the reference listing.
+		Real delayInFrames = ((Real)Sqrt( (v.y*v.y + v.z*v.z) + v.x*v.x ) / getWeaponSpeed());
+#else
 		Real delayInFrames = (v.length() / getWeaponSpeed());
+#endif
 
 		ObjectID damageID = getDamageDealtAtSelfPosition() ? INVALID_ID : victimID;
 
@@ -1520,11 +1525,30 @@ void WeaponTemplate::dealDamageInternal(ObjectID sourceID, ObjectID victimID, co
 				Vector3 sourceVector = source->getTransformMatrix()->Get_X_Vector();
 				Vector3 damageVector(damageDirection.x, damageDirection.y, damageDirection.z);
 				sourceVector.Normalize();
+#if defined(SAGE_RETAIL_RULES)
+				// GeneralsX @bugfix ZH Commander 12/10/2026 Normalize inlined here sums (z + y) + x in the reference listing.
+				{
+					const float len2 = (damageVector.Z*damageVector.Z + damageVector.Y*damageVector.Y) + damageVector.X*damageVector.X;
+					if (len2 != 0.0f)
+					{
+						const float oolen = WWMath::Inv_Sqrt(len2);
+						damageVector.X *= oolen;
+						damageVector.Y *= oolen;
+						damageVector.Z *= oolen;
+					}
+				}
+#else
 				damageVector.Normalize();
+#endif
 
 				// These are now normalized, so the dot productis actually the Cos of the angle they form
 				// A smaller Cos would mean a more obtuse angle
+#if defined(SAGE_RETAIL_RULES)
+				// GeneralsX @bugfix ZH Commander 12/10/2026 Dot_Product inlined here sums (z + y) + x in the reference listing.
+				if( ((damageVector.Z*sourceVector.Z + damageVector.Y*sourceVector.Y) + damageVector.X*sourceVector.X) < Cos(allowedAngle) )
+#else
 				if( Vector3::Dot_Product(sourceVector, damageVector) < Cos(allowedAngle) )
+#endif
 					continue;// Too far to the side, can't hurt them.
 			}
 
@@ -2161,7 +2185,12 @@ Bool Weapon::computeApproachTarget(const Object *source, const Object *target, c
 		return false;
 	}
 
+#if defined(SAGE_RETAIL_RULES)
+	// GeneralsX @bugfix ZH Commander 12/10/2026 dir.length() inlined here sums (z + y) + x in the reference listing.
+	Real dist = (Real)Sqrt( (dir.z*dir.z + dir.y*dir.y) + dir.x*dir.x );
+#else
 	Real dist = dir.length();
+#endif
 	Real minAttackRange = m_template->getMinimumAttackRange();
 	if (minAttackRange > PATHFIND_CELL_SIZE_F && dist < minAttackRange)
 	{
@@ -3164,7 +3193,14 @@ void Weapon::processRequestAssistance( const Object *requestingObject, Object *v
 		attachTransform = turnAdjustment * pitchAdjustment * attachTransform;
 #else
 		Matrix3D tmp = attachTransform;
+#if defined(SAGE_RETAIL_RULES)
+		// GeneralsX @bugfix ZH Commander 12/10/2026 Calls the linked Matrix3D::mul, which VC6
+		// regrouped: row 0 (a00*t1 + a02*t3) + a01*t2, rows 1 and 2 (a12*t3 + a11*t2) + a10*t1, translation
+		// added last. Multiply reproduces exactly that under SAGE_RETAIL_RULES.
+		Matrix3D::Multiply(turnAdjustment, pitchAdjustment, &attachTransform);
+#else
 		attachTransform.mul(turnAdjustment, pitchAdjustment);
+#endif
 		attachTransform.postMul(tmp);
 #endif
 	}

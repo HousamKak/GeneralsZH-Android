@@ -369,7 +369,14 @@ void Thing::convertBonePosToWorldPos(const Coord3D* bonePos, const Matrix3D* bon
 #ifdef ALLOW_TEMPORARIES
 		*worldTransform = m_transform * (*boneTransform);
 #else
+#if defined(SAGE_RETAIL_RULES)
+		// GeneralsX @bugfix ZH Commander 12/10/2026 mul inlined here regroups as the linked Matrix3D::mul
+		// does (reference listing): row 0 (a00*t1 + a02*t3) + a01*t2, rows 1 and 2 (a12*t3 + a11*t2) + a10*t1,
+		// translation added last. Multiply reproduces exactly that under SAGE_RETAIL_RULES.
+		Matrix3D::Multiply(m_transform, *boneTransform, worldTransform);
+#else
 		worldTransform->mul(m_transform, *boneTransform);
+#endif
 #endif
 	}
 	if (worldPos)
@@ -378,7 +385,22 @@ void Thing::convertBonePosToWorldPos(const Coord3D* bonePos, const Matrix3D* bon
 		vector.X = bonePos->x;
 		vector.Y = bonePos->y;
 		vector.Z = bonePos->z;
+#if defined(SAGE_RETAIL_RULES)
+		// GeneralsX @bugfix ZH Commander 12/10/2026 Transform_Vector inlined here regroups rows 0 and 1
+		// in the reference listing: x = (r02*z + r01*y) + r00*x, y = (r10*x + r12*z) + r11*y, z keeps the
+		// source order; each row then adds its translation.
+		{
+			const Matrix3D &m = m_transform;
+			const float vx = vector.X;
+			const float vy = vector.Y;
+			const float vz = vector.Z;
+			vector.X = ((m[0][2]*vz + m[0][1]*vy) + m[0][0]*vx) + m[0][3];
+			vector.Y = ((m[1][0]*vx + m[1][2]*vz) + m[1][1]*vy) + m[1][3];
+			vector.Z = ((m[2][0]*vx + m[2][1]*vy) + m[2][2]*vz) + m[2][3];
+		}
+#else
 		m_transform.Transform_Vector(m_transform, vector, &vector);
+#endif
 		worldPos->x = vector.X;
 		worldPos->y = vector.Y;
 		worldPos->z = vector.Z;

@@ -703,7 +703,12 @@ static Bool collideTest_Sphere_Sphere(const CollideInfo *a, const CollideInfo *b
 {
 	Coord3D diff;
 	vecDiff_3D(&b->position, &a->position, &diff);
+#if defined(SAGE_RETAIL_RULES)
+	// GeneralsX @bugfix ZH Commander 12/10/2026 calcSqrDist_3D inlined here sums (z + y) + x in the reference listing.
+	Real distSqr = (sqr(diff.z) + sqr(diff.y)) + sqr(diff.x);
+#else
 	Real distSqr = calcSqrDist_3D(&diff);
+#endif
 	Real touchingDistSqr = sqr(a->geom.getMajorRadius() + b->geom.getMajorRadius());
 	if (distSqr <= touchingDistSqr)
 	{
@@ -879,7 +884,12 @@ static Bool distCalcProc_CenterAndCenter_3D(
 
 	//if (abDistSqr)
 	{
+#if defined(SAGE_RETAIL_RULES)
+		// GeneralsX @bugfix ZH Commander 12/10/2026 Summed (z + y) + x in the reference listing.
+		abDistSqr = (sqr(diff.z) + sqr(diff.y)) + sqr(diff.x);
+#else
 		abDistSqr = sqr(diff.x) + sqr(diff.y) + sqr(diff.z);
+#endif
 	}
 
 	//if (abVec)
@@ -911,7 +921,12 @@ static Bool distCalcProc_BoundaryAndBoundary_3D(
 	diff.z = ((posB->z + (geomB ? geomB->getZDeltaToCenterPosition() : 0.0f))
 						- (posA->z + (geomA ? geomA->getZDeltaToCenterPosition() : 0.0f)));
 
+#if defined(SAGE_RETAIL_RULES)
+	// GeneralsX @bugfix ZH Commander 12/10/2026 Summed (z + y) + x in the reference listing.
+	Real actualDistSqr = (sqr(diff.z) + sqr(diff.y)) + sqr(diff.x);
+#else
 	Real actualDistSqr = sqr(diff.x) + sqr(diff.y) + sqr(diff.z);
+#endif
 
 	Real shrinkFactor = 1.0f;
 	Real shrunkenDistSqr = actualDistSqr;

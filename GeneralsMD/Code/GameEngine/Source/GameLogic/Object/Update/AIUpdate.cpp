@@ -1665,7 +1665,12 @@ Bool AIUpdateInterface::computeQuickPath( const Coord3D *destination )
 			dySqr *= dySqr;
 			Real dzSqr = destination->z - closeNode->getPosition()->z;
 			dzSqr *= dzSqr;
+#if defined(SAGE_RETAIL_RULES)
+			// GeneralsX @bugfix ZH Commander 12/10/2026 Summed (z + y) + x in the reference listing.
+			if ((dzSqr+dySqr)+dxSqr<0.25f) {
+#else
 			if (dxSqr+dySqr+dzSqr<0.25f) {
+#endif
 				return TRUE;
 			}
 		}
@@ -2014,7 +2019,12 @@ Bool AIUpdateInterface::computeAttackPath( PathfindServicesInterface *pathServic
 				// position.  This will unstack us if we are on top of another unit. jba.
 				Coord3D objPos = *getObject()->getPosition();
 				goal.sub(objPos);
+#if defined(SAGE_RETAIL_RULES)
+				// GeneralsX @bugfix ZH Commander 12/10/2026 goal.length() inlined here sums (x + z) + y in the reference listing.
+				if ((Real)Sqrt( (goal.x*goal.x + goal.z*goal.z) + goal.y*goal.y )<3*PATHFIND_CELL_SIZE_F) {
+#else
 				if (goal.length()<3*PATHFIND_CELL_SIZE_F) {
+#endif
 					destroyPath();
 					TheAI->pathfinder()->adjustDestination(getObject(), m_locomotorSet, &objPos);
 					m_path = pathServices->findClosestPath(getObject(), m_locomotorSet, getObject()->getPosition(),

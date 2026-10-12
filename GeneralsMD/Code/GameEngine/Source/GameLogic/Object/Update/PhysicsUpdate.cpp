@@ -1061,9 +1061,19 @@ Real PhysicsBehavior::getForwardSpeed3D() const
 	Real vy = m_vel.y * dir.Y;
 	Real vz = m_vel.z * dir.Z;
 
+#if defined(SAGE_RETAIL_RULES)
+	// GeneralsX @bugfix ZH Commander 12/10/2026 Summed (z + y) + x in the reference listing.
+	Real dot = (vz + vy) + vx;
+#else
 	Real dot = vx + vy + vz;
+#endif
 
+#if defined(SAGE_RETAIL_RULES)
+	// GeneralsX @bugfix ZH Commander 12/10/2026 Summed (z + y) + x in the reference listing.
+	Real speed = (Real)sqrtf( (vz*vz + vy*vy) + vx*vx );
+#else
 	Real speed = (Real)sqrtf( vx*vx + vy*vy + vz*vz );
+#endif
 
 	if (dot >= 0.0f)
 		return speed;

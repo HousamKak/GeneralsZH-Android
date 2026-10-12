@@ -422,8 +422,22 @@ Bool DumbProjectileBehavior::calcFlightPath(Bool recalcNumSegments)
 	targetVector.Y = controlPoints[3].y - controlPoints[0].y;
 	targetVector.Z = controlPoints[3].z - controlPoints[0].z;
 
+#if defined(SAGE_RETAIL_RULES)
+	// GeneralsX @bugfix ZH Commander 12/10/2026 Length and Normalize share one Length2 here, summed
+	// (z + y) + x in the reference listing.
+	const float gxLen2 = (targetVector.Z*targetVector.Z + targetVector.Y*targetVector.Y) + targetVector.X*targetVector.X;
+	Real targetDistance = WWMath::Sqrt(gxLen2);
+	if (gxLen2 != 0.0f)
+	{
+		const float oolen = WWMath::Inv_Sqrt(gxLen2);
+		targetVector.X *= oolen;
+		targetVector.Y *= oolen;
+		targetVector.Z *= oolen;
+	}
+#else
 	Real targetDistance = targetVector.Length();
 	targetVector.Normalize();
+#endif
 	Vector3 firstPointAlongLine = targetVector * (targetDistance * d->m_firstPercentIndent );
 	Vector3 secondPointAlongLine = targetVector * (targetDistance * d->m_secondPercentIndent );
 
@@ -610,7 +624,12 @@ UpdateSleepTime DumbProjectileBehavior::update()
 			delta.x = newVictimPos.x - m_flightPathEnd.x;
 			delta.y = newVictimPos.y - m_flightPathEnd.y;
 			delta.z = newVictimPos.z - m_flightPathEnd.z;
+#if defined(SAGE_RETAIL_RULES)
+			// GeneralsX @bugfix ZH Commander 12/10/2026 Summed (z + y) + x in the reference listing.
+			Real distVictimMovedSqr = (sqr(delta.z) + sqr(delta.y)) + sqr(delta.x);
+#else
 			Real distVictimMovedSqr = sqr(delta.x) + sqr(delta.y) + sqr(delta.z);
+#endif
 			if (distVictimMovedSqr > 0.1f)
 			{
 				Real distVictimMoved = sqrtf(distVictimMovedSqr);
@@ -645,7 +664,21 @@ UpdateSleepTime DumbProjectileBehavior::update()
 		  Coord3D prevPos = m_flightPath[m_currentFlightPathStep - 1];
 
 		  Vector3 curDir(flightStep.x - prevPos.x, flightStep.y - prevPos.y, flightStep.z - prevPos.z);
+#if defined(SAGE_RETAIL_RULES)
+		  // GeneralsX @bugfix ZH Commander 12/10/2026 Normalize inlined here sums (z + y) + x in the reference listing.
+		  {
+			  const float len2 = (curDir.Z*curDir.Z + curDir.Y*curDir.Y) + curDir.X*curDir.X;
+			  if (len2 != 0.0f)
+			  {
+				  const float oolen = WWMath::Inv_Sqrt(len2);
+				  curDir.X *= oolen;
+				  curDir.Y *= oolen;
+				  curDir.Z *= oolen;
+			  }
+		  }
+#else
 		  curDir.Normalize();	// buildTransformMatrix wants it this way
+#endif
       Matrix3D orientMtx;
 		  orientMtx.buildTransformMatrix(Vector3(flightStep.x, flightStep.y, flightStep.z), curDir);
 		  getObject()->setTransformMatrix(&orientMtx);
@@ -689,7 +722,21 @@ UpdateSleepTime DumbProjectileBehavior::update()
 			}
 
 		  Vector3 curDir(curPos.x - prevPos.x, curPos.y - prevPos.y, curPos.z - prevPos.z);
+#if defined(SAGE_RETAIL_RULES)
+		  // GeneralsX @bugfix ZH Commander 12/10/2026 Normalize inlined here sums (z + y) + x in the reference listing.
+		  {
+			  const float len2 = (curDir.Z*curDir.Z + curDir.Y*curDir.Y) + curDir.X*curDir.X;
+			  if (len2 != 0.0f)
+			  {
+				  const float oolen = WWMath::Inv_Sqrt(len2);
+				  curDir.X *= oolen;
+				  curDir.Y *= oolen;
+				  curDir.Z *= oolen;
+			  }
+		  }
+#else
 		  curDir.Normalize();	// buildTransformMatrix wants it this way
+#endif
       Matrix3D orientMtx;
 		  orientMtx.buildTransformMatrix(Vector3(flightStep.x, flightStep.y, flightStep.z), curDir);
 		  getObject()->setTransformMatrix(&orientMtx);

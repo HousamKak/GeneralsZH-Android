@@ -241,7 +241,22 @@ void MissileAIUpdate::projectileFireAtObjectOrPosition( const Object *victim, co
 
 
 	Vector3 dir = getObject()->getTransformMatrix()->Get_X_Vector();
+#if defined(SAGE_RETAIL_RULES)
+	// GeneralsX @bugfix ZH Commander 12/10/2026 The first Normalize inlined here sums (y + z) + x
+	// in the reference listing; the second keeps the source order.
+	{
+		const float len2 = (dir.Y*dir.Y + dir.Z*dir.Z) + dir.X*dir.X;
+		if (len2 != 0.0f)
+		{
+			const float oolen = WWMath::Inv_Sqrt(len2);
+			dir.X *= oolen;
+			dir.Y *= oolen;
+			dir.Z *= oolen;
+		}
+	}
+#else
 	dir.Normalize();
+#endif
 	dir.Z += 2*zFactor;
 	dir.Normalize();
 	PhysicsBehavior* physics = getObject()->getPhysics();
@@ -314,7 +329,12 @@ Bool MissileAIUpdate::projectileHandleCollision( Object *other )
 		delta.z = pos.z-goal.z;
 		if (delta.z > PATHFIND_CELL_SIZE_F) {
 			// we're above our target goal.
+#if defined(SAGE_RETAIL_RULES)
+			// GeneralsX @bugfix ZH Commander 12/10/2026 delta.length() inlined here sums (y + z) + x in the reference listing.
+			if ((Real)Sqrt( (delta.y*delta.y + delta.z*delta.z) + delta.x*delta.x ) > 3*PATHFIND_CELL_SIZE_F) {
+#else
 			if (delta.length() > 3*PATHFIND_CELL_SIZE_F) {
+#endif
 				// we're somewhere else.
 				return true;
 			}
@@ -649,7 +669,12 @@ UpdateSleepTime MissileAIUpdate::update()
 	Coord3D newPos = *getObject()->getPosition();
 	if (m_noTurnDistLeft > 0.0f && m_state >= IGNITION)
 	{
+#if defined(SAGE_RETAIL_RULES)
+		// GeneralsX @bugfix ZH Commander 12/10/2026 Summed (z + y) + x in the reference listing.
+		Real distThisTurn = sqrtf((sqr(newPos.z-m_prevPos.z) + sqr(newPos.y-m_prevPos.y)) + sqr(newPos.x-m_prevPos.x));
+#else
 		Real distThisTurn = sqrtf(sqr(newPos.x-m_prevPos.x) + sqr(newPos.y-m_prevPos.y) + sqr(newPos.z-m_prevPos.z));
+#endif
 		m_noTurnDistLeft -= distThisTurn;
 		m_prevPos = newPos;
 	}

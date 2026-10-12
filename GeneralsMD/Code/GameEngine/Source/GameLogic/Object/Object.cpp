@@ -6246,7 +6246,14 @@ Bool Object::getSingleLogicalBonePositionOnTurret( WhichTurretType whichTurret, 
 	turnAdjustment.Translate( -turretPosition.x, -turretPosition.y, -turretPosition.z );
 
 	Matrix3D boneLogicTransform;
+#if defined(SAGE_RETAIL_RULES)
+	// GeneralsX @bugfix ZH Commander 12/10/2026 Calls the linked Matrix3D::mul, which VC6
+	// regrouped: row 0 (a00*t1 + a02*t3) + a01*t2, rows 1 and 2 (a12*t3 + a11*t2) + a10*t1, translation
+	// added last. Multiply reproduces exactly that under SAGE_RETAIL_RULES.
+	Matrix3D::Multiply( turnAdjustment, boneOffset, &boneLogicTransform );
+#else
 	boneLogicTransform.mul( turnAdjustment, boneOffset );
+#endif
 
 	Matrix3D worldTransform;
 	convertBonePosToWorldPos(nullptr, &boneLogicTransform, nullptr, &worldTransform);
