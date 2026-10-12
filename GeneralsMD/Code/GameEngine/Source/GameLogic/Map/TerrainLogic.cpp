@@ -27,6 +27,7 @@
 // Author: Colin Day, April 2001
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
+#include <stdio.h>
 #include "PreRTS.h"	// This must go first in EVERY cpp file in the GameEngine
 
 
@@ -951,6 +952,17 @@ Real Bridge::getBridgeHeight(const Coord3D *pLoc, Coord3D* normal)
 		normal->z = plane.N.Z;
 	}
 
+	if (pLoc->x > 822.0f && pLoc->x < 823.5f && pLoc->y > 2767.0f && pLoc->y < 2768.5f)
+	{
+		const float v[13] = { m_bridgeInfo.fromLeft.x, m_bridgeInfo.fromLeft.y, m_bridgeInfo.fromLeft.z,
+			m_bridgeInfo.fromRight.x, m_bridgeInfo.fromRight.y, m_bridgeInfo.fromRight.z,
+			m_bridgeInfo.toLeft.x, m_bridgeInfo.toLeft.y, m_bridgeInfo.toLeft.z, pLoc->x, pLoc->y, t, t*factor };
+		fprintf(stderr, "[GX-NET] bridge L1 %08X %08X %08X R1 %08X %08X %08X L2 %08X %08X %08X loc %08X %08X t %08X h %08X\n",
+			*(const unsigned *)&v[0], *(const unsigned *)&v[1], *(const unsigned *)&v[2], *(const unsigned *)&v[3], *(const unsigned *)&v[4],
+			*(const unsigned *)&v[5], *(const unsigned *)&v[6], *(const unsigned *)&v[7], *(const unsigned *)&v[8], *(const unsigned *)&v[9],
+			*(const unsigned *)&v[10], *(const unsigned *)&v[11], *(const unsigned *)&v[12]);
+		fflush(stderr);
+	}
 	return t*factor;
 }
 
