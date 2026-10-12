@@ -36,6 +36,8 @@
 
 #include "Common/PerfTimer.h"
 #include "Common/Thing.h"
+#include "GameLogic/GameLogic.h"
+#include <stdio.h>
 #include "Common/ThingTemplate.h"
 #include "Common/ThingFactory.h"
 #include "Common/GlobalData.h"
@@ -172,8 +174,20 @@ void Thing::setPositionZ( Real z )
 }
 
 //=============================================================================
+
+static void gxSetPosProbe(const char *what, const Coord3D *pos, void *ret)
+{
+	const unsigned frame = (unsigned)TheGameLogic->getFrame();
+	if (frame >= 2804 && frame <= 2806 && pos->x > 822.0f && pos->x < 823.5f && pos->y > 2767.0f && pos->y < 2768.5f)
+	{
+		fprintf(stderr, "[GX-NET] setpos frame %u %s z=%08X x=%08X y=%08X ret=%p base=%p\n", frame, what,
+			*(const unsigned *)&pos->z, *(const unsigned *)&pos->x, *(const unsigned *)&pos->y, ret, (void *)&gxSetPosProbe);
+		fflush(stderr);
+	}
+}
 void Thing::setPosition( const Coord3D *pos )
 {
+	gxSetPosProbe("setPosition", pos, __builtin_return_address(0));
 	//USE_PERF_TIMER(ThingMatrixStuff)
 	if( !m_template->isKindOf( KINDOF_STICK_TO_TERRAIN_SLOPE) )
 	{
@@ -273,6 +287,7 @@ void Thing::setOrientation( Real angle )
 //=============================================================================
 void Thing::setTransformMatrix( const Matrix3D *mx )
 {
+	{ Coord3D gxp; gxp.x = mx->Get_X_Translation(); gxp.y = mx->Get_Y_Translation(); gxp.z = mx->Get_Z_Translation(); gxSetPosProbe("setTransformMatrix", &gxp, __builtin_return_address(0)); }
 	//USE_PERF_TIMER(ThingMatrixStuff)
 	Real oldAngle = m_cachedAngle;
 	Coord3D oldPos = m_cachedPos;
