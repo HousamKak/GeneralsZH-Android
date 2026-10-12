@@ -94,6 +94,7 @@
 #include "GameLogic/CrateSystem.h"
 #include "GameLogic/FPUControl.h"
 #include "GameLogic/GameLogic.h"
+#include "GameLogic/Module/PhysicsUpdate.h"
 #include "GameNetwork/GeneralsOnline/NextGenMP_defines.h"
 #include "GameLogic/Locomotor.h"
 #include "GameLogic/Object.h"
@@ -4852,6 +4853,17 @@ UnsignedInt GameLogic::getCRC( Int mode, AsciiString deepCRCFileName )
 				objPos ? objPos->x : 0.0f, objPos ? objPos->y : 0.0f, objPos ? objPos->z : 0.0f,
 				obj->getOrientation(),
 				obj->getTemplate() ? obj->getTemplate()->getName().str() : "(none)");
+			// GeneralsX @feature ZH Commander 12/10/2026 The whole transform and the physics velocity,
+			// bit for bit, in the reference engine's "crc mtx" format: tracing inside a VC6 function
+			// changes how it is compiled, so the reference is compared from here instead.
+			const UnsignedInt *mw = (const UnsignedInt *)obj->getTransformMatrix();
+			const PhysicsBehavior *gxPhys = obj->getPhysics();
+			const Coord3D gxZero = { 0.0f, 0.0f, 0.0f };
+			const Coord3D *gxVel = gxPhys ? gxPhys->getVelocity() : &gxZero;
+			GX_NET_TRACE("crc mtx frame %u: id=%u %08X %08X %08X %08X %08X %08X %08X %08X %08X %08X %08X %08X vel %08X %08X %08X\n",
+				(unsigned)m_frame, (unsigned)obj->getID(), mw[0], mw[1], mw[2], mw[3], mw[4], mw[5],
+				mw[6], mw[7], mw[8], mw[9], mw[10], mw[11],
+				*(const UnsignedInt *)&gxVel->x, *(const UnsignedInt *)&gxVel->y, *(const UnsignedInt *)&gxVel->z);
 		}
 	}
 	UnsignedInt seed = GetGameLogicRandomSeedCRC();
