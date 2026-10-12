@@ -39,6 +39,11 @@ export default {
 	async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
 		const url = new URL(request.url);
 		const { pathname } = url;
+		// Maintenance: the site and every download are closed while demand is too high. Installed
+		// apps keep working: their API, game data and the admin tools stay open.
+		if (!(pathname.startsWith("/api/") || pathname.startsWith("/admin/") || pathname.startsWith("/data/"))) {
+			return maintenancePage();
+		}
 		if (pathname.startsWith("/hero/")) {
 			return heroAsset(request, env);
 		}
@@ -330,4 +335,44 @@ async function heroAsset(request: Request, env: Env): Promise<Response> {
 	headers.set("Content-Range", `bytes ${start}-${end}/${size}`);
 	headers.set("Content-Length", String(end - start + 1));
 	return new Response(body.slice(start, end + 1), { status: 206, headers });
+}
+
+function maintenancePage(): Response {
+	const html = `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ZH Commander: back soon</title>
+<style>
+	:root { color-scheme: dark; }
+	body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
+		background: #0e1116; color: #e8e6e3; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+	main { max-width: 560px; padding: 32px 20px; text-align: center; }
+	h1 { font-size: 1.6rem; margin: 0 0 12px; }
+	p { line-height: 1.6; margin: 0 0 12px; color: #c9c7c3; }
+	.ar { margin-top: 28px; padding-top: 24px; border-top: 1px solid #2a2f37; }
+</style>
+</head>
+<body>
+<main>
+	<h1>We'll be back soon</h1>
+	<p>ZH Commander is under maintenance because of huge demand. Downloads are paused for now.</p>
+	<p>If the game is already installed on your phone, it keeps working.</p>
+	<div class="ar" dir="rtl" lang="ar">
+		<h1>سنعود قريبا</h1>
+		<p>ZH Commander تحت الصيانة بسبب الإقبال الكبير. التنزيلات متوقفة حاليا.</p>
+		<p>إذا كانت اللعبة مثبتة على هاتفك، فهي تعمل كالمعتاد.</p>
+	</div>
+</main>
+</body>
+</html>`;
+	return new Response(html, {
+		status: 503,
+		headers: {
+			"content-type": "text/html; charset=utf-8",
+			"cache-control": "no-store",
+			"retry-after": "3600",
+		},
+	});
 }
