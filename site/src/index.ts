@@ -39,9 +39,9 @@ export default {
 	async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
 		const url = new URL(request.url);
 		const { pathname } = url;
-		// Maintenance: the site and every download are closed while demand is too high. Installed
-		// apps keep working: their API, game data and the admin tools stay open.
-		if (!(pathname.startsWith("/api/") || pathname.startsWith("/admin/") || pathname.startsWith("/data/"))) {
+		// Downloads are closed while a payment gateway is added: every download route answers with the
+		// notice page. The rest of the site is open, with the notice as a banner on every page.
+		if (pathname === "/download" || pathname.startsWith("/download/") || pathname === "/altstore.json") {
 			return maintenancePage();
 		}
 		if (pathname.startsWith("/hero/")) {
@@ -156,9 +156,62 @@ export default {
 			}
 			return upload(request, url, env);
 		}
-		return env.ASSETS.fetch(request);
+		return withNoticeBanner(await env.ASSETS.fetch(request));
 	},
 } satisfies ExportedHandler<Env>;
+
+const NOTICE_BANNER = `<div class="gx-notice" role="status">
+	<style>
+		.gx-notice { position: relative; z-index: 1000; background: #C2461B; color: #FFF6E4; border-bottom: 6px solid #1D1F14;
+			padding: 22px 16px 20px; text-align: center; font-family: "IBM Plex Sans", "Segoe UI", Roboto, sans-serif; }
+		.gx-notice h2 { margin: 0 0 8px; font: 900 clamp(30px, 6vw, 54px)/1 "Big Shoulders Stencil Display", Impact, sans-serif;
+			text-transform: uppercase; letter-spacing: 0.01em; }
+		.gx-notice p { margin: 0 auto 14px; max-width: 760px; font-size: clamp(16px, 2.4vw, 20px); line-height: 1.45; }
+		.gx-notice .gx-links { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+		.gx-notice a { display: inline-block; padding: 10px 18px; background: #1D1F14; color: #FFF6E4; text-decoration: none;
+			font-weight: 700; box-shadow: 4px 4px 0 #4A5228; }
+		.gx-notice a.gx-discord { background: #5865F2; }
+		.gx-notice [lang="ar"] { display: none; font-family: "IBM Plex Sans Arabic", "Reem Kufi", sans-serif; }
+		html[lang="ar"] .gx-notice [lang="en"] { display: none; }
+		html[lang="ar"] .gx-notice [lang="ar"] { display: block; }
+		.gx-paused [lang="ar"] { display: none; }
+		html[lang="ar"] .gx-paused [lang="en"] { display: none; }
+		html[lang="ar"] .gx-paused [lang="ar"] { display: inline; }
+	</style>
+	<div lang="en">
+		<h2>Downloads paused</h2>
+		<p>Huge demand: we are adding a payment gateway, and downloads are paused until it is ready.
+		If the game is already on your phone, it keeps working. Follow us for the reopening.</p>
+	</div>
+	<div lang="ar" dir="rtl">
+		<h2>التنزيلات متوقفة مؤقتا</h2>
+		<p>بسبب الإقبال الكبير نضيف بوابة دفع، والتنزيلات متوقفة حتى تصبح جاهزة.
+		إذا كانت اللعبة على هاتفك فهي تعمل كالمعتاد. تابعونا لمعرفة موعد العودة.</p>
+	</div>
+	<div class="gx-links">
+		<a href="https://www.instagram.com/zhcommander" rel="noopener">Instagram @zhcommander</a>
+		<a class="gx-discord" href="https://discord.gg/3yZVh969x" rel="noopener">Discord</a>
+	</div>
+</div>`;
+
+// Puts the downloads-paused notice at the top of every HTML page.
+function withNoticeBanner(response: Response): Response {
+	const type = response.headers.get("content-type") || "";
+	if (!type.includes("text/html")) return response;
+	return new HTMLRewriter()
+		.on("body", { element(body) { body.prepend(NOTICE_BANNER, { html: true }); } })
+		// The page's own download button no longer offers the APK: it points to the community instead.
+		.on("a.download", {
+			element(link) {
+				link.setAttribute("href", "https://discord.gg/3yZVh969x");
+				link.setAttribute("rel", "noopener");
+				link.removeAttribute("data-i18n");
+				link.setAttribute("class", "download gx-paused");
+				link.setInnerContent('<span lang="en">Downloads paused: join our Discord</span><span lang="ar">التنزيلات متوقفة: انضم إلى ديسكورد</span>', { html: true });
+			},
+		})
+		.transform(response);
+}
 
 async function upload(request: Request, url: URL, env: Env): Promise<Response> {
 	const step = url.pathname.slice("/admin/upload/".length);
