@@ -1175,7 +1175,14 @@ void Locomotor::locoUpdate_moveTowardsPosition(Object* obj, const Coord3D& goalP
 			// Projectiles never stop braking once they start.  jba.
 			obj->setStatus( MAKE_OBJECT_STATUS_MASK( OBJECT_STATUS_BRAKING ) );
 			// Projectiles cheat in 3 dimensions.
+#if defined(SAGE_RETAIL_RULES)
+			// GeneralsX @bugfix ZH Commander 12/10/2026 VC6 reused the dx*dx and dy*dy it had stored for
+			// the 2D distance and added them to dz*dz: (dz*dz + dx*dx) + dy*dy (reference listing). A
+			// retail replay's Patriot missile came out one bit lower on frame 3917 with the source order.
+			dist = sqrt((dz*dz + dx*dx) + dy*dy);
+#else
 			dist = sqrt(dx*dx+dy*dy+dz*dz);
+#endif
 			Real vel = physics->getVelocityMagnitude();
 			if (vel < MIN_VEL)
 				vel = MIN_VEL;
