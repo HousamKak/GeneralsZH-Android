@@ -50,7 +50,7 @@ stream with section marks). Then a mismatch is a word-by-word diff, not a hunt.
 | Multi-step transcendentals at 24 bits | `ACos`/`ASin`, `WWMath::Acos/Asin` | `atan2(sqrtf((1-x)(1+x)), x)`; measured exact on 5.36M inputs. `sin`, `cos`, `tan`, `atan`, `atan2`, `sqrt`, `log`, `fmod` match `(float)f((double)x)` exactly; `exp` and `pow` do not but the simulation does not use them |
 | Unrounded transcendental results | `Sin`/`Cos`/`Tan`/`ACos`/`ASin` return `X87Real` (`Lib/X87Real.h`) | retail's `Sin` is `fld; fsin; ret`: the result is never rounded before the caller multiplies it. `X87Real` rounds once per operation as 24-bit x87 does. Checked on 686 infantry moves: all reproduced |
 | fpatan kept in a register | five `atan2` sites in `Locomotor` | `fpatan; fst desiredAngle; fsub angle`: the turn is `(float)(atan2 - angle)` |
-| Reassociated additions | terrain height | `(a + b) + p3`, not `p3 + a + b` |
+| Reassociated additions | terrain height, vector lengths and dot products (`(z*z + y*y) + x*x` is the common one), bridge plane, turret pitch, topple speed, script timers (`(value * LOGICFRAMES_PER_MSEC_REAL) * 1000`), Bezier forward differences (`(c*d + b*d2) + a*d3`, with `a*d3` and `b*d2` shared by the next two lines) | VC6 regroups each sum or product per site, and an out-of-line copy of an inline function has its own order. Never guess: read the site in the `/FAs` listing, then check the order offline against the reference's values |
 | Double constants | `(1.0 - fy)` in the terrain normal | rounded to float at every step under 24-bit precision |
 | GeneralsOnline-measured rules | research on a foundation, start positions, logic RNG draws for particles, circle fill, turret alignment, AI group cleanup, instant death order, minefields, pack time, Aurora bomb, tunnels, Helix add-ons, team owner fallback, dying riders | the port matched these to the GeneralsOnline client; retail behaves as TheSuperHackers keep it under `RETAIL_COMPATIBLE_CRC` |
 | STL algorithm | `PartitionSolver` | STLport 4.5.3 `std::sort` (`Common/RetailSort.h`), unstable above 16 elements; checked identical to VC6 + STLport |
@@ -75,5 +75,9 @@ Ruled out by measurement: INI number parsing (VC6 `sscanf("%f")` is correctly ro
   entry in both engines (`aibb` lines, `gxAibb` in `AISkirmishPlayer.cpp`) and the production
   completion frame. Same production frame with a different decision frame means the AI's own
   state differs, not the world.
+- A trace inside a VC6 function changes how VC6 compiles that function, so the reference stops
+  being retail. Trace from another translation unit (the `crc mtx` line in `GameLogic.cpp`, the
+  transform probe in `Thing.cpp`) or from the caller, and map the phone's return addresses to
+  function names to find which caller set a wrong matrix.
 - Test builds go out with `release=false`. `release=true` publishes the APK as the site's
   download and announces it to installed apps.
