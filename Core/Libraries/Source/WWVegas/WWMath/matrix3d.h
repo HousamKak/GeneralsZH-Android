@@ -774,10 +774,8 @@ WWINLINE void Matrix3D::Translate_Z(float z)
 WWINLINE void Matrix3D::Rotate_X(float theta)
 {
 	float tmp1,tmp2;
-	float s,c;
-
-	s = WWMath::Sin(theta);
-	c = WWMath::Cos(theta);
+	const GxRotReal s = gxRotSin(theta);
+	const GxRotReal c = gxRotCos(theta);
 
 	tmp1 = Row[0][1]; tmp2 = Row[0][2];
 	Row[0][1] = (float)( c*tmp1 + s*tmp2);
@@ -842,10 +840,8 @@ WWINLINE void Matrix3D::Rotate_X(float s,float c)
 WWINLINE void Matrix3D::Rotate_Y(float theta)
 {
 	float tmp1,tmp2;
-	float s,c;
-
-	s = WWMath::Sin(theta);
-	c = WWMath::Cos(theta);
+	const GxRotReal s = gxRotSin(theta);
+	const GxRotReal c = gxRotCos(theta);
 
 	tmp1 = Row[0][0]; tmp2 = Row[0][2];
 	Row[0][0] = (float)(c*tmp1 - s*tmp2);
@@ -909,10 +905,8 @@ WWINLINE void Matrix3D::Rotate_Y(float s,float c)
 WWINLINE void Matrix3D::Rotate_Z(float theta)
 {
 	float tmp1,tmp2;
-	float c,s;
-
-	c = WWMath::Cos(theta);
-	s = WWMath::Sin(theta);
+	const GxRotReal c = gxRotCos(theta);
+	const GxRotReal s = gxRotSin(theta);
 
 	tmp1 = Row[0][0]; tmp2 = Row[0][1];
 	Row[0][0] = (float)( c*tmp1 + s*tmp2);
@@ -1061,10 +1055,8 @@ WWINLINE void	Matrix3D::Scale(Vector3 &scale)
 WWINLINE void Matrix3D::Pre_Rotate_X(float theta)
 {
 	float tmp1,tmp2;
-	float c,s;
-
-	c = WWMath::Cos(theta);
-	s = WWMath::Sin(theta);
+	const GxRotReal c = gxRotCos(theta);
+	const GxRotReal s = gxRotSin(theta);
 
 	tmp1 = Row[1][0]; tmp2 = Row[2][0];
 	Row[1][0] = (float)(c*tmp1 - s*tmp2);
@@ -1099,10 +1091,8 @@ WWINLINE void Matrix3D::Pre_Rotate_X(float theta)
 WWINLINE void Matrix3D::Pre_Rotate_Y(float theta)
 {
 	float tmp1,tmp2;
-	float c,s;
-
-	c = WWMath::Cos(theta);
-	s = WWMath::Sin(theta);
+	const GxRotReal c = gxRotCos(theta);
+	const GxRotReal s = gxRotSin(theta);
 
 	tmp1 = Row[0][0]; tmp2 = Row[2][0];
 	Row[0][0] = (float)( c*tmp1 + s*tmp2);
@@ -1137,10 +1127,8 @@ WWINLINE void Matrix3D::Pre_Rotate_Y(float theta)
 WWINLINE void Matrix3D::Pre_Rotate_Z(float theta)
 {
 	float tmp1,tmp2;
-	float c,s;
-
-	c = WWMath::Cos(theta);
-	s = WWMath::Sin(theta);
+	const GxRotReal c = gxRotCos(theta);
+	const GxRotReal s = gxRotSin(theta);
 
 	tmp1 = Row[0][0]; tmp2 = Row[1][0];
 	Row[0][0] = (float)(c*tmp1 - s*tmp2);
@@ -1280,10 +1268,8 @@ WWINLINE void Matrix3D::Pre_Rotate_Z(float s,float c)
 WWINLINE void Matrix3D::In_Place_Pre_Rotate_X(float theta)
 {
 	float tmp1,tmp2;
-	float c,s;
-
-	c = WWMath::Cos(theta);
-	s = WWMath::Sin(theta);
+	const GxRotReal c = gxRotCos(theta);
+	const GxRotReal s = gxRotSin(theta);
 
 	tmp1 = Row[1][0]; tmp2 = Row[2][0];
 	Row[1][0] = (float)(c*tmp1 - s*tmp2);
@@ -1314,10 +1300,8 @@ WWINLINE void Matrix3D::In_Place_Pre_Rotate_X(float theta)
 WWINLINE void Matrix3D::In_Place_Pre_Rotate_Y(float theta)
 {
 	float tmp1,tmp2;
-	float c,s;
-
-	c = WWMath::Cos(theta);
-	s = WWMath::Sin(theta);
+	const GxRotReal c = gxRotCos(theta);
+	const GxRotReal s = gxRotSin(theta);
 
 	tmp1 = Row[0][0]; tmp2 = Row[2][0];
 	Row[0][0] = (float)( c*tmp1 + s*tmp2);
@@ -1348,10 +1332,8 @@ WWINLINE void Matrix3D::In_Place_Pre_Rotate_Y(float theta)
 WWINLINE void Matrix3D::In_Place_Pre_Rotate_Z(float theta)
 {
 	float tmp1,tmp2;
-	float c,s;
-
-	c = WWMath::Cos(theta);
-	s = WWMath::Sin(theta);
+	const GxRotReal c = gxRotCos(theta);
+	const GxRotReal s = gxRotSin(theta);
 
 	tmp1 = Row[0][0]; tmp2 = Row[1][0];
 	Row[0][0] = (float)(c*tmp1 - s*tmp2);

@@ -796,7 +796,17 @@ WWINLINE void Vector3::Rotate_Y(float s_angle,float c_angle)
  *=============================================================================================*/
 WWINLINE void Vector3::Rotate_Z(float angle)
 {
+#if defined(SAGE_RETAIL_RULES)
+	// GeneralsX @bugfix ZH Commander 12/10/2026 Retail keeps fsin/fcos unrounded here (see gxRotSin).
+	const GxRotReal s_angle = gxRotSin(angle);
+	const GxRotReal c_angle = gxRotCos(angle);
+	const float tmp_x = X;
+	const float tmp_y = Y;
+	X = c_angle * tmp_x - s_angle * tmp_y;
+	Y = s_angle * tmp_x + c_angle * tmp_y;
+#else
 	Rotate_Z(WWMath::Sin(angle),WWMath::Cos(angle));
+#endif
 }
 
 

@@ -866,3 +866,20 @@ WWINLINE float WWMath::Normalize_Angle(float angle)
 {
 	return angle - (WWMATH_TWO_PI * Floor((angle + WWMATH_PI) / WWMATH_TWO_PI));
 }
+
+// GeneralsX @bugfix ZH Commander 12/10/2026 The sine and cosine that rotation code multiplies with.
+// The GeneralsOnline client rounds them to float (its sinf is an inline (float)sin((double)x)), and
+// WWMath::Sin/Cos match that. Retail 1.04 is VC6 /O2, which inlines sinf/cosf as fsin/fcos and keeps
+// the result in the x87 register: Matrix3D::Rotate_Z compiles to "fld; fcos; fld; fsin" feeding fmul
+// directly (checked against the reference build of tsh-ref's matrix3d.h). X87Real carries that
+// unrounded value and rounds once per operation, as 24-bit precision control does.
+#if defined(SAGE_RETAIL_RULES)
+#include "../../../Include/Lib/X87Real.h"
+typedef X87Real GxRotReal;
+inline X87Real gxRotSin(float angle) { return X87Real(sin((double)angle)); }
+inline X87Real gxRotCos(float angle) { return X87Real(cos((double)angle)); }
+#else
+typedef float GxRotReal;
+inline float gxRotSin(float angle) { return WWMath::Sin(angle); }
+inline float gxRotCos(float angle) { return WWMath::Cos(angle); }
+#endif
