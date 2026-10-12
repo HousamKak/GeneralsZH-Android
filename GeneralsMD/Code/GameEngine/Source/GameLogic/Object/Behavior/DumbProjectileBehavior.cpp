@@ -397,6 +397,7 @@ void DumbProjectileBehavior::projectileFireAtObjectOrPosition( const Object *vic
 	m_currentFlightPathStep = 0;// We are at the first point, because the launching put us there
 }
 
+bool gxProbeWanted(UnsignedInt id);
 //-------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------
 Bool DumbProjectileBehavior::calcFlightPath(Bool recalcNumSegments)
@@ -464,6 +465,19 @@ Bool DumbProjectileBehavior::calcFlightPath(Bool recalcNumSegments)
 	// TheSuperHackers @info The way flight paths are used requires at least two curve points.
 	// DumbProjectileBehavior::update has been modified to handle cases where the flight path consists of one or zero curve points.
 	flightCurve.getSegmentPoints(m_flightPathSegments, &m_flightPath);
+	if (gxProbeWanted(getObject()->getID()))
+	{
+		const unsigned *c = (const unsigned *)controlPoints;
+		fprintf(stderr, "[GX-NET] bez frame %u id %u segs %d cp %08X %08X %08X %08X %08X %08X %08X %08X %08X %08X %08X %08X\n",
+			(unsigned)TheGameLogic->getFrame(), (unsigned)getObject()->getID(), (int)m_flightPathSegments,
+			c[0], c[1], c[2], c[3], c[4], c[5], c[6], c[7], c[8], c[9], c[10], c[11]);
+		for (size_t gi = 0; gi < m_flightPath.size() && gi < 6; ++gi)
+		{
+			const unsigned *q = (const unsigned *)&m_flightPath[gi];
+			fprintf(stderr, "[GX-NET] bez path %d %08X %08X %08X\n", (int)gi, q[0], q[1], q[2]);
+		}
+		fflush(stderr);
+	}
 	DEBUG_ASSERTCRASH(m_flightPathSegments == m_flightPath.size(), ("m_flightPathSegments mismatch"));
 
 #if defined(RTS_DEBUG)
