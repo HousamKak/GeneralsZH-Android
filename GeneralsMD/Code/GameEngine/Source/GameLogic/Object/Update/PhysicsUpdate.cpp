@@ -320,6 +320,7 @@ Real PhysicsBehavior::getZFriction() const
 /**
  * Apply a force at the object's CG
  */
+void gxForceProbeAnchor() {}
 void PhysicsBehavior::applyForce( const Coord3D *force )
 {
 // TheSuperHackers @info helmutbuhler 06/05/2025 This debug mutates the code to become CRC incompatible
@@ -352,7 +353,7 @@ void PhysicsBehavior::applyForce( const Coord3D *force )
 		{
 			fprintf(stderr, "[GX-NET] force frame %u f %08X %08X %08X mass %08X motive %d accel %08X %08X %08X ret %p base %p\n", frame,
 				*(const unsigned *)&modForce.x, *(const unsigned *)&modForce.y, *(const unsigned *)&modForce.z, *(const unsigned *)&mass, (int)isMotive(),
-				*(const unsigned *)&m_accel.x, *(const unsigned *)&m_accel.y, *(const unsigned *)&m_accel.z, __builtin_return_address(0), (void *)&PhysicsBehavior::applyForce);
+				*(const unsigned *)&m_accel.x, *(const unsigned *)&m_accel.y, *(const unsigned *)&m_accel.z, __builtin_return_address(0), (void *)&gxForceProbeAnchor);
 			fflush(stderr);
 		}
 	}
