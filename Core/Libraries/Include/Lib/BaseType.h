@@ -260,6 +260,13 @@ inline Int realToIntTruncRef(Real f)
 {
 #if defined(_MSC_VER) && defined(_M_IX86)
   return (Int)f;
+#elif defined(SAGE_RETAIL_RULES)
+  // GeneralsX @bugfix ZH Commander 12/10/2026 Retail 1.04 is VC6, where (Int)f calls __ftol:
+  // fistp of a 64-bit integer under chop, keeping the low dword. A NaN, an infinity or
+  // |f| >= 2^63 stores the 64-bit indefinite, whose low dword is 0; above 2^31 it wraps.
+  if (f >= -9223372036854775808.0f && f < 9223372036854775808.0f)
+    return (Int)(UnsignedInt)(unsigned long long)(long long)f;
+  return 0;
 #else
   if (f >= -2147483648.0f && f < 2147483648.0f)
     return (Int)f;
