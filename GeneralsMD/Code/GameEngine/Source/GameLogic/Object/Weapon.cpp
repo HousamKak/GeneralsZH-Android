@@ -29,6 +29,8 @@
 
 // INCLUDES ///////////////////////////////////////////////////////////////////////////////////////
 #include "PreRTS.h"	// This must go first in EVERY cpp file in the GameEngine
+#include <stdio.h>
+bool gxProbeWanted(UnsignedInt id);
 
 #define DEFINE_DEATH_NAMES
 #define DEFINE_WEAPONBONUSCONDITION_NAMES
@@ -3170,6 +3172,13 @@ void Weapon::processRequestAssistance( const Object *requestingObject, Object *v
 		turretRotPos.zero();
 		turretPitchPos.zero();
 	}
+	if (gxProbeWanted(launcher->getID()))
+	{
+		const unsigned *a = (const unsigned *)&attachTransform;
+		fprintf(stderr, "[GX-NET] launch pristine %08X %08X %08X %08X %08X %08X %08X %08X %08X %08X %08X %08X\n",
+			a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8], a[9], a[10], a[11]);
+		fflush(stderr);
+	}
 	if (tur != TURRET_INVALID)
 	{
 		// The attach transform is the pristine front and center position of the fire point
@@ -3210,6 +3219,20 @@ void Weapon::processRequestAssistance( const Object *requestingObject, Object *v
 //  DEBUG_ASSERTCRASH( muzzleHeight > 0.001f, ("YOUR TURRET HAS A VERY LOW PROJECTILE LAUNCH POSITION, BUT FOUND A VALID BONE. DID YOU PICK THE WRONG ONE? %s", launcher->getTemplate()->getName().str()));
 //#endif
 
+	if (gxProbeWanted(launcher->getID()))
+	{
+		const unsigned *a = (const unsigned *)&attachTransform;
+		const unsigned *l = (const unsigned *)launcher->getTransformMatrix();
+		fprintf(stderr, "[GX-NET] launch frame %u launcher %u tur %d angle %08X pitch %08X rot %08X %08X %08X pitchpos %08X %08X %08X\n",
+			(unsigned)TheGameLogic->getFrame(), (unsigned)launcher->getID(), (int)tur, *(const unsigned *)&turretAngle, *(const unsigned *)&turretPitch,
+			*(const unsigned *)&turretRotPos.x, *(const unsigned *)&turretRotPos.y, *(const unsigned *)&turretRotPos.z,
+			*(const unsigned *)&turretPitchPos.x, *(const unsigned *)&turretPitchPos.y, *(const unsigned *)&turretPitchPos.z);
+		fprintf(stderr, "[GX-NET] launch attach %08X %08X %08X %08X %08X %08X %08X %08X %08X %08X %08X %08X\n",
+			a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8], a[9], a[10], a[11]);
+		fprintf(stderr, "[GX-NET] launch launcherxf %08X %08X %08X %08X %08X %08X %08X %08X %08X %08X %08X %08X\n",
+			l[0], l[1], l[2], l[3], l[4], l[5], l[6], l[7], l[8], l[9], l[10], l[11]);
+		fflush(stderr);
+	}
   launcher->convertBonePosToWorldPos(nullptr, &attachTransform, nullptr, &worldTransform);
 
 	Vector3 tmp = worldTransform.Get_Translation();
