@@ -189,6 +189,15 @@ __forceinline long fast_float2long_round(float f)
 	}
 #elif defined(_MSC_VER) && defined(_M_IX86)
 	i = lroundf(f);
+#elif defined(SAGE_RETAIL_RULES)
+	// GeneralsX @bugfix ZH Commander 12/10/2026 Retail 1.04 is the VC6 branch above: x87 fistp in
+	// the default rounding mode, so a half rounds to even (2.5 -> 2, not 3), and a NaN or a value
+	// outside the 32-bit range stores the "integer indefinite" 0x80000000.
+	const float r = rintf(f);
+	if (r >= -2147483648.0f && r < 2147483648.0f)
+		i = (long)(int)r;
+	else
+		i = (long)(int)0x80000000u;
 #else
 	// GeneralsX @bugfix Android port 23/09/2026 lroundf as the reference client's CRT
 	// computes it. The GeneralsOnline PC client imports lroundf from the Windows UCRT,

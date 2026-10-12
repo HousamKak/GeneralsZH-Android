@@ -1057,7 +1057,10 @@ void AIPlayer::onUnitProduced( Object *factory, Object *unit )
 	Bool found = false;
 	// TheSuperHackers @fix Mauller 26/04/2025 Fixes uninitialized variable.
 	// To keep retail compatibility it needs to be set true in VS6 builds.
-#if defined(_MSC_VER) && _MSC_VER < 1300
+	// GeneralsX @bugfix ZH Commander 12/10/2026 The retail-rules engine reads it as retail did
+	// too. With false, a skirmish AI that just got a dozer made its next build choice that frame;
+	// retail waits, and a retail replay's AI built a second barracks 362 frames early.
+#if (defined(_MSC_VER) && _MSC_VER < 1300) || defined(SAGE_RETAIL_RULES)
 	Bool supplyTruck = true;
 #else
 	Bool supplyTruck = false;
