@@ -102,9 +102,19 @@ void BezFwdIterator::start()
 			pDDD = &mDDDq.x;
 		}
 
+#if defined(SAGE_RETAIL_RULES)
+		// GeneralsX @bugfix ZH Commander 13/10/2026 VC6 shared a * d3 and b * d2 between the three
+		// lines and summed (c * d + b * d2) + a * d3 in the reference listing.
+		const float gxAd3 = a * d3;
+		const float gxBd2 = b * d2;
+		(*pD) = (c * d + gxBd2) + gxAd3;
+		(*pDD) = (gxBd2 + gxBd2) + 6 * gxAd3;
+		(*pDDD) = 6 * gxAd3;
+#else
 		(*pD) = a * d3 + b * d2 + c * d;
 		(*pDD) = 6 * a * d3 + 2 * b * d2;
 		(*pDDD) = 6 * a * d3;
+#endif
 	}
 }
 
