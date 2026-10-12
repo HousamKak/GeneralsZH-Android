@@ -7010,6 +7010,27 @@ namespace
 	};
 }
 
+
+// GeneralsX @feature ZH Commander 13/10/2026 With gx_script_frames.txt ("FROM TO") in the game data
+// folder and the net trace on, one line per script whose actions run in that window.
+static void gxScriptRanTrace(const char *name, int which)
+{
+	static int s_from = -2, s_to = -1;
+	if (s_from == -2)
+	{
+		s_from = -1;
+		if (FILE *f = fopen("gx_script_frames.txt", "r"))
+		{
+			if (fscanf(f, "%d %d", &s_from, &s_to) != 2) s_from = -1;
+			fclose(f);
+		}
+	}
+	if (s_from < 0 || TheGameLogic == nullptr) return;
+	const int frame = (int)TheGameLogic->getFrame();
+	if (frame < s_from || frame > s_to) return;
+	GX_NET_TRACE("script ran frame %d %s '%s'\n", frame, which ? "true" : "false", name);
+}
+
 void ScriptEngine::executeScript( Script *pScript )
 {
 	GXScriptNameLatch gxScriptName( pScript ? pScript->getName() : AsciiString::TheEmptyString );
@@ -7078,7 +7099,7 @@ void ScriptEngine::executeScript( Script *pScript )
 			if (evaluateConditions(pScript)) {
 				// Script Debug window
 				if (pScript->getAction()) {
-					_appendMessage(pScript->getName());
+					_appendMessage(pScript->getName()); gxScriptRanTrace(pScript->getName().str(), 1);
 					executeActions(pScript->getAction());
 				}
 
@@ -7088,7 +7109,7 @@ void ScriptEngine::executeScript( Script *pScript )
 			}	else if (pScript->getFalseAction()) {
 
 				// Script Debug window
-				_appendMessage(pScript->getName(), false);
+				_appendMessage(pScript->getName(), false); gxScriptRanTrace(pScript->getName().str(), 0);
 
 				// Only do this if there are actually false actions.
 				executeActions(pScript->getFalseAction());
@@ -7101,7 +7122,7 @@ void ScriptEngine::executeScript( Script *pScript )
 		if (evaluateConditions(pScript)) {
 			if (pScript->getAction()) {
 				// Script Debug window
-				_appendMessage(pScript->getName());
+				_appendMessage(pScript->getName()); gxScriptRanTrace(pScript->getName().str(), 1);
 				executeActions(pScript->getAction());
 			}
 
@@ -7111,7 +7132,7 @@ void ScriptEngine::executeScript( Script *pScript )
 		}	else if (pScript->getFalseAction()) {
 
 			// Script Debug window
-			_appendMessage(pScript->getName(), false);
+			_appendMessage(pScript->getName(), false); gxScriptRanTrace(pScript->getName().str(), 0);
 
 			// Only do this if there are actually false actions.
 			executeActions(pScript->getFalseAction());
