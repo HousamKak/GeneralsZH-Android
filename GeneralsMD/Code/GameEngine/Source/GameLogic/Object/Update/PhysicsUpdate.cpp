@@ -345,6 +345,17 @@ void PhysicsBehavior::applyForce( const Coord3D *force )
 	m_accel.x += modForce.x * massInv;
 	m_accel.y += modForce.y * massInv;
 	m_accel.z += modForce.z * massInv;
+	if (getObject()->getID() == 213)
+	{
+		const unsigned frame = (unsigned)TheGameLogic->getFrame();
+		if (frame >= 3183 && frame <= 3186)
+		{
+			fprintf(stderr, "[GX-NET] force frame %u f %08X %08X %08X mass %08X motive %d accel %08X %08X %08X ret %p base %p\n", frame,
+				*(const unsigned *)&modForce.x, *(const unsigned *)&modForce.y, *(const unsigned *)&modForce.z, *(const unsigned *)&mass, (int)isMotive(),
+				*(const unsigned *)&m_accel.x, *(const unsigned *)&m_accel.y, *(const unsigned *)&m_accel.z, __builtin_return_address(0), (void *)&PhysicsBehavior::applyForce);
+			fflush(stderr);
+		}
+	}
 
 	//DEBUG_ASSERTCRASH(!(_isnan(m_accel.x) || _isnan(m_accel.y) || _isnan(m_accel.z)), ("PhysicsBehavior::applyForce accel NAN!"));
 	//DEBUG_ASSERTCRASH(!(_isnan(m_vel.x) || _isnan(m_vel.y) || _isnan(m_vel.z)), ("PhysicsBehavior::applyForce vel NAN!"));
