@@ -130,6 +130,24 @@ inline Bool isNearly(Real a, Real val)
 
 //-----------------------------------------------------------------------------
 // return the angle delta (in 3-space) we turned.
+#if defined(SAGE_RETAIL_RULES)
+// GeneralsX @bugfix ZH Commander 12/10/2026 VC6 /O2 (no /Op) regroups float sums. Inlined into
+// tryToRotateVector3D, Vector3::Normalize sums the squares as (Z*Z + Y*Y) + X*X and the dot product
+// as (Z + Y) + X (reference listing); the out-of-line Normalize keeps the source order. A retail
+// replay's missile first left retail on frame 2588 by the last bit of its orientation.
+static void gxNormalizeZyx(Vector3 &v)
+{
+	const float len2 = (v.Z * v.Z + v.Y * v.Y) + v.X * v.X;
+	if (len2 != 0.0f)
+	{
+		const float oolen = WWMath::Inv_Sqrt(len2);
+		v.X *= oolen;
+		v.Y *= oolen;
+		v.Z *= oolen;
+	}
+}
+#endif
+
 static Real tryToRotateVector3D(
 	Real maxAngle,						// if negative, it's a percent (0...1) of the dist to rotate 'em
 	const Vector3& inCurDir,
@@ -144,13 +162,19 @@ static Real tryToRotateVector3D(
 	}
 
 	Vector3 curDir = inCurDir;
-	curDir.Normalize();
-
 	Vector3 goalDir = inGoalDir;
+#if defined(SAGE_RETAIL_RULES)
+	gxNormalizeZyx(curDir);
+	gxNormalizeZyx(goalDir);
+	// dot of two unit vectors is cos of angle between them.
+	Real cosine = (goalDir.Z * curDir.Z + goalDir.Y * curDir.Y) + goalDir.X * curDir.X;
+#else
+	curDir.Normalize();
 	goalDir.Normalize();
 
 	// dot of two unit vectors is cos of angle between them.
 	Real cosine = Vector3::Dot_Product(curDir, goalDir);
+#endif
 	// bound it in case of numerical error
 	Real angleBetween = (Real)ACos(clamp(-1.0f, cosine, 1.0f));
 
@@ -177,6 +201,10 @@ static Real tryToRotateVector3D(
 #ifdef ALLOW_TEMPORARIES
 		Vector3 objCrossGoal = Vector3::Cross_Product(curDir, goalDir);
 		objCrossGoal.Normalize();
+#elif defined(SAGE_RETAIL_RULES)
+		Vector3 objCrossGoal;
+		Vector3::Cross_Product(curDir, goalDir, &objCrossGoal);
+		gxNormalizeZyx(objCrossGoal);
 #else
 		Vector3 objCrossGoal;
 		Vector3::Normalized_Cross_Product(curDir, goalDir, &objCrossGoal);
