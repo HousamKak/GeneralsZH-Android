@@ -26,6 +26,7 @@
 // Simple rigid body physics
 // Author: Michael S. Booth, November 2001
 
+#include <stdio.h>
 #include "PreRTS.h"	// This must go first in EVERY cpp file in the GameEngine
 
 // please talk to MDC (x36804) before taking this out
@@ -824,6 +825,13 @@ UpdateSleepTime PhysicsBehavior::update()
 		if( obj->getStatusBits().test( OBJECT_STATUS_DECK_HEIGHT_OFFSET ) )
 		{
 			groundZ += obj->getCarrierDeckHeight();
+		}
+		if (obj->getID() == 332)
+		{
+			const Real gxz = mtx.Get_Z_Translation();
+			fprintf(stderr, "[GX-NET] physz frame %u oldz=%08X z=%08X groundZ=%08X layer=%d velz=%08X\n", (unsigned)TheGameLogic->getFrame(),
+				*(const unsigned *)&oldPosZ, *(const unsigned *)&gxz, *(const unsigned *)&groundZ, (int)obj->getLayer(), *(const unsigned *)&m_vel.z);
+			fflush(stderr);
 		}
 		gotBounceForce = handleBounce(oldPosZ, mtx.Get_Z_Translation(), groundZ, &bounceForce);
 

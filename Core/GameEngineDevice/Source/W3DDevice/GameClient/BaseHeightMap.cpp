@@ -46,6 +46,7 @@
 //         Includes
 //-----------------------------------------------------------------------------
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <assetmgr.h>
 #include <texture.h>
@@ -954,6 +955,13 @@ Real BaseHeightMapRenderObjClass::getHeightMapHeight(Real x, Real y, Coord3D* no
 #endif
 	}
 
+	if (x > 822.0f && x < 823.5f && y > 2767.0f && y < 2768.5f)
+	{
+		fprintf(stderr, "[GX-NET] hmh x=%08X y=%08X fx=%08X fy=%08X p0=%d p1=%d p2=%d p3=%d h=%08X\n",
+			*(const unsigned *)&x, *(const unsigned *)&y, *(const unsigned *)&fx, *(const unsigned *)&fy,
+			(int)data[idx], (int)data[idx + 1], (int)data[idx + xExtent + 1], (int)data[idx + xExtent], *(const unsigned *)&height);
+		fflush(stderr);
+	}
 //  DEBUG_ASSERTCRASH( height < 30, ("SOMEBODY THINKS THE CLIENT HEIGHTMAP IS GOOD ENOUGH FOR LOGIC SAMPLING."));
 
 	if (normal) {
