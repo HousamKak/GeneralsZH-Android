@@ -56,6 +56,21 @@
 #include "GameLogic/Module/ProductionUpdate.h"
 #include "GameClient/TerrainVisual.h"
 #include "Lib/X87Real.h"
+#include "GXTrace.h"
+#include <stdarg.h>
+// GeneralsX @feature ZH Commander 12/10/2026 Why the skirmish AI picked (or skipped) each build list entry.
+static void gxAibb(const Player *player, const char *fmt, ...)
+{
+	if (!GXTrace::isNetEnabled())
+		return;
+	va_list args;
+	fprintf(stderr, "[GX-NET] aibb frame %u player %d: ", (unsigned)TheGameLogic->getFrame(), (int)player->getPlayerIndex());
+	va_start(args, fmt);
+	vfprintf(stderr, fmt, args);
+	va_end(args);
+	fputc('\n', stderr);
+	fflush(stderr);
+}
 
 
 #define USE_DOZER 1
@@ -184,6 +199,7 @@ void AISkirmishPlayer::processBaseBuilding()
 				// this object was built at some time, and got destroyed at or near objectTimestamp.
 				// Wait a few seconds before initiating a rebuild.
 				if (info->getObjectTimestamp()+TheAI->getAiData()->m_rebuildDelaySeconds*LOGICFRAMES_PER_SECOND > TheGameLogic->getFrame()) {
+					gxAibb(m_player, "%s rebuild-wait", name.str());
 					continue;
 				}	else {
 					DEBUG_LOG(("Enabling rebuild for %s", info->getTemplateName().str()));
@@ -191,10 +207,12 @@ void AISkirmishPlayer::processBaseBuilding()
 				}
 			}
 			if (bldg) {
+				gxAibb(m_player, "%s built id=%u", name.str(), (unsigned)bldg->getID());
 				continue; // already built.
 			}
 			// Make sure it is safe to build here.
 			if (!isLocationSafe(info->getLocation(), curPlan)) {
+				gxAibb(m_player, "%s unsafe", name.str());
 				continue;
 			}
 			if (info->isPriorityBuild()) {
@@ -214,16 +232,19 @@ void AISkirmishPlayer::processBaseBuilding()
 				}
 			}
 			if (!info->isAutomaticBuild()) {
+				gxAibb(m_player, "%s manual", name.str());
 				continue; // marked to not build automatically.
 			}
 			Object *dozer = findDozer(info->getLocation());
 			if (dozer==nullptr) {
+				gxAibb(m_player, "%s no-dozer underpowered=%d", name.str(), (int)isUnderPowered);
 				if (isUnderPowered) {
 					queueDozer();
 				}
 				continue;
 			}
 			if (TheBuildAssistant->canMakeUnit(dozer, bldgPlan)!=CANMAKE_OK) {
+				gxAibb(m_player, "%s cantmake %d dozer=%u", name.str(), (int)TheBuildAssistant->canMakeUnit(dozer, bldgPlan), (unsigned)dozer->getID());
 				if (info->isBuildable()) {
 					AsciiString bldgName = info->getTemplateName();
 					bldgName.concat(" - Dozer unable to build - money or technology missing.");
@@ -232,6 +253,7 @@ void AISkirmishPlayer::processBaseBuilding()
 				continue;
 			}
 			// check if this building has any "rebuilds" left
+			gxAibb(m_player, "%s candidate dozer=%u buildable=%d", name.str(), (unsigned)dozer->getID(), (int)info->isBuildable());
 			if (info->isBuildable())
 			{
 				if (bldgPlan == nullptr) {
@@ -240,6 +262,8 @@ void AISkirmishPlayer::processBaseBuilding()
 				}
 			}
 		}
+		gxAibb(m_player, "decision underpowered=%d power=%s powerUC=%d plan=%s priority=%d", (int)isUnderPowered,
+			powerPlan ? powerPlan->getName().str() : "-", (int)powerUnderConstruction, bldgPlan ? bldgPlan->getName().str() : "-", (int)isPriority);
 		if (powerInfo && powerPlan && !powerPlan->isEquivalentTo(bldgPlan)) {
 			if (!powerUnderConstruction) {
 				bldgPlan = powerPlan;
@@ -433,6 +457,7 @@ void AISkirmishPlayer::buildSpecificAIBuilding(const AsciiString &thingName)
 			}
 			foundUnbuilt = true;
 			info->markPriorityBuild();
+			gxAibb(m_player, "%s queued by script %s", name.str(), GXTrace::currentScript());
 			break;
 		}
 	}
