@@ -26,7 +26,10 @@
 // Simple rigid body physics
 // Author: Michael S. Booth, November 2001
 
+#include <stdio.h>
 #include "PreRTS.h"	// This must go first in EVERY cpp file in the GameEngine
+bool gxProbeWanted(UnsignedInt id);
+void gxProbeAnchor();
 
 // please talk to MDC (x36804) before taking this out
 #define NO_DEBUG_CRC
@@ -353,6 +356,14 @@ void PhysicsBehavior::applyForce( const Coord3D *force )
 	m_accel.x += modForce.x * massInv;
 	m_accel.y += modForce.y * massInv;
 	m_accel.z += modForce.z * massInv;
+	if (gxProbeWanted(getObject()->getID()))
+	{
+		fprintf(stderr, "[GX-NET] probe frame %u id %u force %08X %08X %08X mass %08X motive %d accel %08X %08X %08X ret %p anchor %p\n",
+			(unsigned)TheGameLogic->getFrame(), (unsigned)getObject()->getID(),
+			*(const unsigned *)&modForce.x, *(const unsigned *)&modForce.y, *(const unsigned *)&modForce.z, *(const unsigned *)&mass, (int)isMotive(),
+			*(const unsigned *)&m_accel.x, *(const unsigned *)&m_accel.y, *(const unsigned *)&m_accel.z, __builtin_return_address(0), (void *)&gxProbeAnchor);
+		fflush(stderr);
+	}
 
 	//DEBUG_ASSERTCRASH(!(_isnan(m_accel.x) || _isnan(m_accel.y) || _isnan(m_accel.z)), ("PhysicsBehavior::applyForce accel NAN!"));
 	//DEBUG_ASSERTCRASH(!(_isnan(m_vel.x) || _isnan(m_vel.y) || _isnan(m_vel.z)), ("PhysicsBehavior::applyForce vel NAN!"));

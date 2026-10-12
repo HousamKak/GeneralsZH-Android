@@ -36,6 +36,9 @@
 
 #include "Common/PerfTimer.h"
 #include "Common/Thing.h"
+#include "GameLogic/GameLogic.h"
+#include "GameLogic/Object.h"
+#include <stdio.h>
 #include "Common/ThingTemplate.h"
 #include "Common/ThingFactory.h"
 #include "Common/GlobalData.h"
@@ -186,8 +189,41 @@ void Thing::setPositionZ( Real z )
 }
 
 //=============================================================================
+
+// Probe (not for main): gx_probe_obj.txt in the game data folder holds "ID FROM TO".
+bool gxProbeWanted(UnsignedInt id)
+{
+	static int s_id = -2, s_from = 0, s_to = -1;
+	if (s_id == -2)
+	{
+		s_id = -1;
+		if (FILE *f = fopen("gx_probe_obj.txt", "r"))
+		{
+			int a = 0, b = 0, c = 0;
+			if (fscanf(f, "%d %d %d", &a, &b, &c) == 3) { s_id = a; s_from = b; s_to = c; }
+			fclose(f);
+		}
+	}
+	if (s_id < 0 || (int)id != s_id || TheGameLogic == nullptr)
+		return false;
+	const int frame = (int)TheGameLogic->getFrame();
+	return frame >= s_from && frame <= s_to;
+}
+void gxProbeAnchor() {}
+static void gxProbeTransform(const Thing *thing, const char *what, const Matrix3D *m, void *ret)
+{
+	const Object *obj = AsObject(thing);
+	if (obj == nullptr || !gxProbeWanted(obj->getID()))
+		return;
+	const unsigned *w = (const unsigned *)m;
+	fprintf(stderr, "[GX-NET] probe frame %u id %u %s %08X %08X %08X %08X %08X %08X %08X %08X %08X %08X %08X %08X ret %p anchor %p\n",
+		(unsigned)TheGameLogic->getFrame(), (unsigned)obj->getID(), what, w[0], w[1], w[2], w[3], w[4], w[5], w[6], w[7], w[8], w[9], w[10], w[11],
+		ret, (void *)&gxProbeAnchor);
+	fflush(stderr);
+}
 void Thing::setPosition( const Coord3D *pos )
 {
+	{ Matrix3D gxm = m_transform; gxm.Set_Translation(Vector3(pos->x, pos->y, pos->z)); gxProbeTransform(this, "setPosition(in)", &gxm, __builtin_return_address(0)); }
 	//USE_PERF_TIMER(ThingMatrixStuff)
 	if( !m_template->isKindOf( KINDOF_STICK_TO_TERRAIN_SLOPE) )
 	{
@@ -287,6 +323,7 @@ void Thing::setOrientation( Real angle )
 //=============================================================================
 void Thing::setTransformMatrix( const Matrix3D *mx )
 {
+	gxProbeTransform(this, "setTransformMatrix(in)", mx, __builtin_return_address(0));
 	//USE_PERF_TIMER(ThingMatrixStuff)
 	Real oldAngle = m_cachedAngle;
 	Coord3D oldPos = m_cachedPos;
