@@ -516,8 +516,15 @@ public:
 
 		Coord3D intermedPt;
 		Bool intermed = false;
+#if defined(SAGE_RETAIL_RULES)
+		// GeneralsX @bugfix ZH Commander 12/10/2026 The reference listing subtracts the parking
+		// orientation from fpatan's result in the x87 register, unrounded; orient is never stored.
+		const double gxOrient = atan2((double)(ppinfo.runwayPrep.y - ppinfo.parkingSpace.y), (double)(ppinfo.runwayPrep.x - ppinfo.parkingSpace.x));
+		if (fabs(normalizeAngle((Real)(gxOrient - (double)ppinfo.parkingOrientation))) > PI/128)
+#else
 		Real orient = atan2(ppinfo.runwayPrep.y - ppinfo.parkingSpace.y, ppinfo.runwayPrep.x - ppinfo.parkingSpace.x);
 		if (fabs(stdAngleDiff(orient, ppinfo.parkingOrientation)) > PI/128)
+#endif
 		{
 			intermedPt.z = (ppinfo.parkingSpace.z + ppinfo.runwayPrep.z) * 0.5f;
 			intermed = intersectInfiniteLine2D(

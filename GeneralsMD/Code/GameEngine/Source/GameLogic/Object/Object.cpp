@@ -6241,7 +6241,8 @@ Bool Object::getSingleLogicalBonePositionOnTurret( WhichTurretType whichTurret, 
 	Matrix3D turnAdjustment(TRUE);// this is the turret twist to be applied to the final answer
 
 	turnAdjustment.Translate( turretPosition.x, turretPosition.y, turretPosition.z );
-	turnAdjustment.In_Place_Pre_Rotate_Z(turretRotation);
+	// GeneralsX @bugfix ZH Commander 12/10/2026 The reference listing stores the sine and keeps the cosine.
+	turnAdjustment.In_Place_Pre_Rotate_Z(turretRotation, GX_KEEP_COS);
 	turnAdjustment.Translate( -turretPosition.x, -turretPosition.y, -turretPosition.z );
 
 	Matrix3D boneLogicTransform;

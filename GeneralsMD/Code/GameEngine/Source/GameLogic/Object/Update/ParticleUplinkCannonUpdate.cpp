@@ -57,6 +57,7 @@
 #include "GameLogic/Module/ParticleUplinkCannonUpdate.h"
 #include "GameLogic/Module/PhysicsUpdate.h"
 #include "GameLogic/Module/ActiveBody.h"
+#include "Lib/X87Real.h"
 
 // TheSuperHackers @fix Mirelle 04/02/2026: Raised from 500.0f so that
 // enormous camera heights cannot see above the laser origin.
@@ -531,7 +532,13 @@ UpdateSleepTime ParticleUplinkCannonUpdate::update()
 				Real cxDistance = (factor * data->m_swathOfDeathDistance ) - (data->m_swathOfDeathDistance * 0.5f); //cx is cartesian x
 
 				//Now calculate the amplitude value.
+#if defined(SAGE_RETAIL_RULES)
+				// GeneralsX @bugfix ZH Commander 12/10/2026 The reference listing multiplies the fsin result
+				// from the x87 register, unrounded; height is never stored (Lib/X87Real.h).
+				const X87Real height(sin((double)radians));
+#else
 				Real height = sin( radians );
+#endif
 				Real cxHeight = height * data->m_swathOfDeathAmplitude;
 
 				Coord3D buildingToInitialTargetVector;
@@ -554,6 +561,24 @@ UpdateSleepTime ParticleUplinkCannonUpdate::update()
 
 				Real dotProduct = Vector2::Dot_Product( buildingToTargetVector, cartesianTargetVector );
 				dotProduct = __min( 0.99999f, __max( -0.99999f, dotProduct ) ); //Account for numerical errors.  Also, acos(-1.00000) is coming out QNAN on the superweapon general map.  Heh.
+#if defined(SAGE_RETAIL_RULES)
+				// GeneralsX @bugfix ZH Commander 12/10/2026 The reference listing never stores angle: ACos's
+				// result stays in the x87 register through both negations and goes into fcos and fsin
+				// unrounded. Rotate_Z(-angle) then stores the cosine and keeps the sine.
+				double gxAngle = ACos( dotProduct ).v;
+				if( buildingToTargetVector.Y >= 0 )
+				{
+					gxAngle = -gxAngle;
+				}
+				const Real gxC = (Real)cos(-gxAngle);
+				const X87Real gxS(sin(-gxAngle));
+
+				Matrix3D mtx( Vector3( 1.0f, 0.0f, 0.0f ) );
+				mtx.Scale( targetDistance );
+				const Real gxRow00 = mtx[0][0], gxRow01 = mtx[0][1], gxRow10 = mtx[1][0], gxRow11 = mtx[1][1];
+				mtx[0][0] = gxC*gxRow00 + gxS*gxRow01;
+				mtx[1][0] = gxC*gxRow10 + gxS*gxRow11;
+#else
 				Real angle = (Real)ACos( dotProduct );
 
 				if( buildingToTargetVector.Y >= 0 )
@@ -564,6 +589,7 @@ UpdateSleepTime ParticleUplinkCannonUpdate::update()
 				Matrix3D mtx( Vector3( 1.0f, 0.0f, 0.0f ) );
 				mtx.Scale( targetDistance );
 				mtx.Rotate_Z( -angle );
+#endif
 
 				Vector3 v = mtx.Get_X_Vector();
 

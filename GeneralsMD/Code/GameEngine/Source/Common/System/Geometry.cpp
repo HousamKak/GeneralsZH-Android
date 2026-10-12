@@ -35,6 +35,7 @@
 #include "Common/INI.h"
 #include "Common/RandomValue.h"
 #include "Common/Xfer.h"
+#include "Lib/X87Real.h"
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -279,7 +280,14 @@ void GeometryInfo::get2DBounds(const Coord3D& geomCenter, Real angle, Region2D& 
 
 		case GEOMETRY_BOX:
 		{
+#if defined(SAGE_RETAIL_RULES)
+			// GeneralsX @bugfix ZH Commander 12/10/2026 The reference listing ignores the (Real) cast and
+			// multiplies the cosine from the x87 register, unrounded; the sine is stored. It also adds two
+			// of the sums below in another order: (y + exs) + eyc and (x + eys) + exc.
+			const X87Real c(cos((double)angle));
+#else
 			Real c = (Real)cos(angle);
+#endif
 			Real s = (Real)sin(angle);
 			Real exc = m_majorRadius*c;
 			Real eyc = m_minorRadius*c;
@@ -294,13 +302,21 @@ void GeometryInfo::get2DBounds(const Coord3D& geomCenter, Real angle, Region2D& 
 			bounds.hi.y = y;
 
 			x = geomCenter.x + exc - eys;
+#if defined(SAGE_RETAIL_RULES)
+			y = geomCenter.y + exs + eyc;
+#else
 			y = geomCenter.y + eyc + exs;
+#endif
 			if (bounds.lo.x > x) bounds.lo.x = x;
 			if (bounds.lo.y > y) bounds.lo.y = y;
 			if (bounds.hi.x < x) bounds.hi.x = x;
 			if (bounds.hi.y < y) bounds.hi.y = y;
 
+#if defined(SAGE_RETAIL_RULES)
+			x = geomCenter.x + eys + exc;
+#else
 			x = geomCenter.x + exc + eys;
+#endif
 			y = geomCenter.y - eyc + exs;
 			if (bounds.lo.x > x) bounds.lo.x = x;
 			if (bounds.lo.y > y) bounds.lo.y = y;

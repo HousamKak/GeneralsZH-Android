@@ -56,6 +56,7 @@
 #include "GameLogic/Module/CreateModule.h"
 #include "GameLogic/Module/ProductionUpdate.h"
 #include "GameLogic/Module/ParkingPlaceBehavior.h"
+#include "Lib/X87Real.h"
 
 // PUBLIC DATA ////////////////////////////////////////////////////////////////////////////////////
 BuildAssistant *TheBuildAssistant = nullptr;
@@ -562,7 +563,8 @@ void BuildAssistant::iterateFootprint( const ThingTemplate *build,
 	Matrix3D transform;
 	transform.Make_Identity();
 	transform.Adjust_Translation( Vector3( worldPos->x, worldPos->y, worldPos->z ) );
-	transform.Rotate_Z( buildOrientation );
+	// GeneralsX @bugfix ZH Commander 12/10/2026 The reference listing stores the sine and keeps the cosine.
+	transform.Rotate_Z( buildOrientation, GX_KEEP_COS );
 
 	// get the bounding footprint rectangle for the geometry we're looking at
 	Real halfFootprintHeight,
@@ -808,7 +810,13 @@ LegalBuildCode BuildAssistant::isLocationClearOfObjects( const Coord3D *worldPos
 	if (myFactoryExitWidth>0) {
 		myExitPos = *worldPos;
 		checkMyExit = true;
+#if defined(SAGE_RETAIL_RULES)
+		// GeneralsX @bugfix ZH Commander 12/10/2026 The reference listing ignores the (Real) cast: it
+		// stores the sine but multiplies the cosine from the x87 register, unrounded (Lib/X87Real.h).
+		const X87Real c(cos((double)angle));
+#else
 		Real c = (Real)cos(angle);
+#endif
 		Real s = (Real)sin(angle);
 		Real offset = build->getTemplateGeometryInfo().getMajorRadius() + myFactoryExitWidth/2.0f;
 		myExitPos.x += c*offset;
@@ -856,7 +864,12 @@ LegalBuildCode BuildAssistant::isLocationClearOfObjects( const Coord3D *worldPos
 		if (themFactoryExitWidth>0) {
 			hisExitPos = *them->getPosition();
 			checkHisExit = true;
+#if defined(SAGE_RETAIL_RULES)
+			// GeneralsX @bugfix ZH Commander 12/10/2026 As for myExitPos: the reference listing keeps the cosine.
+			const X87Real c(cos((double)them->getOrientation()));
+#else
 			Real c = (Real)cos(them->getOrientation());
+#endif
 			Real s = (Real)sin(them->getOrientation());
 			Real offset = them->getGeometryInfo().getMajorRadius() + themFactoryExitWidth/2.0f;
 			hisExitPos.x += c*offset;
@@ -1490,7 +1503,8 @@ Bool BuildAssistant::moveObjectsForConstruction( const ThingTemplate *whatToBuil
 					Coord3D destPos;
 					Real dir = GameLogicRandomValueReal(-PI, PI);
 					Vector3 vec(variedRadius, 0, 0);
-					vec.Rotate_Z(dir);
+					// GeneralsX @bugfix ZH Commander 12/10/2026 The reference listing stores the sine and keeps the cosine.
+					vec.Rotate_Z(dir, GX_KEEP_COS);
 
 					destPos.x = pos->x + vec.X;
 					destPos.y = pos->y + vec.Y;

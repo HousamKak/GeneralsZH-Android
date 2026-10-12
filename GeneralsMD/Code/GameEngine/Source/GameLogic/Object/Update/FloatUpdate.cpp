@@ -37,6 +37,7 @@
 #include "GameLogic/GameLogic.h"
 
 #include "GameClient/Drawable.h"
+#include "Lib/X87Real.h"
 
 
 
@@ -119,14 +120,23 @@ UpdateSleepTime FloatUpdate::update()
 	{
 
 		Real angle = INT_TO_REAL(TheGameLogic->getFrame());
+#if defined(SAGE_RETAIL_RULES)
+		// GeneralsX @bugfix ZH Commander 12/10/2026 The reference listing multiplies each fsin result
+		// by 0.05f from the x87 register, unrounded (Lib/X87Real.h).
+		Real yaw = X87Real(sin((double)(angle * 0.0291f))) * 0.05f;
+		Real pitch = X87Real(sin((double)(angle * 0.0515f))) * 0.05f;
+#else
 		Real yaw = sin(angle * 0.0291f) * 0.05f;
 		Real pitch = sin(angle * 0.0515f) * 0.05f;
+#endif
 
 		Matrix3D mx = *draw->getInstanceMatrix();
 
 		Real zRot = mx.Get_Z_Rotation();
 		mx.Make_Identity();
-		mx.Rotate_Z(zRot);
+		// GeneralsX @bugfix ZH Commander 12/10/2026 The reference listing keeps this cosine (sine stored);
+		// both Rotate_Y and Rotate_X store their sine and cosine (the default).
+		mx.Rotate_Z(zRot, GX_KEEP_COS);
 		mx.Rotate_Y(yaw);
 		mx.Rotate_X(pitch);
 

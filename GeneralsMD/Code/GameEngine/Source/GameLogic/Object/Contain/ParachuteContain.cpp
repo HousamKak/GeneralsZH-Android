@@ -140,12 +140,12 @@ void ParachuteContain::onDrawableBoundToObject()
 }
 
 //-------------------------------------------------------------------------------------------------
-void ParachuteContain::calcSwayMtx(const Coord3D* offset, Matrix3D* mtx)
+void ParachuteContain::calcSwayMtx(const Coord3D* offset, Matrix3D* mtx, Int gxKeepRoll, Int gxKeepPitch)
 {
 	mtx->Make_Identity();
 	mtx->Translate(offset->x, offset->y, offset->z);
-	mtx->In_Place_Pre_Rotate_X(m_roll);
-	mtx->In_Place_Pre_Rotate_Y(m_pitch);
+	mtx->In_Place_Pre_Rotate_X(m_roll, gxKeepRoll);
+	mtx->In_Place_Pre_Rotate_Y(m_pitch, gxKeepPitch);
 	mtx->Translate(-offset->x, -offset->y, -offset->z);
 }
 
@@ -410,7 +410,8 @@ UpdateSleepTime ParachuteContain::update()
 				updateOffsetsFromBones();
 
 				Matrix3D tmp;
-				calcSwayMtx(&m_paraSwayOffset, &tmp);
+				// GeneralsX @bugfix ZH Commander 12/10/2026 The reference listing stores both cosines and keeps both sines.
+				calcSwayMtx(&m_paraSwayOffset, &tmp, GX_KEEP_SIN, GX_KEEP_SIN);
 				draw->setInstanceMatrix(&tmp);
 			}
 
@@ -614,7 +615,9 @@ void ParachuteContain::positionRider(Object* rider)
 		if( rider->isDisabledByType( DISABLED_HELD ) )
 		{
 			Matrix3D tmp;
-			calcSwayMtx(&m_riderSwayOffset, &tmp);
+			// GeneralsX @bugfix ZH Commander 12/10/2026 The reference listing keeps the roll cosine (sine
+			// stored) and the pitch sine (cosine stored) here.
+			calcSwayMtx(&m_riderSwayOffset, &tmp, GX_KEEP_COS, GX_KEEP_SIN);
 			draw->setInstanceMatrix(&tmp);
 		}
 		else

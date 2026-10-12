@@ -131,6 +131,9 @@ public:
 	/// @todo Rotations should be handled by this system as well (MSB)
 
 	void setAngles( Real yaw, Real pitch, Real roll );
+	// GeneralsX @bugfix ZH Commander 12/10/2026 The same, with which sine and cosine of each rotation the
+	// retail build kept unrounded where setAngles was inlined (GX_KEEP_* in wwmath.h).
+	void setAngles( Real yaw, Real pitch, Real roll, Int gxKeepRoll, Int gxKeepPitch, Int gxKeepYaw );
 	Real getMass() const;
 	void setMass( Real mass ) { m_mass = mass; }
 	Real getCenterOfMassOffset() const { return getPhysicsBehaviorModuleData()->m_centerOfMassOffset; }

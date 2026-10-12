@@ -205,8 +205,10 @@ static void calcRandomForce(Real minMag, Real maxMag, Real minPitch, Real maxPit
 
 	Matrix3D mtx(1);
 	mtx.Scale(mag);
-	mtx.Rotate_Z(angle);
-	mtx.Rotate_Y(-pitch);
+	// GeneralsX @bugfix ZH Commander 12/10/2026 The reference listing calls out-of-line copies of
+	// Rotate_Z and Rotate_Y, which keep both fsin and fcos results in the x87 register.
+	mtx.Rotate_Z(angle, GX_KEEP_BOTH);
+	mtx.Rotate_Y(-pitch, GX_KEEP_BOTH);
 
 	Vector3 v = mtx.Get_X_Vector();
 

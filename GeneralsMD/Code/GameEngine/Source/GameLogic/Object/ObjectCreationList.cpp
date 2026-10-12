@@ -585,7 +585,9 @@ private:
 EMPTY_DTOR(DeliverPayloadNugget)
 
 //-------------------------------------------------------------------------------------------------
-static void calcRandomForce(Real minMag, Real maxMag, Real minPitch, Real maxPitch, Coord3D* force)
+// GeneralsX @bugfix ZH Commander 12/10/2026 gxKeepYaw/gxKeepPitch: which sine and cosine the retail
+// build kept unrounded where this was inlined (GX_KEEP_* in wwmath.h).
+static void calcRandomForce(Real minMag, Real maxMag, Real minPitch, Real maxPitch, Coord3D* force, Int gxKeepYaw, Int gxKeepPitch)
 {
 	Real angle = GameLogicRandomValueReal(0, 2*PI);
 	Real pitch = GameLogicRandomValueReal(minPitch, maxPitch);
@@ -596,8 +598,8 @@ static void calcRandomForce(Real minMag, Real maxMag, Real minPitch, Real maxPit
 
 	Matrix3D mtx(1);
 	mtx.Scale(mag);
-	mtx.Rotate_Z(angle);
-	mtx.Rotate_Y(-pitch);
+	mtx.Rotate_Z(angle, gxKeepYaw);
+	mtx.Rotate_Y(-pitch, gxKeepPitch);
 
 	Vector3 v = mtx.Get_X_Vector();
 
@@ -631,7 +633,9 @@ public:
       if (p)
       {
 				Coord3D force;
-				calcRandomForce(m_minMag, m_maxMag, m_minPitch, m_maxPitch, &force);
+				// GeneralsX @bugfix ZH Commander 12/10/2026 Inlined here, the reference listing keeps both
+				// yaw values and the pitch cosine unrounded; the pitch sine is stored.
+				calcRandomForce(m_minMag, m_maxMag, m_minPitch, m_maxPitch, &force, GX_KEEP_BOTH, GX_KEEP_COS);
 				p->applyForce(&force);
 
 			  Real yaw = GameLogicRandomValueReal( -m_spinRate, m_spinRate );
@@ -1198,7 +1202,9 @@ protected:
 				}
 				else
 				{
-					calcRandomForce(m_minMag, m_maxMag, m_minPitch, m_maxPitch, &force);
+					// GeneralsX @bugfix ZH Commander 12/10/2026 Here the reference listing calls out-of-line
+					// copies of Rotate_Z and Rotate_Y, which keep both fsin and fcos results.
+					calcRandomForce(m_minMag, m_maxMag, m_minPitch, m_maxPitch, &force, GX_KEEP_BOTH, GX_KEEP_BOTH);
 					DUMPREAL(m_minMag);
 					DUMPREAL(m_maxMag);
 					DUMPREAL(m_minPitch);

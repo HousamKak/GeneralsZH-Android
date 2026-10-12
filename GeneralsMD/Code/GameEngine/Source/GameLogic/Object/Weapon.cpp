@@ -2182,8 +2182,14 @@ Bool Weapon::computeApproachTarget(const Object *source, const Object *target, c
 		if (source->isAboveTerrain())
 		{
 			// Don't do a 180 degree turn.
+#if defined(SAGE_RETAIL_RULES)
+			// GeneralsX @bugfix ZH Commander 12/10/2026 The reference listing subtracts fpatan's result
+			// from the x87 register, unrounded; angle is never stored.
+			Real relAngle = (Real)((double)source->getOrientation() - atan2((double)-dir.y, (double)-dir.x));
+#else
 			Real angle = atan2(-dir.y, -dir.x);
 			Real relAngle = source->getOrientation()- angle;
+#endif
 			if (relAngle>2*PI) relAngle -= 2*PI;
 			if (relAngle<-2*PI) relAngle += 2*PI;
 			if (fabs(relAngle)<PI/2) {
@@ -2195,9 +2201,17 @@ Bool Weapon::computeApproachTarget(const Object *source, const Object *target, c
 
 		if (angleOffset != 0.0f)
 		{
+#if defined(SAGE_RETAIL_RULES)
+			// GeneralsX @bugfix ZH Commander 12/10/2026 The reference listing adds angleOffset to fpatan's
+			// result in the x87 register, unrounded; angle is never stored.
+			const Real angle = (Real)(atan2((double)dir.y, (double)dir.x) + (double)angleOffset);
+			dir.x = (Real)Cos(angle);
+			dir.y = (Real)Sin(angle);
+#else
 			Real angle = atan2(dir.y, dir.x);
 			dir.x = (Real)Cos(angle + angleOffset);
 			dir.y = (Real)Sin(angle + angleOffset);
+#endif
 		}
 
 		// select a spot along the line between us, halfway between the min & max range.
@@ -2246,9 +2260,17 @@ Bool Weapon::computeApproachTarget(const Object *source, const Object *target, c
 
 		if (angleOffset != 0.0f)
 		{
+#if defined(SAGE_RETAIL_RULES)
+			// GeneralsX @bugfix ZH Commander 12/10/2026 The reference listing adds angleOffset to fpatan's
+			// result in the x87 register, unrounded; angle is never stored.
+			const Real angle = (Real)(atan2((double)dir.y, (double)dir.x) + (double)angleOffset);
+			dir.x = (Real)Cos(angle);
+			dir.y = (Real)Sin(angle);
+#else
 			Real angle = atan2(dir.y, dir.x);
 			dir.x = (Real)Cos(angle + angleOffset);
 			dir.y = (Real)Sin(angle + angleOffset);
+#endif
 		}
 
 		// select a spot along the line between us, in range of our weapon
@@ -3130,11 +3152,12 @@ void Weapon::processRequestAssistance( const Object *requestingObject, Object *v
 		// To rotate about a point, move that point to 0,0, rotate, then move it back.
 		// Pre rotate will keep the first twist from screwing the angle of the second pitch
 		pitchAdjustment.Translate( turretPitchPos.x, turretPitchPos.y, turretPitchPos.z );
-		pitchAdjustment.In_Place_Pre_Rotate_Y(-turretPitch);
+		// GeneralsX @bugfix ZH Commander 12/10/2026 The reference listing stores both sines and keeps both cosines.
+		pitchAdjustment.In_Place_Pre_Rotate_Y(-turretPitch, GX_KEEP_COS);
 		pitchAdjustment.Translate( -turretPitchPos.x, -turretPitchPos.y, -turretPitchPos.z );
 
 		turnAdjustment.Translate( turretRotPos.x, turretRotPos.y, turretRotPos.z );
-		turnAdjustment.In_Place_Pre_Rotate_Z(turretAngle);
+		turnAdjustment.In_Place_Pre_Rotate_Z(turretAngle, GX_KEEP_COS);
 		turnAdjustment.Translate( -turretRotPos.x, -turretRotPos.y, -turretRotPos.z );
 
 #ifdef ALLOW_TEMPORARIES

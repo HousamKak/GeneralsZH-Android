@@ -273,8 +273,9 @@ UpdateSleepTime StructureToppleUpdate::update()
 
 		Object *building = getObject();
 		Matrix3D xfrm = *building->getTransformMatrix();
-		xfrm.In_Place_Pre_Rotate_X(-m_toppleVelocity * m_toppleDirection.y);
-		xfrm.In_Place_Pre_Rotate_Y(m_toppleVelocity * m_toppleDirection.x);
+		// GeneralsX @bugfix ZH Commander 12/10/2026 The reference listing stores each cosine and keeps each sine.
+		xfrm.In_Place_Pre_Rotate_X(-m_toppleVelocity * m_toppleDirection.y, GX_KEEP_SIN);
+		xfrm.In_Place_Pre_Rotate_Y(m_toppleVelocity * m_toppleDirection.x, GX_KEEP_SIN);
 		building->setTransformMatrix(&xfrm);
 	}
 
@@ -322,7 +323,8 @@ void StructureToppleUpdate::doToppleDoneStuff()
 	Real toppleAngle = m_toppleDirection.toAngle();
 
 	Matrix3D xfrm = *building->getTransformMatrix();
-	xfrm.In_Place_Pre_Rotate_Z(toppleAngle-origAngle);
+	// GeneralsX @bugfix ZH Commander 12/10/2026 The reference listing stores the cosine and keeps the sine.
+	xfrm.In_Place_Pre_Rotate_Z(toppleAngle-origAngle, GX_KEEP_SIN);
 	building->setTransformMatrix(&xfrm);
 }
 

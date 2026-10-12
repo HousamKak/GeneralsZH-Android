@@ -183,7 +183,14 @@ static Real tryToRotateVector3D(
 #endif
 
 		angleBetween = maxAngle;
+#if defined(SAGE_RETAIL_RULES)
+		// GeneralsX @bugfix ZH Commander 12/10/2026 The reference listing keeps sine and cosine
+		// unrounded and computes axis[0]*axis[1]*(1-c) as ((1-c)*axis[1])*axis[0].
+		Matrix3D rotMtx;
+		gxRetailSetAxisAngle(rotMtx, objCrossGoal, angleBetween, true);
+#else
 		Matrix3D rotMtx(objCrossGoal, angleBetween);
+#endif
 		actualDir = rotMtx.Rotate_Vector(curDir);
 	}
 
@@ -2218,7 +2225,8 @@ PhysicsTurningType Locomotor::rotateObjAroundLocoPivot(Object* obj, const Coord3
 		Matrix3D mtx;
 		Matrix3D tmp(1);
 		tmp.Translate(turnPos.x, turnPos.y, 0);
-		tmp.In_Place_Pre_Rotate_Z(amount);
+		// GeneralsX @bugfix ZH Commander 12/10/2026 The reference listing stores the sine and keeps the cosine.
+		tmp.In_Place_Pre_Rotate_Z(amount, GX_KEEP_COS);
 		tmp.Translate(-turnPos.x, -turnPos.y, 0);
 
 		mtx.mul(tmp, *obj->getTransformMatrix());

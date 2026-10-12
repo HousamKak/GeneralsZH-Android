@@ -1892,8 +1892,15 @@ void getHelicopterOffset( Coord3D& posOut, Int idx )
   }
 
   Coord3D tempCtr = posOut;
+#if defined(SAGE_RETAIL_RULES)
+  // GeneralsX @bugfix ZH Commander 12/10/2026 The reference listing multiplies both fsin and fcos
+  // results from the x87 register, unrounded (Lib/X87Real.h).
+  posOut.x = tempCtr.x + (X87Real(sin((double)angle)) * radius);
+  posOut.y = tempCtr.y + (X87Real(cos((double)angle)) * radius);
+#else
   posOut.x = tempCtr.x + (sin(angle) * radius);
   posOut.y = tempCtr.y + (cos(angle) * radius);
+#endif
 
 }
 

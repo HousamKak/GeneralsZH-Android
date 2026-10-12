@@ -1314,7 +1314,8 @@ void RailroadBehavior::updatePositionTrackDistance( PullInfo *pullerInfo, PullIn
 	Matrix3D tmp(1);
 	tmp.Translate(turnPos.x, turnPos.y, 0);
 	tmp.Translate(trackPosDelta.x, trackPosDelta.y, 0);
-	tmp.In_Place_Pre_Rotate_Z(relAngle );
+	// GeneralsX @bugfix ZH Commander 12/10/2026 The reference listing stores the sine and keeps the cosine.
+	tmp.In_Place_Pre_Rotate_Z(relAngle, GX_KEEP_COS );
 
 	tmp.Translate(-turnPos.x, -turnPos.y, 0);
 

@@ -550,7 +550,9 @@ Bool PhysicsBehavior::handleBounce(Real oldZ, Real newZ, Real groundZ, Coord3D* 
 			// don't flip both pitch and roll... we'll "flip" twice.
 			const Real pitchAngle = 0;
 			Real yawAngle = getObject()->getTransformMatrix()->Get_Z_Rotation();
-			setAngles(yawAngle, pitchAngle, rollAngle);
+			// GeneralsX @bugfix ZH Commander 12/10/2026 Inlined here, the reference listing stores the
+			// roll cosine and keeps every other sine and cosine.
+			setAngles(yawAngle, pitchAngle, rollAngle, GX_KEEP_SIN, GX_KEEP_BOTH, GX_KEEP_BOTH);
 		}
 
 		if(bounceForce->z > 0.0f)
@@ -791,19 +793,30 @@ UpdateSleepTime PhysicsBehavior::update()
 			{
 				Vector3 xvec = mtx.Get_X_Vector();
 				Real xy = sqrtf(sqr(xvec.X) + sqr(xvec.Y));
+#if defined(SAGE_RETAIL_RULES)
+				// GeneralsX @bugfix ZH Commander 12/10/2026 The reference listing subtracts with fpatan's
+				// result in the x87 register (pitchAngle is never stored), and multiplies by Sin's
+				// result unrounded (s is never stored either).
+				const double gxPitchAngle = atan2((double)xvec.Z, (double)xy);
+				Real remainingAngle = (offset > 0) ? (Real)((double)(PI/2) - gxPitchAngle) : (Real)(gxPitchAngle - (double)(PI/2));
+				const X87Real s = Sin(remainingAngle);
+				pitchRateToUse *= s;
+#else
 				Real pitchAngle = atan2(xvec.Z, xy);
 				Real remainingAngle = (offset > 0) ? ((PI/2) - pitchAngle) : (-(PI/2) + pitchAngle);
 				Real s = Sin(remainingAngle);
 				pitchRateToUse *= s;
+#endif
 			}
 
 			// update rotation
 			/// @todo Rotation should use torques, and integrate just like forces (MSB)
 			// note, we DON'T want to Pre-rotate (either inplace or not),
 			// since we want to add our mods to the existing matrix.
-			mtx.Rotate_X(rollRateToUse);
-			mtx.Rotate_Y(pitchRateToUse);
-			mtx.Rotate_Z(yawRateToUse);
+			// GeneralsX @bugfix ZH Commander 12/10/2026 The reference listing keeps every fsin and fcos result here.
+			mtx.Rotate_X(rollRateToUse, GX_KEEP_BOTH);
+			mtx.Rotate_Y(pitchRateToUse, GX_KEEP_BOTH);
+			mtx.Rotate_Z(yawRateToUse, GX_KEEP_BOTH);
 		}
 
 		// do not allow object to pass through the ground
@@ -857,7 +870,9 @@ UpdateSleepTime PhysicsBehavior::update()
 		{
 			// Right the object after the bounce since the pitch and roll may have been affected
 			Real yawAngle = getObject()->getTransformMatrix()->Get_Z_Rotation();
-			setAngles(yawAngle, 0.0f, 0.0f);
+			// GeneralsX @bugfix ZH Commander 12/10/2026 Inlined here, the reference listing keeps the yaw
+			// sine and cosine (the roll and pitch values are the exact cos 0 and sin 0).
+			setAngles(yawAngle, 0.0f, 0.0f, GX_KEEP_BOTH, GX_KEEP_COS, GX_KEEP_BOTH);
 
 			// Set the translation of the after bounce matrix to the one calculated above
 			Matrix3D afterBounceMatrix = *getObject()->getTransformMatrix();
@@ -1130,15 +1145,24 @@ void PhysicsBehavior::addVelocityTo( const Coord3D *vel)
 //-------------------------------------------------------------------------------------------------
 void PhysicsBehavior::setAngles( Real yaw, Real pitch, Real roll )
 {
+	// GeneralsX @bugfix ZH Commander 12/10/2026 The reference listing's out-of-line setAngles (called
+	// from SlowDeathBehavior and ObjectCreationList) keeps the roll cosine (sine stored) and both
+	// values of the pitch and yaw rotations.
+	setAngles( yaw, pitch, roll, GX_KEEP_COS, GX_KEEP_BOTH, GX_KEEP_BOTH );
+}
+
+//-------------------------------------------------------------------------------------------------
+void PhysicsBehavior::setAngles( Real yaw, Real pitch, Real roll, Int gxKeepRoll, Int gxKeepPitch, Int gxKeepYaw )
+{
 	const Coord3D* pos = getObject()->getPosition();
 
 	Matrix3D xfrm;
 	xfrm.Make_Identity();
 	xfrm.Translate( pos->x, pos->y, pos->z );
 	// here we DO want to use in-place-etc, cuz we're not adding to any existing rot/etc
-	xfrm.In_Place_Pre_Rotate_X( -roll );
-	xfrm.In_Place_Pre_Rotate_Y( pitch );
-	xfrm.In_Place_Pre_Rotate_Z( yaw );
+	xfrm.In_Place_Pre_Rotate_X( -roll, gxKeepRoll );
+	xfrm.In_Place_Pre_Rotate_Y( pitch, gxKeepPitch );
+	xfrm.In_Place_Pre_Rotate_Z( yaw, gxKeepYaw );
 	getObject()->setTransformMatrix( &xfrm );
 }
 

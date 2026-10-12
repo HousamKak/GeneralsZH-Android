@@ -114,7 +114,7 @@ public:
 	WWINLINE void	Rotate_X(float s_angle,float c_angle);
 	WWINLINE void	Rotate_Y(float angle);
 	WWINLINE void	Rotate_Y(float s_angle,float c_angle);
-	WWINLINE void	Rotate_Z(float angle);
+	WWINLINE void	Rotate_Z(float angle, int gxKeep = GX_ROUND_BOTH);
 	WWINLINE void	Rotate_Z(float s_angle,float c_angle);
 
 	// unary operators
@@ -794,12 +794,12 @@ WWINLINE void Vector3::Rotate_Y(float s_angle,float c_angle)
  * HISTORY:                                                                                    *
  *   10/18/99   gth : Created.                                                                 *
  *=============================================================================================*/
-WWINLINE void Vector3::Rotate_Z(float angle)
+WWINLINE void Vector3::Rotate_Z(float angle, int gxKeep)
 {
 #if defined(SAGE_RETAIL_RULES)
-	// GeneralsX @bugfix ZH Commander 12/10/2026 Retail keeps fsin/fcos unrounded here (see gxRotSin).
-	const GxRotReal s_angle = gxRotSin(angle);
-	const GxRotReal c_angle = gxRotCos(angle);
+	// GeneralsX @bugfix ZH Commander 12/10/2026 Retail rounds per call site (see gxRotSin).
+	const GxRotReal s_angle = gxRotSin(angle, gxKeep);
+	const GxRotReal c_angle = gxRotCos(angle, gxKeep);
 	const float tmp_x = X;
 	const float tmp_y = Y;
 	X = c_angle * tmp_x - s_angle * tmp_y;

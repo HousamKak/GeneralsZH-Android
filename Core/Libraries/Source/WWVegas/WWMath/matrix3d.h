@@ -246,9 +246,9 @@ public:
    void  Translate_X(float x);
    void  Translate_Y(float y);
    void  Translate_Z(float z);
-	void	Rotate_X(float theta);
-	void	Rotate_Y(float theta);
-	void 	Rotate_Z(float theta);
+	void	Rotate_X(float theta, int gxKeep = GX_ROUND_BOTH);
+	void	Rotate_Y(float theta, int gxKeep = GX_ROUND_BOTH);
+	void 	Rotate_Z(float theta, int gxKeep = GX_ROUND_BOTH);
 	void	Rotate_X(float s,float c);
 	void	Rotate_Y(float s,float c);
 	void	Rotate_Z(float s,float c);
@@ -266,15 +266,15 @@ public:
 	// Each of these performs an "optimized" pre-multiplication with the
 	// current matrix. All angles are assumed to be radians. The "In_Place"
 	// versions do not affect the translation part of the matrix,
-	WWINLINE void	Pre_Rotate_X(float theta);
-	WWINLINE void	Pre_Rotate_Y(float theta);
-	WWINLINE void 	Pre_Rotate_Z(float theta);
+	WWINLINE void	Pre_Rotate_X(float theta, int gxKeep = GX_ROUND_BOTH);
+	WWINLINE void	Pre_Rotate_Y(float theta, int gxKeep = GX_ROUND_BOTH);
+	WWINLINE void 	Pre_Rotate_Z(float theta, int gxKeep = GX_ROUND_BOTH);
 	WWINLINE void	Pre_Rotate_X(float s,float c);
 	WWINLINE void	Pre_Rotate_Y(float s,float c);
 	WWINLINE void	Pre_Rotate_Z(float s,float c);
-	WWINLINE void	In_Place_Pre_Rotate_X(float theta);
-	WWINLINE void	In_Place_Pre_Rotate_Y(float theta);
-	WWINLINE void 	In_Place_Pre_Rotate_Z(float theta);
+	WWINLINE void	In_Place_Pre_Rotate_X(float theta, int gxKeep = GX_ROUND_BOTH);
+	WWINLINE void	In_Place_Pre_Rotate_Y(float theta, int gxKeep = GX_ROUND_BOTH);
+	WWINLINE void 	In_Place_Pre_Rotate_Z(float theta, int gxKeep = GX_ROUND_BOTH);
 	WWINLINE void	In_Place_Pre_Rotate_X(float s,float c);
 	WWINLINE void	In_Place_Pre_Rotate_Y(float s,float c);
 	WWINLINE void	In_Place_Pre_Rotate_Z(float s,float c);
@@ -618,6 +618,32 @@ WWINLINE void Matrix3D::Set(const Vector3 & axis,float s,float c)
 	);
 }
 
+#if defined(SAGE_RETAIL_RULES)
+// GeneralsX @bugfix ZH Commander 12/10/2026 Matrix3D(axis, angle) as retail inlined it into the
+// simulation (Locomotor tryToRotateVector3D, NeutronMissileUpdate calcTransform). The reference
+// listings keep both fsin and fcos results in the x87 register, round 1 - c once from the unrounded
+// cosine, and regroup the three-factor products: axis[2]*axis[0]*(1-c) is ((1-c)*axis[2])*axis[0] and
+// axis[1]*axis[2]*(1-c) is ((1-c)*axis[2])*axis[1] at both sites, while axis[0]*axis[1]*(1-c) is
+// ((1-c)*axis[1])*axis[0] in Locomotor (p01OneMinusCFirst) and stays (axis[0]*axis[1])*(1-c) in
+// NeutronMissileUpdate.
+WWINLINE void gxRetailSetAxisAngle(Matrix3D &m, const Vector3 &axis, float angle, bool p01OneMinusCFirst)
+{
+	const X87Real c(cos((double)angle));
+	const X87Real s(sin((double)angle));
+	const float omc = 1.0f - c;
+	const float p01 = p01OneMinusCFirst ? (omc * axis[1]) * axis[0] : (axis[0] * axis[1]) * omc;
+	const float p20 = (omc * axis[2]) * axis[0];
+	const float p12 = (omc * axis[2]) * axis[1];
+	const float a0s = axis[0] * s;
+	const float a1s = axis[1] * s;
+	const float a2s = axis[2] * s;
+	m.Set(
+		axis[0]*axis[0] + (1.0f - axis[0]*axis[0]) * c, p01 - a2s, p20 + a1s, 0.0f,
+		p01 + a2s, axis[1]*axis[1] + (1.0f - axis[1]*axis[1]) * c, p12 - a0s, 0.0f,
+		p20 - a1s, p12 + a0s, axis[2]*axis[2] + (1.0f - axis[2]*axis[2]) * c, 0.0f);
+}
+#endif
+
 
 /***********************************************************************************************
  * Matrix3D::Set -- Init a matrix to be a pure translation                                     *
@@ -771,11 +797,11 @@ WWINLINE void Matrix3D::Translate_Z(float z)
  * HISTORY:                                                                                    *
  *   02/24/1997 GH  : Created.                                                                 *
  *=============================================================================================*/
-WWINLINE void Matrix3D::Rotate_X(float theta)
+WWINLINE void Matrix3D::Rotate_X(float theta, int gxKeep)
 {
 	float tmp1,tmp2;
-	const GxRotReal s = gxRotSin(theta);
-	const GxRotReal c = gxRotCos(theta);
+	const GxRotReal s = gxRotSin(theta, gxKeep);
+	const GxRotReal c = gxRotCos(theta, gxKeep);
 
 	tmp1 = Row[0][1]; tmp2 = Row[0][2];
 	Row[0][1] = (float)( c*tmp1 + s*tmp2);
@@ -837,11 +863,11 @@ WWINLINE void Matrix3D::Rotate_X(float s,float c)
  * HISTORY:                                                                                    *
  *   02/24/1997 GH  : Created.                                                                 *
  *=============================================================================================*/
-WWINLINE void Matrix3D::Rotate_Y(float theta)
+WWINLINE void Matrix3D::Rotate_Y(float theta, int gxKeep)
 {
 	float tmp1,tmp2;
-	const GxRotReal s = gxRotSin(theta);
-	const GxRotReal c = gxRotCos(theta);
+	const GxRotReal s = gxRotSin(theta, gxKeep);
+	const GxRotReal c = gxRotCos(theta, gxKeep);
 
 	tmp1 = Row[0][0]; tmp2 = Row[0][2];
 	Row[0][0] = (float)(c*tmp1 - s*tmp2);
@@ -902,11 +928,11 @@ WWINLINE void Matrix3D::Rotate_Y(float s,float c)
  * HISTORY:                                                                                    *
  *   02/24/1997 GH  : Created.                                                                 *
  *=============================================================================================*/
-WWINLINE void Matrix3D::Rotate_Z(float theta)
+WWINLINE void Matrix3D::Rotate_Z(float theta, int gxKeep)
 {
 	float tmp1,tmp2;
-	const GxRotReal c = gxRotCos(theta);
-	const GxRotReal s = gxRotSin(theta);
+	const GxRotReal c = gxRotCos(theta, gxKeep);
+	const GxRotReal s = gxRotSin(theta, gxKeep);
 
 	tmp1 = Row[0][0]; tmp2 = Row[0][1];
 	Row[0][0] = (float)( c*tmp1 + s*tmp2);
@@ -1052,11 +1078,11 @@ WWINLINE void	Matrix3D::Scale(Vector3 &scale)
  * HISTORY:                                                                                    *
  *   07/1/1999 NH  : Created.                                                                  *
  *=============================================================================================*/
-WWINLINE void Matrix3D::Pre_Rotate_X(float theta)
+WWINLINE void Matrix3D::Pre_Rotate_X(float theta, int gxKeep)
 {
 	float tmp1,tmp2;
-	const GxRotReal c = gxRotCos(theta);
-	const GxRotReal s = gxRotSin(theta);
+	const GxRotReal c = gxRotCos(theta, gxKeep);
+	const GxRotReal s = gxRotSin(theta, gxKeep);
 
 	tmp1 = Row[1][0]; tmp2 = Row[2][0];
 	Row[1][0] = (float)(c*tmp1 - s*tmp2);
@@ -1088,11 +1114,11 @@ WWINLINE void Matrix3D::Pre_Rotate_X(float theta)
  * HISTORY:                                                                                    *
  *   07/1/1999 NH  : Created.                                                                  *
  *=============================================================================================*/
-WWINLINE void Matrix3D::Pre_Rotate_Y(float theta)
+WWINLINE void Matrix3D::Pre_Rotate_Y(float theta, int gxKeep)
 {
 	float tmp1,tmp2;
-	const GxRotReal c = gxRotCos(theta);
-	const GxRotReal s = gxRotSin(theta);
+	const GxRotReal c = gxRotCos(theta, gxKeep);
+	const GxRotReal s = gxRotSin(theta, gxKeep);
 
 	tmp1 = Row[0][0]; tmp2 = Row[2][0];
 	Row[0][0] = (float)( c*tmp1 + s*tmp2);
@@ -1124,11 +1150,11 @@ WWINLINE void Matrix3D::Pre_Rotate_Y(float theta)
  * HISTORY:                                                                                    *
  *   07/1/1999 NH  : Created.                                                                  *
  *=============================================================================================*/
-WWINLINE void Matrix3D::Pre_Rotate_Z(float theta)
+WWINLINE void Matrix3D::Pre_Rotate_Z(float theta, int gxKeep)
 {
 	float tmp1,tmp2;
-	const GxRotReal c = gxRotCos(theta);
-	const GxRotReal s = gxRotSin(theta);
+	const GxRotReal c = gxRotCos(theta, gxKeep);
+	const GxRotReal s = gxRotSin(theta, gxKeep);
 
 	tmp1 = Row[0][0]; tmp2 = Row[1][0];
 	Row[0][0] = (float)(c*tmp1 - s*tmp2);
@@ -1265,11 +1291,11 @@ WWINLINE void Matrix3D::Pre_Rotate_Z(float s,float c)
  * HISTORY:                                                                                    *
  *   07/1/1999 NH  : Created.                                                                  *
  *=============================================================================================*/
-WWINLINE void Matrix3D::In_Place_Pre_Rotate_X(float theta)
+WWINLINE void Matrix3D::In_Place_Pre_Rotate_X(float theta, int gxKeep)
 {
 	float tmp1,tmp2;
-	const GxRotReal c = gxRotCos(theta);
-	const GxRotReal s = gxRotSin(theta);
+	const GxRotReal c = gxRotCos(theta, gxKeep);
+	const GxRotReal s = gxRotSin(theta, gxKeep);
 
 	tmp1 = Row[1][0]; tmp2 = Row[2][0];
 	Row[1][0] = (float)(c*tmp1 - s*tmp2);
@@ -1297,11 +1323,11 @@ WWINLINE void Matrix3D::In_Place_Pre_Rotate_X(float theta)
  * HISTORY:                                                                                    *
  *   07/1/1999 NH  : Created.                                                                  *
  *=============================================================================================*/
-WWINLINE void Matrix3D::In_Place_Pre_Rotate_Y(float theta)
+WWINLINE void Matrix3D::In_Place_Pre_Rotate_Y(float theta, int gxKeep)
 {
 	float tmp1,tmp2;
-	const GxRotReal c = gxRotCos(theta);
-	const GxRotReal s = gxRotSin(theta);
+	const GxRotReal c = gxRotCos(theta, gxKeep);
+	const GxRotReal s = gxRotSin(theta, gxKeep);
 
 	tmp1 = Row[0][0]; tmp2 = Row[2][0];
 	Row[0][0] = (float)( c*tmp1 + s*tmp2);
@@ -1329,11 +1355,11 @@ WWINLINE void Matrix3D::In_Place_Pre_Rotate_Y(float theta)
  * HISTORY:                                                                                    *
  *   07/1/1999 NH  : Created.                                                                  *
  *=============================================================================================*/
-WWINLINE void Matrix3D::In_Place_Pre_Rotate_Z(float theta)
+WWINLINE void Matrix3D::In_Place_Pre_Rotate_Z(float theta, int gxKeep)
 {
 	float tmp1,tmp2;
-	const GxRotReal c = gxRotCos(theta);
-	const GxRotReal s = gxRotSin(theta);
+	const GxRotReal c = gxRotCos(theta, gxKeep);
+	const GxRotReal s = gxRotSin(theta, gxKeep);
 
 	tmp1 = Row[0][0]; tmp2 = Row[1][0];
 	Row[0][0] = (float)(c*tmp1 - s*tmp2);

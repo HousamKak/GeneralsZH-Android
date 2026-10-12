@@ -868,18 +868,29 @@ WWINLINE float WWMath::Normalize_Angle(float angle)
 }
 
 // GeneralsX @bugfix ZH Commander 12/10/2026 The sine and cosine that rotation code multiplies with.
-// The GeneralsOnline client rounds them to float (its sinf is an inline (float)sin((double)x)), and
-// WWMath::Sin/Cos match that. Retail 1.04 is VC6 /O2, which inlines sinf/cosf as fsin/fcos and keeps
-// the result in the x87 register: Matrix3D::Rotate_Z compiles to "fld; fcos; fld; fsin" feeding fmul
-// directly (checked against the reference build of tsh-ref's matrix3d.h). X87Real carries that
-// unrounded value and rounds once per operation, as 24-bit precision control does.
+// The GeneralsOnline client rounds both to float (its sinf is an inline (float)sin((double)x)), and
+// WWMath::Sin/Cos match that. Retail 1.04 is VC6 /O2, which inlines sinf/cosf as fsin/fcos; whether
+// it then stores a result to a float local (rounding it) or multiplies the x87 register value
+// (unrounded) depends on register pressure at each call site after inlining. The reference build's
+// own listings say which, per site: ToppleUpdate::update stores both for its Z rotation and only the
+// cosine for the X and Y ones. Callers pass GX_KEEP_COS / GX_KEEP_SIN for the values retail kept in
+// a register; the default rounds both, which is also what every other build does.
+enum { GX_ROUND_BOTH = 0, GX_KEEP_COS = 1, GX_KEEP_SIN = 2, GX_KEEP_BOTH = 3 };
 #if defined(SAGE_RETAIL_RULES)
 #include "../../../Include/Lib/X87Real.h"
 typedef X87Real GxRotReal;
-inline X87Real gxRotSin(float angle) { return X87Real(sin((double)angle)); }
-inline X87Real gxRotCos(float angle) { return X87Real(cos((double)angle)); }
+inline X87Real gxRotSin(float angle, int keep)
+{
+	const double v = sin((double)angle);
+	return X87Real((keep & GX_KEEP_SIN) ? v : (double)(float)v);
+}
+inline X87Real gxRotCos(float angle, int keep)
+{
+	const double v = cos((double)angle);
+	return X87Real((keep & GX_KEEP_COS) ? v : (double)(float)v);
+}
 #else
 typedef float GxRotReal;
-inline float gxRotSin(float angle) { return WWMath::Sin(angle); }
-inline float gxRotCos(float angle) { return WWMath::Cos(angle); }
+inline float gxRotSin(float angle, int) { return WWMath::Sin(angle); }
+inline float gxRotCos(float angle, int) { return WWMath::Cos(angle); }
 #endif

@@ -42,6 +42,7 @@
 #include "GameLogic/Module/NeutronMissileUpdate.h"
 #include "GameLogic/Module/AIUpdate.h"
 #include "GameLogic/Module/PhysicsUpdate.h"
+#include "Lib/X87Real.h"
 
 #include "GameClient/Drawable.h"
 #include "GameClient/FXList.h"
@@ -242,7 +243,8 @@ void NeutronMissileUpdate::doLaunch()
 		// that we don't see any decals on the side of the missile 'pop' to the new angle
 		/// @todo, this should not be a hard coded value ... I love demos!!!
 		//
-		worldTransform.Rotate_X( (PI / 2.0f) );
+		// GeneralsX @bugfix ZH Commander 12/10/2026 The reference listing keeps both fsin and fcos results.
+		worldTransform.Rotate_X( (PI / 2.0f), GX_KEEP_BOTH );
 
 		getObject()->getDrawable()->setDrawableHidden(false);
 		getObject()->setTransformMatrix(&worldTransform);
@@ -310,10 +312,20 @@ static Real calcTransform(const Object* obj, const Coord3D *pos, Real maxTurnRat
 	else if (c > 1.0)
 		c = 1.0;
 
+#if defined(SAGE_RETAIL_RULES)
+	// GeneralsX @bugfix ZH Commander 12/10/2026 The reference listing compares ACos's result from the
+	// x87 register (fabs; fcompp), unrounded; angle is never stored before the comparison.
+	const X87Real gxAngle = ACos( c );
+	Real angle = gxAngle;
+
+	Vector3 newDir;
+	if (fabs(gxAngle.v) < (double)maxTurnRate)
+#else
 	Real angle = (Real)ACos( c );
 
 	Vector3 newDir;
 	if (fabs(angle) < maxTurnRate)
+#endif
 	{
 		// close enough -- point exactly in the right dir
 		newDir = otherDir;
@@ -333,7 +345,14 @@ static Real calcTransform(const Object* obj, const Coord3D *pos, Real maxTurnRat
 		Vector3::Normalized_Cross_Product(objDir, otherDir, &objCrossOther);
 #endif
 
+#if defined(SAGE_RETAIL_RULES)
+		// GeneralsX @bugfix ZH Commander 12/10/2026 The reference listing keeps sine and cosine
+		// unrounded; axis[0]*axis[1]*(1-c) keeps its source order here.
+		Matrix3D rotMtx;
+		gxRetailSetAxisAngle(rotMtx, objCrossOther, angle, false);
+#else
 		Matrix3D rotMtx(objCrossOther, angle);
+#endif
 		newDir = rotMtx.Rotate_Vector(objDir);
 
 	}

@@ -287,8 +287,9 @@ UpdateSleepTime ToppleUpdate::update()
 		curVelToUse = ANGULAR_LIMIT - m_angularAccumulation;
 
 	Matrix3D xfrm = *obj->getTransformMatrix();
-	xfrm.In_Place_Pre_Rotate_X(-curVelToUse * m_toppleDirection.y);
-	xfrm.In_Place_Pre_Rotate_Y(curVelToUse * m_toppleDirection.x);
+	// GeneralsX @bugfix ZH Commander 12/10/2026 The reference listing stores each cosine and keeps each sine.
+	xfrm.In_Place_Pre_Rotate_X(-curVelToUse * m_toppleDirection.y, GX_KEEP_SIN);
+	xfrm.In_Place_Pre_Rotate_Y(curVelToUse * m_toppleDirection.x, GX_KEEP_SIN);
 	obj->setTransformMatrix(&xfrm);
 
 	m_angularAccumulation += curVelToUse;

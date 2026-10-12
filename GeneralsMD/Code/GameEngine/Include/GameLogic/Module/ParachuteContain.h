@@ -88,7 +88,9 @@ private:
 	void positionRider(Object* obj);
 	void updateBonePositions();
 	void updateOffsetsFromBones();
-	void calcSwayMtx(const Coord3D* offset, Matrix3D* mtx);
+	// GeneralsX @bugfix ZH Commander 12/10/2026 gxKeepRoll/gxKeepPitch: which sine and cosine the
+	// retail build kept unrounded at each inlined copy (GX_KEEP_* in wwmath.h).
+	void calcSwayMtx(const Coord3D* offset, Matrix3D* mtx, Int gxKeepRoll, Int gxKeepPitch);
 	void setSwayMatrices();
 
 	Real m_pitch;
