@@ -215,7 +215,10 @@ void BitFlags<NUMBITS>::xfer(Xfer* xfer)
 
 		// just call the xfer implementation on the data values
 #if RETAIL_COMPATIBLE_CRC
-		xfer->xferUser( this, sizeof( this ) );
+		// GeneralsX @bugfix ZH Commander 13/10/2026 The retail code hashes sizeof( this ) bytes: the size
+		// of a pointer, 4 on the 32-bit clients and 8 here, so a 64-bit build hashed 4 more bytes of the
+		// mask than any PC. Seen as a player checksum mismatch the frame an AI started a battle plan.
+		xfer->xferUser( this, 4 );
 #else
 		xfer->xferUser( this, sizeof( *this ) );
 #endif
