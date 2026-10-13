@@ -1559,7 +1559,12 @@ Int ThingTemplate::calcCostToBuild( const Player* player) const
 	// changePercent format is "-.2 equals 20% cheaper"
 	Real factionModifier = 1 + player->getProductionCostChangePercent( getName() );
 	factionModifier *= player->getProductionCostChangeBasedOnKindOf( m_kindof );
+#if defined(SAGE_RETAIL_RULES)
+	// GeneralsX @bugfix ZH Commander 13/10/2026 Multiplied (buildCost * handicap) * factionModifier in the reference listing.
+	return ((Real)getBuildCost() * player->getHandicap()->getHandicap(Handicap::BUILDCOST, this)) * factionModifier;
+#else
 	return getBuildCost() * factionModifier * player->getHandicap()->getHandicap(Handicap::BUILDCOST, this);
+#endif
 }
 
 //-------------------------------------------------------------------------------------------------

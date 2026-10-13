@@ -586,7 +586,12 @@ void ScriptActions::doCreateReinforcements(const AsciiString& team, const AsciiS
 				if( obj )
 				{
 					/// @todo - have better positioning for reinforcement units.
+#if defined(SAGE_RETAIL_RULES)
+					// GeneralsX @bugfix ZH Commander 13/10/2026 Multiplied (majorRadius * j) * 2.25 in the reference listing.
+					pos.x = origin.x + (obj->getGeometryInfo().getMajorRadius() * (Real)j) * 2.25f;
+#else
 					pos.x = origin.x + 2.25*(j)*obj->getGeometryInfo().getMajorRadius();
+#endif
 					pos.z = TheTerrainLogic->getGroundHeight(pos.x, pos.y);
 					obj->setPosition( &pos );
 					obj->setOrientation(0.0f);

@@ -717,7 +717,12 @@ UpdateSleepTime ParkingPlaceBehavior::update()
 					healInfo.in.m_damageType = DAMAGE_HEALING;
 					healInfo.in.m_deathType = DEATH_NONE;
 					healInfo.in.m_sourceID = getObject()->getID();
+#if defined(SAGE_RETAIL_RULES)
+					// GeneralsX @bugfix ZH Commander 13/10/2026 Multiplied (SECONDS_PER_LOGICFRAME_REAL * healAmount) * HEAL_RATE_FRAMES in the reference listing.
+					healInfo.in.m_amount = (SECONDS_PER_LOGICFRAME_REAL * d->m_healAmount) * (Real)HEAL_RATE_FRAMES;
+#else
   				healInfo.in.m_amount = HEAL_RATE_FRAMES * d->m_healAmount * SECONDS_PER_LOGICFRAME_REAL;
+#endif
 
 //          if ( objToHeal->isKindOf( KINDOF_PRODUCED_AT_HELIPAD ) )
 //            healInfo.in.m_amount += HEAL_RATE_FRAMES * d->m_extraHealAmount4Helicopters * SECONDS_PER_LOGICFRAME_REAL;

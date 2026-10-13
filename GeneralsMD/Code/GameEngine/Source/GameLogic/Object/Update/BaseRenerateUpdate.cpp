@@ -137,8 +137,14 @@ UpdateSleepTime BaseRegenerateUpdate::update()
 		const Int HEAL_RATE = 3;
 
 		// do some healing
+#if defined(SAGE_RETAIL_RULES)
+		// GeneralsX @bugfix ZH Commander 13/10/2026 Multiplied (maxHealth * percent) * 0.1 in the reference listing:
+		// VC6 folded HEAL_RATE / LOGICFRAMES_PER_SECOND into one float constant.
+		Real amount = (body->getMaxHealth() * TheGlobalData->m_baseRegenHealthPercentPerSecond) * (Real)((double)HEAL_RATE / (double)LOGICFRAMES_PER_SECOND);
+#else
 		Real amount = HEAL_RATE * (body->getMaxHealth() * TheGlobalData->m_baseRegenHealthPercentPerSecond) /
 														 static_cast<float>(LOGICFRAMES_PER_SECOND);
+#endif
 		me->attemptHealing(amount, me);
 
 		return UPDATE_SLEEP(HEAL_RATE);

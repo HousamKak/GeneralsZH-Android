@@ -320,11 +320,28 @@ void RailroadBehavior::onCollide( Object *other, const Coord3D *loc, const Coord
 		m_whistleSound.setPlayingHandle(TheAudio->addAudioEvent( &m_whistleSound ));
 
 
+#if defined(SAGE_RETAIL_RULES)
+	// GeneralsX @bugfix ZH Commander 13/10/2026 Summed (z + y) + x in the reference listing; dlt.normalize() below reuses that sum.
+	const Real gxDltLen2 = (dlt.z*dlt.z + dlt.y*dlt.y) + dlt.x*dlt.x;
+	Real dist = (Real)sqrtf( gxDltLen2 );
+#else
 	Real dist = (Real)sqrtf( dlt.x*dlt.x + dlt.y*dlt.y + dlt.z*dlt.z);
+#endif
 	Real usRadius = obj->getGeometryInfo().getMajorRadius();
 	Real themRadius = other->getGeometryInfo().getMajorRadius();
 	Real overlap = ((usRadius + themRadius) - dist) + 1;// the plus 1 makes them go just outside of me.
+#if defined(SAGE_RETAIL_RULES)
+	// GeneralsX @bugfix ZH Commander 13/10/2026 The inlined normalize divides by the sqrt of the (z + y) + x sum above.
+	if (dist != 0)
+	{
+		GX_VC6_DIVISIONS
+		dlt.x /= dist;
+		dlt.y /= dist;
+		dlt.z /= dist;
+	}
+#else
 	dlt.normalize();
+#endif
 	if ( ! victimIsInfantry )
 	{
 		overlap/= 4;
@@ -353,8 +370,24 @@ void RailroadBehavior::onCollide( Object *other, const Coord3D *loc, const Coord
 	//figure out the relative slope between them and me
 	Coord3D delta = *theirLoc;
 	delta.sub( *myLoc );
+#if defined(SAGE_RETAIL_RULES)
+	// GeneralsX @bugfix ZH Commander 13/10/2026 Summed (z + y) + x in the reference listing, for the
+	// inlined normalize and for the dot product.
+	{
+		const Real gxDeltaLen = (Real)sqrtf( (delta.z*delta.z + delta.y*delta.y) + delta.x*delta.x );
+		if (gxDeltaLen != 0)
+		{
+			GX_VC6_DIVISIONS
+			delta.x /= gxDeltaLen;
+			delta.y /= gxDeltaLen;
+			delta.z /= gxDeltaLen;
+		}
+	}
+	Real dot = (delta.z * myDir->z + delta.y * myDir->y) + delta.x * myDir->x;
+#else
 	delta.normalize();
 	Real dot = delta.x * myDir->x + delta.y * myDir->y + delta.z * myDir->z;
+#endif
 
 	if (other->isEffectivelyDead())
 	{// we just run over debris, instead of shoving it around
@@ -407,11 +440,30 @@ void RailroadBehavior::onCollide( Object *other, const Coord3D *loc, const Coord
 	Coord3D cross;
 	myDir->crossProduct( *myDir, up, cross );
 
+#if defined(SAGE_RETAIL_RULES)
+	// GeneralsX @bugfix ZH Commander 13/10/2026 The inlined normalize is summed (z + y) + x in the reference listing.
+	{
+		const Real gxDeltaLen = (Real)sqrtf( (delta.z*delta.z + delta.y*delta.y) + delta.x*delta.x );
+		if (gxDeltaLen != 0)
+		{
+			GX_VC6_DIVISIONS
+			delta.x /= gxDeltaLen;
+			delta.y /= gxDeltaLen;
+			delta.z /= gxDeltaLen;
+		}
+	}
+#else
 	delta.normalize();
+#endif
 	Real deviationCOG = cross.x * delta.x + cross.y * delta.y + cross.z * delta.z;
 
 	if (dot > 0)
+#if defined(SAGE_RETAIL_RULES)
+		// GeneralsX @bugfix ZH Commander 13/10/2026 Multiplied (deviationCOG * speed) * -0.06 in the reference listing.
+		theirPhys->setYawRate( (deviationCOG * m_pullInfo.speed) * -0.06f );
+#else
 		theirPhys->setYawRate( deviationCOG * -0.06f * m_pullInfo.speed);
+#endif
 
 
 

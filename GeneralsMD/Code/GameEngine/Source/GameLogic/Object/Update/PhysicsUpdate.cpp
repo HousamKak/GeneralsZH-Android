@@ -935,7 +935,12 @@ UpdateSleepTime PhysicsBehavior::update()
 			if ((fabs(m_vel.x) <= TINY_DELTA || fabs(activeVelZ / m_vel.x) >= MIN_ANGLE_TAN) &&
 				(fabs(m_vel.y) <= TINY_DELTA || fabs(activeVelZ / m_vel.y) >= MIN_ANGLE_TAN))
 			{
+#if defined(SAGE_RETAIL_RULES)
+				// GeneralsX @bugfix ZH Commander 13/10/2026 Multiplied (mass * fallHeightDamageFactor) * netSpeed in the reference listing.
+				Real damageAmt = (getMass() * d->m_fallHeightDamageFactor) * netSpeed;
+#else
 				Real damageAmt = netSpeed * getMass() * d->m_fallHeightDamageFactor;
+#endif
 
 				DamageInfo damageInfo;
 				damageInfo.in.m_damageType = DAMAGE_FALLING;
@@ -1829,7 +1834,12 @@ Bool PhysicsBehavior::checkForOverlapCollision(Object *other)
 			}
 		}
 
+#if defined(SAGE_RETAIL_RULES)
+		// GeneralsX @bugfix ZH Commander 13/10/2026 Multiplied (crushPointOffsetDistance * crushPointOffsetDistance) * 2.25 in the reference listing.
+		Real distanceTooFarSquared = (crushPointOffsetDistance * crushPointOffsetDistance) * 2.25f;
+#else
 		Real distanceTooFarSquared = 2.25 * crushPointOffsetDistance * crushPointOffsetDistance;
+#endif
 		// And just because there is only one crush point left doesn't
 		// mean we automatically get it. (1.5x)^2 means if we are outside the crushed
 		//front point, we will not auto get the back point (only 3/8 car spread)

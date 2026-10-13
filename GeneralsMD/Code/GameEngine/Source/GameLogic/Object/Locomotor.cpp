@@ -1441,7 +1441,12 @@ void Locomotor::moveTowardsPositionWheels(Object* obj, PhysicsBehavior *physics,
 		Real turnFactor = ((goalSpeed+actualSpeed)/2.0f)/turnSpeed;
 		if (turnFactor > 1.0f)
 			turnFactor = 1.0f;
+#if defined(SAGE_RETAIL_RULES)
+		// GeneralsX @bugfix ZH Commander 13/10/2026 Multiplied (turnFactor * maxTurnRate) * (PROJECT_FRAMES/4) in the reference listing.
+		Real turnAmount = (turnFactor*maxTurnRate) * (PROJECT_FRAMES/4.0f);
+#else
 		Real turnAmount = PROJECT_FRAMES*turnFactor*maxTurnRate/4.0f;
+#endif
 		if (relAngle < 0)
 		{
 			targetAngle -= turnAmount;

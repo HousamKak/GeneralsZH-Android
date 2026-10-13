@@ -527,7 +527,12 @@ StateReturnType AIRappelState::onEnter()
 		obj->setLayer(layerAtDest);
 
 	AIUpdateInterface *ai = obj->getAI();
+#if defined(SAGE_RETAIL_RULES)
+	// GeneralsX @bugfix ZH Commander 13/10/2026 Multiplied fabs(gravity) * (LOGICFRAMES_PER_SECOND * 2.5) in the reference listing (one fmul by 75).
+	Real MAX_RAPPEL_RATE = (Real)fabs(TheGlobalData->m_gravity) * (static_cast<float>(LOGICFRAMES_PER_SECOND) * 2.5f);
+#else
 	Real MAX_RAPPEL_RATE = fabs(TheGlobalData->m_gravity) * static_cast<float>(LOGICFRAMES_PER_SECOND) * 2.5f;
+#endif
 	m_rappelRate = -min(ai->getDesiredSpeed(), MAX_RAPPEL_RATE);
 
 	return STATE_CONTINUE;

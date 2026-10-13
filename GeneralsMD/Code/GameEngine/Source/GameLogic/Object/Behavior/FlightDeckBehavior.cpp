@@ -1119,7 +1119,12 @@ UpdateSleepTime FlightDeckBehavior::update()
 					healInfo.in.m_damageType = DAMAGE_HEALING;
 					healInfo.in.m_deathType = DEATH_NONE;
 					healInfo.in.m_sourceID = getObject()->getID();
+#if defined(SAGE_RETAIL_RULES)
+					// GeneralsX @bugfix ZH Commander 13/10/2026 Multiplied (SECONDS_PER_LOGICFRAME_REAL * healAmount) * HEAL_RATE_FRAMES in the reference listing.
+					healInfo.in.m_amount = (SECONDS_PER_LOGICFRAME_REAL * data->m_healAmount) * (Real)HEAL_RATE_FRAMES;
+#else
 					healInfo.in.m_amount = HEAL_RATE_FRAMES * data->m_healAmount * SECONDS_PER_LOGICFRAME_REAL;
+#endif
 					BodyModuleInterface *body = objToHeal->getBodyModule();
 					body->attemptHealing( &healInfo );
 					++it;
