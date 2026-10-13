@@ -231,7 +231,12 @@ UpdateSleepTime StructureToppleUpdate::update()
 	// The building is in the process of falling over.
 	if (m_toppleState == TOPPLESTATE_TOPPLING) {
 		UnsignedInt now = TheGameLogic->getFrame();
+#if defined(SAGE_RETAIL_RULES)
+		// GeneralsX @bugfix ZH Commander 13/10/2026 Retail rounds 1.0 - integrity to float before the multiply by the unrounded sine.
+		Real toppleAcceleration = TOPPLE_ACCELERATION_FACTOR * (Sin(m_accumulatedAngle) * (1.0f - m_structuralIntegrity));
+#else
 		Real toppleAcceleration = TOPPLE_ACCELERATION_FACTOR * (Sin(m_accumulatedAngle) * (1.0 - m_structuralIntegrity));
+#endif
 //		DEBUG_LOG(("toppleAcceleration = %f", toppleAcceleration));
 		m_toppleVelocity += toppleAcceleration;
 //		DEBUG_LOG(("m_toppleVelocity = %f", m_toppleVelocity));

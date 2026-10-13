@@ -2256,7 +2256,12 @@ Object *AIPlayer::findSupplyCenter(Int minimumCash)
 					// make sure this isn't closer to our enemy than us.
 					dx = obj->getPosition()->x - enemyCenter.x;
 					dy = obj->getPosition()->y - enemyCenter.y;
+#if defined(SAGE_RETAIL_RULES)
+					// GeneralsX @bugfix ZH Commander 13/10/2026 Retail rounds distSqr * 0.4 (double constant) to float before the compare.
+					if ((Real)((double)distSqr*0.4)>(dx*dx+dy*dy)*0.6f) {
+#else
 					if (distSqr*0.4>(dx*dx+dy*dy)*0.6f) {
+#endif
 						// closer than 60/40 to enemy than to us, probably not a good candidate for expansion.
 						continue;
 					}

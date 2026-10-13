@@ -209,7 +209,12 @@ UpdateSleepTime StructureCollapseUpdate::update()
 		Object *building = getObject();
 		UnsignedInt now = TheGameLogic->getFrame();
 		m_currentHeight -= m_collapseVelocity;
+#if defined(SAGE_RETAIL_RULES)
+		// GeneralsX @bugfix ZH Commander 13/10/2026 Retail rounds 1.0 - damping to float before the multiply.
+		m_collapseVelocity -= TheGlobalData->m_gravity * (1.0f - d->m_collapseDamping);
+#else
 		m_collapseVelocity -= TheGlobalData->m_gravity * (1.0 - d->m_collapseDamping);
+#endif
 
 		const Coord3D *currentPosition = building->getPosition();
 		Vector3 shudder;

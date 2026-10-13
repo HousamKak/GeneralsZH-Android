@@ -9095,8 +9095,14 @@ void Pathfinder::adjustCoordToCell(Int cellX, Int cellY, Bool centerInCell, Coor
 		pos.x = ((Real)cellX + 0.5f) * PATHFIND_CELL_SIZE_F;
 		pos.y = ((Real)cellY + 0.5f) * PATHFIND_CELL_SIZE_F;
 	} else {
+#if defined(SAGE_RETAIL_RULES)
+		// GeneralsX @bugfix ZH Commander 13/10/2026 Retail rounds cell + 0.05 (double constant) to float, then multiplies by 10 in float.
+		pos.x = (Real)((double)cellX + 0.05) * PATHFIND_CELL_SIZE_F;
+		pos.y = (Real)((double)cellY + 0.05) * PATHFIND_CELL_SIZE_F;
+#else
 		pos.x = ((Real)cellX+0.05) * PATHFIND_CELL_SIZE_F;
 		pos.y = ((Real)cellY+0.05) * PATHFIND_CELL_SIZE_F;
+#endif
 	}
 	pos.z = TheTerrainLogic->getLayerHeight( pos.x, pos.y, layer );
 }

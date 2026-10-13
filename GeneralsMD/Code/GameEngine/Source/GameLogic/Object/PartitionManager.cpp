@@ -3239,9 +3239,16 @@ Int PartitionManager::calcMinRadius(const ICoord2D& cur)
 		for (int j = 0; j < 4; ++j)
 		{
 			// double, not real
+#if defined(SAGE_RETAIL_RULES)
+			// GeneralsX @bugfix ZH Commander 13/10/2026 Retail rounds every step to float (x87 24-bit precision control), summing dy*dy + dx*dx.
+			const Real gxDx = centerPos[i].x - otherPos[j].x;
+			const Real gxDy = centerPos[i].y - otherPos[j].y;
+			double curDistSqr = gxDy*gxDy + gxDx*gxDx;
+#else
 			double dx = centerPos[i].x - otherPos[j].x;
 			double dy = centerPos[i].y - otherPos[j].y;
 			double curDistSqr = dx*dx + dy*dy;
+#endif
 			if (minDistSqr > curDistSqr)
 				minDistSqr = curDistSqr;
 		}
@@ -3264,11 +3271,20 @@ void PartitionManager::calcRadiusVec()
 	Int cy = getCellCountY();
 
 	// double, not real
+#if defined(SAGE_RETAIL_RULES)
+	// GeneralsX @bugfix ZH Commander 13/10/2026 Retail rounds every step to float (x87 24-bit precision control), summing dy*dy + dx*dx.
+	const Real gxDx = (Real)cx * cellSize;
+	const Real gxDy = (Real)cy * cellSize;
+	const Real maxPossibleDist = sqrtf(gxDy*gxDy + gxDx*gxDx);
+
+	m_maxGcoRadius = REAL_TO_INT_CEIL(gxVc6Div(maxPossibleDist, cellSize));
+#else
 	double dx = (double)cx * (double)cellSize;
 	double dy = (double)cy * (double)cellSize;
 	double maxPossibleDist = sqrt(dx*dx + dy*dy);
 
 	m_maxGcoRadius = REAL_TO_INT_CEIL(maxPossibleDist / cellSize);
+#endif
 
 	m_radiusVec.clear();
 	m_radiusVec.resize(m_maxGcoRadius+1, OffsetVec());

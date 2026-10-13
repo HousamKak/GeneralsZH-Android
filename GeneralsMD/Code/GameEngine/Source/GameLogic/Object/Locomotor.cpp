@@ -1832,7 +1832,12 @@ void Locomotor::moveTowardsPositionClimb(Object* obj, PhysicsBehavior *physics, 
 		delta.x += pos.x;
 		delta.y += pos.y;
 		delta.z = TheTerrainLogic->getGroundHeight(delta.x, delta.y);
+#if defined(SAGE_RETAIL_RULES)
+		// GeneralsX @bugfix ZH Commander 13/10/2026 Retail rounds pos.z - 0.1 (double constant) to float before the compare.
+		if (delta.z < (Real)((double)pos.z - 0.1)) {
+#else
 		if (delta.z < pos.z-0.1) {
+#endif
 			moveBackwards = true;
 		}
 
