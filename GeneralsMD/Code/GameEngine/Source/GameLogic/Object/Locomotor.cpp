@@ -78,6 +78,17 @@ static inline Bool gxVc6AbsGreater(Real a, Real b)
 {
 	return !(fabs(b) >= fabs(a));
 }
+
+// GeneralsX @bugfix ZH Commander 13/10/2026 "a < b" and "a > b" that VC6 compiled as a C0 test with je,
+// so an unordered compare (a NaN operand) takes the branch; IEEE would not.
+static inline Bool gxVc6Less(Real a, Real b)
+{
+	return !(a >= b);
+}
+static inline Bool gxVc6Greater(Real a, Real b)
+{
+	return !(a <= b);
+}
 #endif
 
 static const Real DONUT_TIME_DELAY_SECONDS=2.5f;
@@ -1290,13 +1301,23 @@ void Locomotor::moveTowardsPositionTreads(Object* obj, PhysicsBehavior *physics,
 		goalSpeed = actualSpeed*0.6f;
 	}
 
+#if defined(SAGE_RETAIL_RULES)
+ 	// GeneralsX @bugfix ZH Commander 13/10/2026 VC6 tests C0 here, which a NaN (slowDownTime = 0/0 with a zero braking) also sets: the branch is taken.
+ 	if (gxVc6Less(onPathDistToGoal, slowDownDist) && !getFlag(IS_BRAKING) && !getFlag(NO_SLOW_DOWN_AS_APPROACHING_DEST))
+#else
  	if (onPathDistToGoal < slowDownDist && !getFlag(IS_BRAKING) && !getFlag(NO_SLOW_DOWN_AS_APPROACHING_DEST))
+#endif
 	{
 		setFlag(IS_BRAKING, true);
 		m_brakingFactor = 1.1f;
 	}
 
+#if defined(SAGE_RETAIL_RULES)
+	// GeneralsX @bugfix ZH Commander 13/10/2026 VC6 tests C0 here, which a NaN (slowDownTime = 0/0 with a zero braking) also sets: the branch is taken.
+	if (onPathDistToGoal>PATHFIND_CELL_SIZE_F && gxVc6Greater(onPathDistToGoal, 2.0f*slowDownDist))
+#else
 	if (onPathDistToGoal>PATHFIND_CELL_SIZE_F && onPathDistToGoal > 2.0*slowDownDist)
+#endif
 	{
 		setFlag(IS_BRAKING, false);
 	}
@@ -1311,7 +1332,12 @@ void Locomotor::moveTowardsPositionTreads(Object* obj, PhysicsBehavior *physics,
 		if (slowDownDist>onPathDistToGoal) {
 			goalSpeed = actualSpeed-getBraking();
 			if (goalSpeed<0.0f) goalSpeed= 0.0f;
+#if defined(SAGE_RETAIL_RULES)
+		// GeneralsX @bugfix ZH Commander 13/10/2026 VC6 tests C0 here, which a NaN (slowDownTime = 0/0 with a zero braking) also sets: the branch is taken.
+		} else if (gxVc6Greater(slowDownDist, onPathDistToGoal*0.75f)) {
+#else
 		} else if (slowDownDist>onPathDistToGoal*0.75f) {
+#endif
 			goalSpeed = actualSpeed-getBraking()/2.0f;
 			if (goalSpeed<0.0f) goalSpeed = 0.0f;
 		} else {
@@ -1440,7 +1466,12 @@ void Locomotor::moveTowardsPositionWheels(Object* obj, PhysicsBehavior *physics,
 	Real slowDownTime = actualSpeed / getBraking() + 1.0f;
 	Real slowDownDist = (actualSpeed/1.5f) * slowDownTime + actualSpeed;
 	Real effectiveSlowDownDist = slowDownDist;
+#if defined(SAGE_RETAIL_RULES)
+	// GeneralsX @bugfix ZH Commander 13/10/2026 VC6 tests C0 here, which a NaN (slowDownTime = 0/0 with a zero braking) also sets: the branch is taken.
+	if (gxVc6Less(effectiveSlowDownDist, (Real)(1*PATHFIND_CELL_SIZE))) {
+#else
 	if (effectiveSlowDownDist < 1*PATHFIND_CELL_SIZE) {
+#endif
 		effectiveSlowDownDist = 1*PATHFIND_CELL_SIZE;
 	}
 
@@ -1510,7 +1541,12 @@ void Locomotor::moveTowardsPositionWheels(Object* obj, PhysicsBehavior *physics,
 	}
 
 
+#if defined(SAGE_RETAIL_RULES)
+	// GeneralsX @bugfix ZH Commander 13/10/2026 VC6 tests C0 here, which a NaN (slowDownTime = 0/0 with a zero braking) also sets: the branch is taken.
+	if (onPathDistToGoal>PATHFIND_CELL_SIZE_F && gxVc6Greater(onPathDistToGoal, 2.0f*slowDownDist))
+#else
 	if (onPathDistToGoal>PATHFIND_CELL_SIZE_F && onPathDistToGoal > 2.0*slowDownDist)
+#endif
 	{
 		setFlag(IS_BRAKING, false);
 	}
@@ -1534,7 +1570,12 @@ void Locomotor::moveTowardsPositionWheels(Object* obj, PhysicsBehavior *physics,
 		if (slowDownDist>onPathDistToGoal) {
 			goalSpeed = actualSpeed-getBraking();
 			if (goalSpeed<0.0f) goalSpeed= 0.0f;
+#if defined(SAGE_RETAIL_RULES)
+		// GeneralsX @bugfix ZH Commander 13/10/2026 VC6 tests C0 here, which a NaN (slowDownTime = 0/0 with a zero braking) also sets: the branch is taken.
+		} else if (gxVc6Greater(slowDownDist, onPathDistToGoal*0.75f)) {
+#else
 		} else if (slowDownDist>onPathDistToGoal*0.75f) {
+#endif
 			goalSpeed = actualSpeed-getBraking()/2.0f;
 			if (goalSpeed<0.0f) goalSpeed = 0.0f;
 		} else {
@@ -1549,7 +1590,12 @@ void Locomotor::moveTowardsPositionWheels(Object* obj, PhysicsBehavior *physics,
 
 	// Wheeled can only turn while moving.
 	Real turnFactor = actualSpeed/turnSpeed;
+#if defined(SAGE_RETAIL_RULES)
+	// GeneralsX @bugfix ZH Commander 13/10/2026 VC6 tests C0 here, which a NaN (actualSpeed/turnSpeed = 0/0) also sets: the branch is taken.
+	if (gxVc6Less(turnFactor, 0.0f)) {
+#else
 	if (turnFactor<0) {
+#endif
 		turnFactor = -turnFactor; // in case we're sliding backwards in a 3 pt turn.
 	}
 	if (turnFactor > 1.0f)

@@ -218,7 +218,12 @@ UpdateSleepTime MobMemberSlavedUpdate::update()
 
 			Coord3D nuPos = *masterAI->getGoalPosition();
 
+#if defined(SAGE_RETAIL_RULES)
+			// GeneralsX @bugfix ZH Commander 13/10/2026 VC6 tests C0 here (test ah,1; je), which an unordered compare also sets: a NaN takes this branch.
+			if ( !(nuPos.length() >= 1.0f) ) //if a nasty error has sent me to map origin
+#else
 			if ( nuPos.length() < 1.0f ) //if a nasty error has sent me to map origin
+#endif
 			{
 				myAI->aiMoveToPosition( master->getPosition(), CMD_FROM_AI ); // NASTY BEEHIVE EFFECT
 			}
@@ -249,7 +254,12 @@ UpdateSleepTime MobMemberSlavedUpdate::update()
 
 
 
+#if defined(SAGE_RETAIL_RULES)
+		// GeneralsX @bugfix ZH Commander 13/10/2026 VC6 tests C0 here (test ah,1; je), which an unordered compare also sets: a NaN takes this branch.
+		if (!(catchUpRadiusSquared <= (Real)sqr( data->m_mustCatchUpRadius * 3 )))// I am critically far, now!
+#else
 		if (catchUpRadiusSquared > sqr( data->m_mustCatchUpRadius * 3))// I am critically far, now!
+#endif
 		{
 			++ m_catchUpCrisisTimer; // I'm way too far from the nexus this frame
 

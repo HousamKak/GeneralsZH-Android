@@ -71,6 +71,15 @@ const Real STUN_RELIEF_EPSILON = 0.5f;
 #include "Common/CRCDebug.h"
 #include "Lib/X87Real.h"
 
+#if defined(SAGE_RETAIL_RULES)
+// GeneralsX @bugfix ZH Commander 13/10/2026 "a < b" that VC6 compiled as a C0 test with je: an unordered
+// compare (a NaN operand) also sets C0, so retail takes the branch where IEEE would not.
+static inline Bool gxVc6Less(Real a, Real b)
+{
+	return !(a >= b);
+}
+#endif
+
 #if !(defined(_MSC_VER) && defined(_M_IX86))
 void gxPhysNote(Char kind, UnsignedInt id, const Real *values, Int count);
 #endif
@@ -694,10 +703,25 @@ UpdateSleepTime PhysicsBehavior::update()
 			if (fabsf(m_vel.y) < THRESH) m_vel.y = 0.0f;
 		}
 #else
+#if defined(SAGE_RETAIL_RULES)
+		// GeneralsX @bugfix ZH Commander 13/10/2026 VC6 tests C0 here (test ah,1; je), which an unordered compare also sets: a NaN velocity is zeroed.
+		if (gxVc6Less(fabsf(m_vel.x), THRESH)) m_vel.x = 0.0f;
+#else
 		if (fabsf(m_vel.x) < THRESH) m_vel.x = 0.0f;
+#endif
+#if defined(SAGE_RETAIL_RULES)
+		// GeneralsX @bugfix ZH Commander 13/10/2026 VC6 tests C0 here (test ah,1; je), which an unordered compare also sets: a NaN velocity is zeroed.
+		if (gxVc6Less(fabsf(m_vel.y), THRESH)) m_vel.y = 0.0f;
+#else
 		if (fabsf(m_vel.y) < THRESH) m_vel.y = 0.0f;
 #endif
+#endif
+#if defined(SAGE_RETAIL_RULES)
+		// GeneralsX @bugfix ZH Commander 13/10/2026 VC6 tests C0 here (test ah,1; je), which an unordered compare also sets: a NaN velocity is zeroed.
+		if (gxVc6Less(fabsf(m_vel.z), THRESH)) m_vel.z = 0.0f;
+#else
 		if (fabsf(m_vel.z) < THRESH) m_vel.z = 0.0f;
+#endif
 
 		m_velMag = INVALID_VEL_MAG;
 
@@ -1101,7 +1125,12 @@ Bool PhysicsBehavior::wasPreviouslyOverlapped(Object *obj) const
 //-------------------------------------------------------------------------------------------------
 void PhysicsBehavior::scrubVelocityZ( Real desiredVelocity )
 {
+#if defined(SAGE_RETAIL_RULES)
+	// GeneralsX @bugfix ZH Commander 13/10/2026 VC6 tests C0 here (test ah,1; je), which an unordered compare also sets: a NaN desired velocity takes this branch.
+	if (gxVc6Less(fabs(desiredVelocity), 0.001f))
+#else
 	if (fabs(desiredVelocity) < 0.001f)
+#endif
 	{
 		m_vel.z = 0;
 	}
@@ -1118,7 +1147,12 @@ void PhysicsBehavior::scrubVelocityZ( Real desiredVelocity )
 //-------------------------------------------------------------------------------------------------
 void PhysicsBehavior::scrubVelocity2D( Real desiredVelocity )
 {
+#if defined(SAGE_RETAIL_RULES)
+	// GeneralsX @bugfix ZH Commander 13/10/2026 VC6 tests C0 here (test ah,1; je), which an unordered compare also sets: a NaN desired velocity takes this branch.
+	if (gxVc6Less(desiredVelocity, 0.001f))
+#else
 	if (desiredVelocity < 0.001f)
+#endif
 	{
 		m_vel.x = 0;
 		m_vel.y = 0;
