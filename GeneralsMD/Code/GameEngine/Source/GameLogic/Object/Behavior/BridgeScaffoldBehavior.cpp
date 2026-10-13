@@ -160,7 +160,21 @@ UpdateSleepTime BridgeScaffoldBehavior::update()
 
 	// use normalized direction vector "v" to do the pulling movement
 	Coord3D v = dirV;
+#if defined(SAGE_RETAIL_RULES)
+	// GeneralsX @bugfix ZH Commander 13/10/2026 Summed (z + y) + x in the reference listing (inlined normalize).
+	{
+		const Real gxLen = sqrtf((v.z*v.z + v.y*v.y) + v.x*v.x);
+		if (gxLen != 0)
+		{
+			GX_VC6_DIVISIONS
+			v.x /= gxLen;
+			v.y /= gxLen;
+			v.z /= gxLen;
+		}
+	}
+#else
 	v.normalize();
+#endif
 
 	// depending on our motion type, we move at different speeds
 	Real topSpeed = 1.0f;
@@ -203,11 +217,21 @@ UpdateSleepTime BridgeScaffoldBehavior::update()
 	speedVector.x = end->x - start->x;
 	speedVector.y = end->y - start->y;
 	speedVector.z = end->z - start->z;
+#if defined(SAGE_RETAIL_RULES)
+	// GeneralsX @bugfix ZH Commander 13/10/2026 Summed (z + y) + x in the reference listing.
+	Real totalDistance = sqrtf((speedVector.z*speedVector.z + speedVector.y*speedVector.y) + speedVector.x*speedVector.x) * 0.25f;
+#else
 	Real totalDistance = speedVector.length() * 0.25f;
+#endif
 	speedVector.x = end->x - ourPos->x;
 	speedVector.y = end->y - ourPos->y;
 	speedVector.z = end->z - ourPos->z;
+#if defined(SAGE_RETAIL_RULES)
+	// GeneralsX @bugfix ZH Commander 13/10/2026 Summed (y + z) + x in the reference listing.
+	Real ourDistance = sqrtf((speedVector.y*speedVector.y + speedVector.z*speedVector.z) + speedVector.x*speedVector.x);
+#else
 	Real ourDistance = speedVector.length();
+#endif
 	Real speed = (ourDistance / totalDistance) * topSpeed;
 	Real minSpeed = topSpeed * 0.08f;
 	if( speed < minSpeed )
@@ -238,7 +262,12 @@ UpdateSleepTime BridgeScaffoldBehavior::update()
 	tooFarVector.x = m_targetPos.x - newPos.x;
 	tooFarVector.y = m_targetPos.y - newPos.y;
 	tooFarVector.z = m_targetPos.z - newPos.z;
+#if defined(SAGE_RETAIL_RULES)
+	// GeneralsX @bugfix ZH Commander 13/10/2026 Summed (z + y) + x in the reference listing.
+	if( (tooFarVector.z * dirV.z + tooFarVector.y * dirV.y) + tooFarVector.x * dirV.x <= 0.0f )
+#else
 	if( tooFarVector.x * dirV.x + tooFarVector.y * dirV.y + tooFarVector.z * dirV.z <= 0.0f )
+#endif
 	{
 
 		// use the destination position

@@ -1952,7 +1952,12 @@ void Object::attemptDamage( DamageInfo *damageInfo )
 			shockWaveForce.set( damageInfo->in.m_shockWaveVector );
 			shockWaveForce.normalize();
 			shockWaveForce.scale( damageInfo->in.m_shockWaveAmount * shockTaperMult );
+#if defined(SAGE_RETAIL_RULES)
+			// GeneralsX @bugfix ZH Commander 13/10/2026 Summed (z + y) + x in the reference listing.
+			shockWaveForce.z = sqrtf((shockWaveForce.z*shockWaveForce.z + shockWaveForce.y*shockWaveForce.y) + shockWaveForce.x*shockWaveForce.x); // Apply up force equal to the lateral force for dramatic effect
+#else
 			shockWaveForce.z = shockWaveForce.length(); // Apply up force equal to the lateral force for dramatic effect
+#endif
 
 			// Apply the shock to the object
 			behavior->applyShock(&shockWaveForce);

@@ -1005,8 +1005,18 @@ void BridgeBehavior::setScaffoldData( Object *obj,
 	riseToPosToBridgeCenter.x = bridgeCenter->x - riseToPos->x;
 	riseToPosToBridgeCenter.y = bridgeCenter->y - riseToPos->y;
 	riseToPosToBridgeCenter.z = bridgeCenter->z - riseToPos->z;
+#if defined(SAGE_RETAIL_RULES)
+	// GeneralsX @bugfix ZH Commander 13/10/2026 Summed (y + z) + x in the reference listing.
+	Real distBuildUpPosToBridgeCenter = sqrtf((buildUpPosToBridgeCenter.y*buildUpPosToBridgeCenter.y + buildUpPosToBridgeCenter.z*buildUpPosToBridgeCenter.z) + buildUpPosToBridgeCenter.x*buildUpPosToBridgeCenter.x);
+#else
 	Real distBuildUpPosToBridgeCenter = buildUpPosToBridgeCenter.length();
+#endif
+#if defined(SAGE_RETAIL_RULES)
+	// GeneralsX @bugfix ZH Commander 13/10/2026 Summed (y + z) + x in the reference listing.
+	Real distRiseToPosToBridgeCenter = sqrtf((riseToPosToBridgeCenter.y*riseToPosToBridgeCenter.y + riseToPosToBridgeCenter.z*riseToPosToBridgeCenter.z) + riseToPosToBridgeCenter.x*riseToPosToBridgeCenter.x);
+#else
 	Real distRiseToPosToBridgeCenter = riseToPosToBridgeCenter.length();
+#endif
 	scaffoldBehavior->setLateralSpeed( lateralSpeed * (distBuildUpPosToBridgeCenter / distRiseToPosToBridgeCenter) );
 
 	// rising speed is always the same for all objects
@@ -1114,7 +1124,12 @@ void BridgeBehavior::createScaffolding()
 	// how many of these scaffold objects will take to tile from each of the endpoints
 	// to the center area of the bridge
 	//
+#if defined(SAGE_RETAIL_RULES)
+	// GeneralsX @bugfix ZH Commander 13/10/2026 Summed (z + y) + x in the reference listing.
+	Real tileDistance = sqrtf((leftVector.z*leftVector.z + leftVector.y*leftVector.y) + leftVector.x*leftVector.x);
+#else
 	Real tileDistance = leftVector.length();
+#endif
 	Int numObjects = REAL_TO_INT_CEIL( tileDistance / spacing ) + 1;
 
 	//
@@ -1132,8 +1147,36 @@ void BridgeBehavior::createScaffolding()
 	// spacing amount and add to the left start position to find a destination position
 	// for a particular scaffold object along the bridge surface
 	//
+#if defined(SAGE_RETAIL_RULES)
+	// GeneralsX @bugfix ZH Commander 13/10/2026 Summed (z + y) + x in the reference listing (inlined normalize).
+	{
+		const Real gxLen = sqrtf((leftVector.z*leftVector.z + leftVector.y*leftVector.y) + leftVector.x*leftVector.x);
+		if (gxLen != 0)
+		{
+			GX_VC6_DIVISIONS
+			leftVector.x /= gxLen;
+			leftVector.y /= gxLen;
+			leftVector.z /= gxLen;
+		}
+	}
+#else
 	leftVector.normalize();
+#endif
+#if defined(SAGE_RETAIL_RULES)
+	// GeneralsX @bugfix ZH Commander 13/10/2026 Summed (z + y) + x in the reference listing (inlined normalize).
+	{
+		const Real gxLen = sqrtf((rightVector.z*rightVector.z + rightVector.y*rightVector.y) + rightVector.x*rightVector.x);
+		if (gxLen != 0)
+		{
+			GX_VC6_DIVISIONS
+			rightVector.x /= gxLen;
+			rightVector.y /= gxLen;
+			rightVector.z /= gxLen;
+		}
+	}
+#else
 	rightVector.normalize();
+#endif
 
 	// create the scaffold objects for now
 	Int scaffoldObjectsCreated = 0;

@@ -3687,7 +3687,21 @@ void PathfindLayer::classifyCells()
 		bridgeDir.x -= info.from.x;
 		bridgeDir.y -= info.from.y;
 		bridgeDir.z -= info.from.z;
+#if defined(SAGE_RETAIL_RULES)
+		// GeneralsX @bugfix ZH Commander 13/10/2026 Summed (z + y) + x in the reference listing (inlined normalize).
+		{
+			const Real gxLen = sqrtf((bridgeDir.z*bridgeDir.z + bridgeDir.y*bridgeDir.y) + bridgeDir.x*bridgeDir.x);
+			if (gxLen != 0)
+			{
+				GX_VC6_DIVISIONS
+				bridgeDir.x /= gxLen;
+				bridgeDir.y /= gxLen;
+				bridgeDir.z /= gxLen;
+			}
+		}
+#else
 		bridgeDir.normalize();
+#endif
 		bridgeDir.x *= PATHFIND_CELL_SIZE_F*0.7f;
 		bridgeDir.y *= PATHFIND_CELL_SIZE_F*0.7f;
 

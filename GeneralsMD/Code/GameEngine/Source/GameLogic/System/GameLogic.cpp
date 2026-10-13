@@ -4970,9 +4970,16 @@ UnsignedInt GameLogic::getCRC( Int mode, AsciiString deepCRCFileName )
 		for (Int gxI = 0; gxI < ThePlayerList->getPlayerCount(); ++gxI)
 		{
 			const Player *gxP = ThePlayerList->getNthPlayer(gxI);
-			if (gxP != nullptr && (gxP->getSkillPoints() != 0 || gxP->getSciencePurchasePoints() != 0))
-				GX_NET_TRACE("crc player frame %u: %d skill=%d purchase=%d\n", (unsigned)m_frame, (int)gxI,
-					(int)gxP->getSkillPoints(), (int)gxP->getSciencePurchasePoints());
+			if (gxP == nullptr)
+				continue;
+			XferCRC gxX;
+			gxX.open("gxPlayer");
+			gxX.xferSnapshot(const_cast<Player *>(gxP));
+			gxX.close();
+			GX_NET_TRACE("crc player frame %u: %d skill=%d purchase=%d crc=%08X plans=%d/%d/%d\n", (unsigned)m_frame, (int)gxI,
+				(int)gxP->getSkillPoints(), (int)gxP->getSciencePurchasePoints(), (unsigned)gxX.getCRC(),
+				(int)gxP->getBattlePlansActiveSpecific((BattlePlanStatus)1), (int)gxP->getBattlePlansActiveSpecific((BattlePlanStatus)2),
+				(int)gxP->getBattlePlansActiveSpecific((BattlePlanStatus)3));
 		}
 	}
 

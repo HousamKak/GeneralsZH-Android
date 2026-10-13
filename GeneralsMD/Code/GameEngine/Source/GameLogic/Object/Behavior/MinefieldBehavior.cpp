@@ -374,7 +374,12 @@ void MinefieldBehavior::detonateOnce(const Coord3D& position)
 //-----------------------------------------------------------------------------
 static Real calcDistSquared(const Coord3D& a, const Coord3D& b)
 {
+#if defined(SAGE_RETAIL_RULES)
+	// GeneralsX @bugfix ZH Commander 13/10/2026 Summed (dz*dz + dy*dy) + dx*dx at every inlined call in the reference listing.
+	return (sqr(a.z - b.z) + sqr(a.y - b.y)) + sqr(a.x - b.x);
+#else
 	return sqr(a.x - b.x) + sqr(a.y - b.y) + sqr(a.z - b.z);
+#endif
 }
 
 // ------------------------------------------------------------------------------------------------

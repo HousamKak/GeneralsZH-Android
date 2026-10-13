@@ -647,7 +647,21 @@ Bool Bridge::isCellOnEnd(const Region2D *cell)
 	endVector.x = m_bridgeInfo.fromRight.x - m_bridgeInfo.fromLeft.x;
 	endVector.y = m_bridgeInfo.fromRight.y - m_bridgeInfo.fromLeft.y;
 	endVector.z = m_bridgeInfo.fromRight.z - m_bridgeInfo.fromLeft.z;
+#if defined(SAGE_RETAIL_RULES)
+	// GeneralsX @bugfix ZH Commander 13/10/2026 Summed (z + y) + x in the reference listing (inlined normalize).
+	{
+		const Real gxLen = sqrtf((endVector.z*endVector.z + endVector.y*endVector.y) + endVector.x*endVector.x);
+		if (gxLen != 0)
+		{
+			GX_VC6_DIVISIONS
+			endVector.x /= gxLen;
+			endVector.y /= gxLen;
+			endVector.z /= gxLen;
+		}
+	}
+#else
 	endVector.normalize();
+#endif
 	// Offset by 1 pathfind cell.
 	endVector.x *= PATHFIND_CELL_SIZE;
 	endVector.y *= PATHFIND_CELL_SIZE;
@@ -699,7 +713,21 @@ Bool Bridge::isCellOnSide(const Region2D *cell)
 	endVector.x = m_bridgeInfo.fromRight.x - m_bridgeInfo.fromLeft.x;
 	endVector.y = m_bridgeInfo.fromRight.y - m_bridgeInfo.fromLeft.y;
 	endVector.z = m_bridgeInfo.fromRight.z - m_bridgeInfo.fromLeft.z;
+#if defined(SAGE_RETAIL_RULES)
+	// GeneralsX @bugfix ZH Commander 13/10/2026 Summed (z + y) + x in the reference listing (inlined normalize).
+	{
+		const Real gxLen = sqrtf((endVector.z*endVector.z + endVector.y*endVector.y) + endVector.x*endVector.x);
+		if (gxLen != 0)
+		{
+			GX_VC6_DIVISIONS
+			endVector.x /= gxLen;
+			endVector.y /= gxLen;
+			endVector.z /= gxLen;
+		}
+	}
+#else
 	endVector.normalize();
+#endif
 	// Offset by 1 pathfind cell.
 	endVector.x *= PATHFIND_CELL_SIZE*0.51f;
 	endVector.y *= PATHFIND_CELL_SIZE*0.51f;
@@ -773,7 +801,21 @@ Bool Bridge::isCellEntryPoint(const Region2D *cell)
 	endVector.x = m_bridgeInfo.fromRight.x - m_bridgeInfo.fromLeft.x;
 	endVector.y = m_bridgeInfo.fromRight.y - m_bridgeInfo.fromLeft.y;
 	endVector.z = m_bridgeInfo.fromRight.z - m_bridgeInfo.fromLeft.z;
+#if defined(SAGE_RETAIL_RULES)
+	// GeneralsX @bugfix ZH Commander 13/10/2026 Summed (z + y) + x in the reference listing (inlined normalize).
+	{
+		const Real gxLen = sqrtf((endVector.z*endVector.z + endVector.y*endVector.y) + endVector.x*endVector.x);
+		if (gxLen != 0)
+		{
+			GX_VC6_DIVISIONS
+			endVector.x /= gxLen;
+			endVector.y /= gxLen;
+			endVector.z /= gxLen;
+		}
+	}
+#else
 	endVector.normalize();
+#endif
 	// Offset by 1 pathfind cell.
 	endVector.x *= PATHFIND_CELL_SIZE;
 	endVector.y *= PATHFIND_CELL_SIZE;
@@ -781,7 +823,21 @@ Bool Bridge::isCellEntryPoint(const Region2D *cell)
 	bridgeVector.x = m_bridgeInfo.to.x - m_bridgeInfo.from.x;
 	bridgeVector.y = m_bridgeInfo.to.y - m_bridgeInfo.from.y;
 	bridgeVector.z = m_bridgeInfo.to.z - m_bridgeInfo.from.z;
+#if defined(SAGE_RETAIL_RULES)
+	// GeneralsX @bugfix ZH Commander 13/10/2026 Summed (z + y) + x in the reference listing (inlined normalize).
+	{
+		const Real gxLen = sqrtf((bridgeVector.z*bridgeVector.z + bridgeVector.y*bridgeVector.y) + bridgeVector.x*bridgeVector.x);
+		if (gxLen != 0)
+		{
+			GX_VC6_DIVISIONS
+			bridgeVector.x /= gxLen;
+			bridgeVector.y /= gxLen;
+			bridgeVector.z /= gxLen;
+		}
+	}
+#else
 	bridgeVector.normalize();
+#endif
 	// Offset by 1/2 pathfind cell.
 	bridgeVector.x *= PATHFIND_CELL_SIZE/2;
 	bridgeVector.y *= PATHFIND_CELL_SIZE/2;
@@ -1958,12 +2014,31 @@ void TerrainLogic::getBridgeAttackPoints(const Object *bridge, TBridgeAttackInfo
 			delta.x = info->to.x - info->from.x;
 			delta.y = info->to.y - info->from.y;
 			delta.z = info->to.z - info->from.z;
+#if defined(SAGE_RETAIL_RULES)
+			// GeneralsX @bugfix ZH Commander 13/10/2026 Summed (z + y) + x in the reference listing (inlined normalize).
+			{
+				const Real gxLen = sqrtf((delta.z*delta.z + delta.y*delta.y) + delta.x*delta.x);
+				if (gxLen != 0)
+				{
+					GX_VC6_DIVISIONS
+					delta.x /= gxLen;
+					delta.y /= gxLen;
+					delta.z /= gxLen;
+				}
+			}
+#else
 			delta.normalize();
+#endif
 			Coord3D width;
 			width.x = info->fromRight.x - info->fromLeft.x;
 			width.y = info->fromRight.y - info->fromLeft.y;
 			width.z = info->fromRight.z - info->fromLeft.z;
+#if defined(SAGE_RETAIL_RULES)
+			// GeneralsX @bugfix ZH Commander 13/10/2026 Summed (z + y) + x in the reference listing.
+			Real len = sqrtf((width.z*width.z + width.y*width.y) + width.x*width.x);
+#else
 			Real len = width.length();
+#endif
 			len /= 2.0f;
 			attackInfo->attackPoint1.x = info->from.x + delta.x*len;
 			attackInfo->attackPoint1.y = info->from.y + delta.y*len;

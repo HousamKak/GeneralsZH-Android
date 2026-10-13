@@ -547,7 +547,12 @@ StateReturnType AIGuardRetaliateOuterState::update()
 		deltaAggr.y = m_exitConditions.m_center.y - goalObj->getPosition()->y;
 		deltaAggr.z = m_exitConditions.m_center.z - goalObj->getPosition()->z;
 		Real visionSqr = sqr(AIGuardRetaliateMachine::getStdGuardRange(getMachineOwner()));
+#if defined(SAGE_RETAIL_RULES)
+		// GeneralsX @bugfix ZH Commander 13/10/2026 Summed (y + z) + x in the reference listing.
+		if (((deltaAggr.y*deltaAggr.y + deltaAggr.z*deltaAggr.z) + deltaAggr.x*deltaAggr.x) <= visionSqr)
+#else
 		if (deltaAggr.lengthSqr() <= visionSqr)
+#endif
 		{
 			// reset the counter
 			m_exitConditions.m_attackGiveUpFrame = TheGameLogic->getFrame() + TheAI->getAiData()->m_guardChaseUnitFrames;

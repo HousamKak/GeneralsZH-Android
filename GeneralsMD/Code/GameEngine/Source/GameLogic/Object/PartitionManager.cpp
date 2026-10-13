@@ -5531,13 +5531,32 @@ Bool PartitionFilterRejectBehind::allow( Object *other )
 //const Coord3D *pos = m_obj->getPosition();
 //const Coord3D *dir = m_obj->getUnitDirectionVector2D();
 	Vector3 dir = m_obj->getTransformMatrix()->Get_X_Vector();
+#if defined(SAGE_RETAIL_RULES)
+	// GeneralsX @bugfix ZH Commander 13/10/2026 Summed (z + y) + x in the reference listing (inlined Normalize).
+	{
+		const float gxLen2 = (dir.Z*dir.Z + dir.Y*dir.Y) + dir.X*dir.X;
+		if (gxLen2 != 0.0f)
+		{
+			const float gxOolen = WWMath::Inv_Sqrt(gxLen2);
+			dir.X *= gxOolen;
+			dir.Y *= gxOolen;
+			dir.Z *= gxOolen;
+		}
+	}
+#else
 	dir.Normalize();
+#endif
 //const Coord3D *otherPos = other->getPosition();
 
 	Coord3D v;
 	ThePartitionManager->getVectorTo( m_obj, other, FROM_CENTER_3D, v );
 
+#if defined(SAGE_RETAIL_RULES)
+	// GeneralsX @bugfix ZH Commander 13/10/2026 Summed (z + y) + x in the reference listing.
+	Real dot = (dir.Z * v.z + dir.Y * v.y) + dir.X * v.x;
+#else
 	Real dot = dir.X * v.x + dir.Y * v.y + dir.Z * v.z;
+#endif
 
 	if (dot > 0.0f)
 		return true;

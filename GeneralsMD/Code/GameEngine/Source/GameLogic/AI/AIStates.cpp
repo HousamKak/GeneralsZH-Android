@@ -2116,7 +2116,12 @@ StateReturnType AIMoveToState::update()
 			Real mySpeed = obj->getPhysics()->getVelocityMagnitude();
 			Real goalSpeed = goalObj->getPhysics()->getVelocityMagnitude();
 			if (mySpeed<5.0f) mySpeed = 5.0f; // avoid divide by 0.
+#if defined(SAGE_RETAIL_RULES)
+			// GeneralsX @bugfix ZH Commander 13/10/2026 Summed (y + z) + x in the reference listing.
+			Real leadDistance = (0.5*sqrtf((delta.y*delta.y + delta.z*delta.z) + delta.x*delta.x)) * goalSpeed / mySpeed;
+#else
 			Real leadDistance = (0.5*delta.length()) * goalSpeed / mySpeed;
+#endif
 			Coord3D dir;
 			goalObj->getUnitDirectionVector3D(dir);
 			m_goalPosition.x += dir.x*leadDistance;
