@@ -299,15 +299,33 @@ public:
 			//Rotate 90 degrees CCW.
 			Real radians = 90.0f * PI / 180.0f;
 			Real s = Sin( radians );
+#if defined(SAGE_RETAIL_RULES)
+			// GeneralsX @bugfix ZH Commander 13/10/2026 The reference listing keeps the cosine in the x87 register, adds 1 to it and factors dx*c + dx into (c + 1)*dx (and dy*c + dy into (c + 1)*dy).
+			const X87Real gxCcwC = Cos( radians );
+			Real c = gxCcwC;
+			const Real gxCcwC1 = gxCcwC + 1.0f;
+			CCWx = gxCcwC1 * dx - s * dy;
+			CCWy = gxCcwC1 * dy + s * dx;
+#else
 			Real c = Cos( radians );
 			CCWx = dx * c + dy * -s + dx;
 			CCWy = dx * s + dy * c + dy;
+#endif
 
 			//Rotate 90 degrees CW
 			s = Sin( -radians );
+#if defined(SAGE_RETAIL_RULES)
+			// GeneralsX @bugfix ZH Commander 13/10/2026 The reference listing keeps the cosine in the x87 register, adds 1 to it and factors dx*c + dx into (c + 1)*dx (and dy*c + dy into (c + 1)*dy).
+			const X87Real gxCwC = Cos( -radians );
+			c = gxCwC;
+			const Real gxCwC1 = gxCwC + 1.0f;
+			CWx = gxCwC1 * dx - s * dy;
+			CWy = gxCwC1 * dy + s * dx;
+#else
 			c = Cos( -radians );
 			CWx = dx * c + dy * -s + dx;
 			CWy = dx * s + dy * c + dy;
+#endif
 		}
 
 		Object *firstTransport = nullptr;

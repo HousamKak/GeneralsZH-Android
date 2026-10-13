@@ -1107,8 +1107,31 @@ void BridgeBehavior::createScaffolding()
 	Coord2D angleV;
 	angleV.x = rightStart.x - leftStart.x;
 	angleV.y = rightStart.y - leftStart.y;
+#if defined(SAGE_RETAIL_RULES)
+	// GeneralsX @bugfix ZH Commander 13/10/2026 rightAngle uses the unrounded angle, as in the reference listing.
+	// The inlined Coord2D::toAngle leaves ACos's result in the x87 register: leftAngle stores it
+	// (fst) and rightAngle adds TWO_PI to the unrounded value.
+	Real leftAngle = 0.0f;
+	Real rightAngle = TWO_PI;
+	{
+		const Real gxLen = angleV.length();
+		if (gxLen != 0.0f)
+		{
+			Real gxC = gxVc6Div(angleV.x, gxLen);
+			if (gxC < -1.0f)
+				gxC = -1.0f;
+			else if (gxC > 1.0f)
+				gxC = 1.0f;
+			const X87Real gxAcos = ACos(gxC);
+			const X87Real gxAngle = angleV.y < 0.0f ? -gxAcos : gxAcos;
+			leftAngle = gxAngle;
+			rightAngle = gxAngle + TWO_PI;
+		}
+	}
+#else
 	Real leftAngle = angleV.toAngle();
 	Real rightAngle = leftAngle + TWO_PI;
+#endif
 
 	// compute vector from left to right across bridge and the reverse
 	Coord3D leftVector;

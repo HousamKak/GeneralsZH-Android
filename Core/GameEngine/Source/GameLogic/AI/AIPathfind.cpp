@@ -3970,7 +3970,12 @@ Bool PathfindLayer::isPointOnWall(ObjectID *wallPieces, Int numPieces, const Coo
 		Real minor = (obj->getGeometryInfo().getGeomType() == GEOMETRY_SPHERE) ? obj->getGeometryInfo().getMajorRadius() : obj->getGeometryInfo().getMinorRadius();
 
 		Real c = (Real)Cos(-obj->getOrientation());
+#if defined(SAGE_RETAIL_RULES)
+		// GeneralsX @bugfix ZH Commander 13/10/2026 The reference listing stores the cosine (fstp) but keeps the sine in the x87 register for the multiplies.
+		const X87Real s = Sin(-obj->getOrientation());
+#else
 		Real s = (Real)Sin(-obj->getOrientation());
+#endif
 
 		// convert to a delta relative to rect ctr
 		Real ptx = pt->x - obj->getPosition()->x;
@@ -4238,13 +4243,29 @@ void Pathfinder::classifyFence( Object *obj, Bool insert )
  	Real fenceOffset = obj->getTemplate()->getFenceXOffset();
 
  	Real c = (Real)Cos(angle);
+#if defined(SAGE_RETAIL_RULES)
+ 	// GeneralsX @bugfix ZH Commander 13/10/2026 The reference listing stores s (fst) but multiplies the unrounded register value for ydx and xdy.
+ 	const X87Real gxS = Sin(angle);
+ 	Real s = gxS;
+#else
  	Real s = (Real)Sin(angle);
+#endif
 
  	const Real STEP_SIZE = PATHFIND_CELL_SIZE_F * 0.5f;	// in theory, should be PATHFIND_CELL_SIZE_F exactly, but needs to be smaller to avoid aliasing problems
+#if defined(SAGE_RETAIL_RULES)
+ 	// GeneralsX @bugfix ZH Commander 13/10/2026 Unrounded sine from the register, as in the reference listing (see gxS above).
+ 	Real ydx = gxS * STEP_SIZE;
+#else
  	Real ydx = s * STEP_SIZE;
+#endif
  	Real ydy = -c * STEP_SIZE;
  	Real xdx = c * STEP_SIZE;
+#if defined(SAGE_RETAIL_RULES)
+ 	// GeneralsX @bugfix ZH Commander 13/10/2026 Unrounded sine from the register, as in the reference listing (see gxS above).
+ 	Real xdy = gxS * STEP_SIZE;
+#else
  	Real xdy = s * STEP_SIZE;
+#endif
 
  	Int numStepsX = REAL_TO_INT_CEIL(2.0f * halfsizeX / STEP_SIZE);
  	Int numStepsY = REAL_TO_INT_CEIL(2.0f * halfsizeY / STEP_SIZE);
@@ -4446,13 +4467,29 @@ void Pathfinder::internal_classifyObjectFootprint( Object *obj, Bool insert )
 			Real halfsizeY = obj->getGeometryInfo().getMinorRadius();
 
 			Real c = (Real)Cos(angle);
+#if defined(SAGE_RETAIL_RULES)
+			// GeneralsX @bugfix ZH Commander 13/10/2026 The reference listing stores s (fst) but multiplies the unrounded register value for ydx and xdy.
+			const X87Real gxS = Sin(angle);
+			Real s = gxS;
+#else
 			Real s = (Real)Sin(angle);
+#endif
 
 			const Real STEP_SIZE = PATHFIND_CELL_SIZE_F * 0.5f;	// in theory, should be PATHFIND_CELL_SIZE_F exactly, but needs to be smaller to avoid aliasing problems
+#if defined(SAGE_RETAIL_RULES)
+			// GeneralsX @bugfix ZH Commander 13/10/2026 Unrounded sine from the register, as in the reference listing (see gxS above).
+			Real ydx = gxS * STEP_SIZE;
+#else
 			Real ydx = s * STEP_SIZE;
+#endif
 			Real ydy = -c * STEP_SIZE;
 			Real xdx = c * STEP_SIZE;
+#if defined(SAGE_RETAIL_RULES)
+			// GeneralsX @bugfix ZH Commander 13/10/2026 Unrounded sine from the register, as in the reference listing (see gxS above).
+			Real xdy = gxS * STEP_SIZE;
+#else
 			Real xdy = s * STEP_SIZE;
+#endif
 
 			Int numStepsX = REAL_TO_INT_CEIL(2.0f * halfsizeX / STEP_SIZE);
 			Int numStepsY = REAL_TO_INT_CEIL(2.0f * halfsizeY / STEP_SIZE);

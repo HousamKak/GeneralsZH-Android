@@ -325,11 +325,36 @@ void StructureToppleUpdate::doToppleDoneStuff()
 	Real origAngle = building->getOrientation();
 	building->setOrientation(origAngle);
 
+#if defined(SAGE_RETAIL_RULES)
+	// GeneralsX @bugfix ZH Commander 13/10/2026 The topple angle stays unrounded, as in the reference listing.
+	// The inlined Coord2D::toAngle leaves ACos's result in the x87 register, and the rotation
+	// subtracts origAngle from that unrounded value.
+	X87Real gxToppleAngle(0.0);
+	{
+		const Real gxLen = m_toppleDirection.length();
+		if (gxLen != 0.0f)
+		{
+			Real gxC = gxVc6Div(m_toppleDirection.x, gxLen);
+			if (gxC < -1.0f)
+				gxC = -1.0f;
+			else if (gxC > 1.0f)
+				gxC = 1.0f;
+			const X87Real gxAcos = ACos(gxC);
+			gxToppleAngle = m_toppleDirection.y < 0.0f ? -gxAcos : gxAcos;
+		}
+	}
+#else
 	Real toppleAngle = m_toppleDirection.toAngle();
+#endif
 
 	Matrix3D xfrm = *building->getTransformMatrix();
 	// GeneralsX @bugfix ZH Commander 12/10/2026 The reference listing stores the cosine and keeps the sine.
+#if defined(SAGE_RETAIL_RULES)
+	// GeneralsX @bugfix ZH Commander 13/10/2026 Unrounded topple angle minus origAngle (see gxToppleAngle above).
+	xfrm.In_Place_Pre_Rotate_Z(gxToppleAngle-origAngle, GX_KEEP_SIN);
+#else
 	xfrm.In_Place_Pre_Rotate_Z(toppleAngle-origAngle, GX_KEEP_SIN);
+#endif
 	building->setTransformMatrix(&xfrm);
 }
 

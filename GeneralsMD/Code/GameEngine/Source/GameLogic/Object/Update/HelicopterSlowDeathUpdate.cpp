@@ -377,8 +377,14 @@ UpdateSleepTime HelicopterSlowDeathBehavior::update()
 		force.x = DOUBLE_TO_REAL( Cos( m_forwardAngle ) ) * m_forwardSpeed/2.f;
 		force.y = DOUBLE_TO_REAL( Sin( m_forwardAngle ) ) * m_forwardSpeed/2.f;
 #else
+#if defined(SAGE_RETAIL_RULES)
+		// GeneralsX @bugfix ZH Commander 13/10/2026 The reference listing multiplies Cos's and Sin's results from the x87 register, unrounded; DOUBLE_TO_REAL does not round in VC6.
+		force.x = Cos( m_forwardAngle ) * m_forwardSpeed;
+		force.y = Sin( m_forwardAngle ) * m_forwardSpeed;
+#else
 		force.x = DOUBLE_TO_REAL( Cos( m_forwardAngle ) ) * m_forwardSpeed;
 		force.y = DOUBLE_TO_REAL( Sin( m_forwardAngle ) ) * m_forwardSpeed;
+#endif
 #endif
 		force.z = 0.0f;
 		physics->applyMotiveForce( &force );

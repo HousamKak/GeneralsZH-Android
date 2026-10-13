@@ -2756,7 +2756,12 @@ void TerrainLogic::flattenTerrain(Object *obj)
 
 
 			Real c = (Real)Cos(angle);
+#if defined(SAGE_RETAIL_RULES)
+			// GeneralsX @bugfix ZH Commander 13/10/2026 The reference listing stores the cosine (fstp) but keeps the sine in the x87 register for the corner products.
+			const X87Real s = Sin(angle);
+#else
 			Real s = (Real)Sin(angle);
+#endif
 
 			Vector3 topLeft(pos->x-halfsizeX*c-halfsizeY*s, pos->y + halfsizeY*c - halfsizeX*s, 0);
 			Vector3 topRight(pos->x+halfsizeX*c-halfsizeY*s, pos->y + halfsizeY*c + halfsizeX*s, 0);
