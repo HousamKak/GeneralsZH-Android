@@ -623,7 +623,18 @@ void BuildAssistant::iterateFootprint( const ThingTemplate *build,
 
 			// transform to world
 			v.Set( x, y, TheTerrainLogic->getGroundHeight( x, y ) );
+#if defined(SAGE_RETAIL_RULES)
+			// GeneralsX @bugfix ZH Commander 14/10/2026 Transform_Vector inlined with rows summed (z + y) + x, (z + x) + y, (x + y) + z in the reference listing, translation added last.
+			{
+				const Matrix3D &gxA = transform;
+				const Vector3 gxIn = v;
+				v.X = ((gxA[0][2]*gxIn.Z + gxA[0][1]*gxIn.Y) + gxA[0][0]*gxIn.X) + gxA[0][3];
+				v.Y = ((gxA[1][2]*gxIn.Z + gxA[1][0]*gxIn.X) + gxA[1][1]*gxIn.Y) + gxA[1][3];
+				v.Z = ((gxA[2][0]*gxIn.X + gxA[2][1]*gxIn.Y) + gxA[2][2]*gxIn.Z) + gxA[2][3];
+			}
+#else
 			transform.Transform_Vector( transform, v, &v );
+#endif
 
 			// for circular geometries we must actually be within the circle
 			if( build->getTemplateGeometryInfo().getGeomType() == GEOMETRY_SPHERE ||

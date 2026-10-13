@@ -3756,7 +3756,18 @@ void ScriptActions::doNamedSetBoobytrapped( const AsciiString& thingTemplateName
 					//Get the angle and transform matrix from the obj... then transform the calculated
 					//position
 					const Matrix3D *transform = obj->getTransformMatrix();
+#if defined(SAGE_RETAIL_RULES)
+					// GeneralsX @bugfix ZH Commander 14/10/2026 Transform_Vector inlined with rows summed (z + y) + x, (x + z) + y, (x + y) + z in the reference listing, translation added last.
+					{
+						const Matrix3D &gxA = *transform;
+						const Coord3D gxIn = pos;
+						pos.x = ((gxA[0][2]*gxIn.z + gxA[0][1]*gxIn.y) + gxA[0][0]*gxIn.x) + gxA[0][3];
+						pos.y = ((gxA[1][0]*gxIn.x + gxA[1][2]*gxIn.z) + gxA[1][1]*gxIn.y) + gxA[1][3];
+						pos.z = ((gxA[2][0]*gxIn.x + gxA[2][1]*gxIn.y) + gxA[2][2]*gxIn.z) + gxA[2][3];
+					}
+#else
 					transform->Transform_Vector( *transform, *(Vector3*)(&pos), (Vector3*)(&pos) );
+#endif
 
 					update->initStickyBomb( obj, nullptr, &pos );
 				}
@@ -3795,7 +3806,18 @@ void ScriptActions::doTeamSetBoobytrapped( const AsciiString& thingTemplateName,
 					//Get the angle and transform matrix from the obj... then transform the calculated
 					//position
 					const Matrix3D *transform = obj->getTransformMatrix();
+#if defined(SAGE_RETAIL_RULES)
+					// GeneralsX @bugfix ZH Commander 14/10/2026 Transform_Vector inlined with rows summed (z + y) + x, (x + z) + y, (x + y) + z in the reference listing, translation added last.
+					{
+						const Matrix3D &gxA = *transform;
+						const Coord3D gxIn = pos;
+						pos.x = ((gxA[0][2]*gxIn.z + gxA[0][1]*gxIn.y) + gxA[0][0]*gxIn.x) + gxA[0][3];
+						pos.y = ((gxA[1][0]*gxIn.x + gxA[1][2]*gxIn.z) + gxA[1][1]*gxIn.y) + gxA[1][3];
+						pos.z = ((gxA[2][0]*gxIn.x + gxA[2][1]*gxIn.y) + gxA[2][2]*gxIn.z) + gxA[2][3];
+					}
+#else
 					transform->Transform_Vector( *transform, *(Vector3*)(&pos), (Vector3*)(&pos) );
+#endif
 
 					update->initStickyBomb( obj, nullptr, &pos );
 				}

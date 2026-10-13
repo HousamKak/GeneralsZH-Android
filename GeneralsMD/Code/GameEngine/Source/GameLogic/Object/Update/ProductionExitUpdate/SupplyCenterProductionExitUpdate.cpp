@@ -77,7 +77,18 @@ void SupplyCenterProductionExitUpdate::exitObjectViaDoor( Object *newObj, ExitDo
 		// and translate for building location via a transform call
 		//
 		loc.Set( md->m_unitCreatePoint.x, md->m_unitCreatePoint.y, md->m_unitCreatePoint.z );
+#if defined(SAGE_RETAIL_RULES)
+		// GeneralsX @bugfix ZH Commander 14/10/2026 Transform_Vector inlined with rows summed (z + y) + x, (x + y) + z, (x + y) + z in the reference listing, translation added last.
+		{
+			const Matrix3D &gxA = *transform;
+			const Vector3 gxIn = loc;
+			loc.X = ((gxA[0][2]*gxIn.Z + gxA[0][1]*gxIn.Y) + gxA[0][0]*gxIn.X) + gxA[0][3];
+			loc.Y = ((gxA[1][0]*gxIn.X + gxA[1][1]*gxIn.Y) + gxA[1][2]*gxIn.Z) + gxA[1][3];
+			loc.Z = ((gxA[2][0]*gxIn.X + gxA[2][1]*gxIn.Y) + gxA[2][2]*gxIn.Z) + gxA[2][3];
+		}
+#else
 		transform->Transform_Vector( *transform, loc, &loc );
+#endif
 
 		// make sure the point is on the terrain
 		loc.Z = TheTerrainLogic ? TheTerrainLogic->getGroundHeight( loc.X, loc.Y ) : 0.0f;
@@ -106,7 +117,18 @@ void SupplyCenterProductionExitUpdate::exitObjectViaDoor( Object *newObj, ExitDo
 		p.Z = md->m_naturalRallyPoint.z;
 
 		// transform the point into world space
+#if defined(SAGE_RETAIL_RULES)
+		// GeneralsX @bugfix ZH Commander 14/10/2026 Transform_Vector inlined with rows summed (x + z) + y, (x + z) + y, (x + y) + z in the reference listing, translation added last.
+		{
+			const Matrix3D &gxA = *transform;
+			const Vector3 gxIn = p;
+			p.X = ((gxA[0][0]*gxIn.X + gxA[0][2]*gxIn.Z) + gxA[0][1]*gxIn.Y) + gxA[0][3];
+			p.Y = ((gxA[1][0]*gxIn.X + gxA[1][2]*gxIn.Z) + gxA[1][1]*gxIn.Y) + gxA[1][3];
+			p.Z = ((gxA[2][0]*gxIn.X + gxA[2][1]*gxIn.Y) + gxA[2][2]*gxIn.Z) + gxA[2][3];
+		}
+#else
 		transform->Transform_Vector( *transform, p, &p );
+#endif
 
 		std::vector<Coord3D> exitPath;
 
@@ -161,7 +183,18 @@ Bool SupplyCenterProductionExitUpdate::getExitPosition( Coord3D& exitPosition ) 
 
 	Vector3 loc;
 	loc.Set( md->m_unitCreatePoint.x, md->m_unitCreatePoint.y, md->m_unitCreatePoint.z );
+#if defined(SAGE_RETAIL_RULES)
+	// GeneralsX @bugfix ZH Commander 14/10/2026 Transform_Vector inlined with rows summed (z + y) + x, (x + z) + y, (x + y) + z in the reference listing, translation added last.
+	{
+		const Matrix3D &gxA = *transform;
+		const Vector3 gxIn = loc;
+		loc.X = ((gxA[0][2]*gxIn.Z + gxA[0][1]*gxIn.Y) + gxA[0][0]*gxIn.X) + gxA[0][3];
+		loc.Y = ((gxA[1][0]*gxIn.X + gxA[1][2]*gxIn.Z) + gxA[1][1]*gxIn.Y) + gxA[1][3];
+		loc.Z = ((gxA[2][0]*gxIn.X + gxA[2][1]*gxIn.Y) + gxA[2][2]*gxIn.Z) + gxA[2][3];
+	}
+#else
 	transform->Transform_Vector( *transform, loc, &loc );
+#endif
 
 	exitPosition.x = loc.X;
 	exitPosition.y = loc.Y;
@@ -210,7 +243,18 @@ Bool SupplyCenterProductionExitUpdate::getNaturalRallyPoint( Coord3D& rallyPoint
 
 	// transform the point into world space
 	const Matrix3D *transform = getObject()->getTransformMatrix();
+#if defined(SAGE_RETAIL_RULES)
+	// GeneralsX @bugfix ZH Commander 14/10/2026 Transform_Vector inlined with rows summed (z + y) + x, (x + z) + y, (x + y) + z in the reference listing, translation added last.
+	{
+		const Matrix3D &gxA = *transform;
+		const Vector3 gxIn = p;
+		p.X = ((gxA[0][2]*gxIn.Z + gxA[0][1]*gxIn.Y) + gxA[0][0]*gxIn.X) + gxA[0][3];
+		p.Y = ((gxA[1][0]*gxIn.X + gxA[1][2]*gxIn.Z) + gxA[1][1]*gxIn.Y) + gxA[1][3];
+		p.Z = ((gxA[2][0]*gxIn.X + gxA[2][1]*gxIn.Y) + gxA[2][2]*gxIn.Z) + gxA[2][3];
+	}
+#else
 	transform->Transform_Vector( *transform, p, &p );
+#endif
 	rallyPoint.x = p.X; rallyPoint.y = p.Y; rallyPoint.z = p.Z;
 	return TRUE;
 }

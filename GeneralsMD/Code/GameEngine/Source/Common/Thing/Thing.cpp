@@ -413,7 +413,18 @@ void Thing::convertBonePosToWorldPos(const Coord3D* bonePos, const Matrix3D* bon
 			vector.Z = ((m[2][0]*vx + m[2][1]*vy) + m[2][2]*vz) + m[2][3];
 		}
 #else
+#if defined(SAGE_RETAIL_RULES)
+		// GeneralsX @bugfix ZH Commander 14/10/2026 Transform_Vector inlined with rows summed (z + y) + x, (x + z) + y, (x + y) + z in the reference listing, translation added last.
+		{
+			const Matrix3D &gxA = m_transform;
+			const Vector3 gxIn = vector;
+			vector.X = ((gxA[0][2]*gxIn.Z + gxA[0][1]*gxIn.Y) + gxA[0][0]*gxIn.X) + gxA[0][3];
+			vector.Y = ((gxA[1][0]*gxIn.X + gxA[1][2]*gxIn.Z) + gxA[1][1]*gxIn.Y) + gxA[1][3];
+			vector.Z = ((gxA[2][0]*gxIn.X + gxA[2][1]*gxIn.Y) + gxA[2][2]*gxIn.Z) + gxA[2][3];
+		}
+#else
 		m_transform.Transform_Vector(m_transform, vector, &vector);
+#endif
 #endif
 		worldPos->x = vector.X;
 		worldPos->y = vector.Y;
@@ -442,7 +453,18 @@ void Thing::transformPoint( const Coord3D *in, Coord3D *out )
 	vectorIn.Z = in->z;
 
 	// do the transform
+#if defined(SAGE_RETAIL_RULES)
+	// GeneralsX @bugfix ZH Commander 14/10/2026 Transform_Vector inlined with rows summed (z + y) + x, (z + y) + x, (z + y) + x in the reference listing, translation added last.
+	{
+		const Matrix3D &gxA = m_transform;
+		const Vector3 gxIn = vectorIn;
+		vectorOut.X = ((gxA[0][2]*gxIn.Z + gxA[0][1]*gxIn.Y) + gxA[0][0]*gxIn.X) + gxA[0][3];
+		vectorOut.Y = ((gxA[1][2]*gxIn.Z + gxA[1][1]*gxIn.Y) + gxA[1][0]*gxIn.X) + gxA[1][3];
+		vectorOut.Z = ((gxA[2][2]*gxIn.Z + gxA[2][1]*gxIn.Y) + gxA[2][0]*gxIn.X) + gxA[2][3];
+	}
+#else
 	m_transform.Transform_Vector( m_transform, vectorIn, &vectorOut );
+#endif
 
 	// store converted vector in 'out'
 	out->x = vectorOut.X;
