@@ -1493,6 +1493,12 @@ Bool AIUpdateInterface::processCollision(PhysicsBehavior *physics, Object *other
 	if (selfMoving)
 	{
 		Bool blocked = blockedBy(other);
+		if (gxProbeWanted(getObject()->getID()))
+		{
+			fprintf(stderr, "[GX-NET] probe frame %u id %u collide other=%u blocked=%d\n", (unsigned)TheGameLogic->getFrame(),
+				(unsigned)getObject()->getID(), (unsigned)other->getID(), (int)blocked);
+			fflush(stderr);
+		}
 		if (blocked)
 		{
 			if (getObject()->isKindOf(KINDOF_INFANTRY))
@@ -2174,6 +2180,7 @@ Bool AIUpdateInterface::isValidLocomotorPosition(const Coord3D* pos) const
 	return TheAI->pathfinder()->validMovementPosition( getObject()->getCrusherLevel()>0, getObject()->getLayer(), m_locomotorSet, pos );
 }
 
+bool gxProbeWanted(UnsignedInt id);
 //-------------------------------------------------------------------------------------------------
 DECLARE_PERF_TIMER(doLocomotor)
 /**
@@ -2181,6 +2188,14 @@ DECLARE_PERF_TIMER(doLocomotor)
  */
 UpdateSleepTime AIUpdateInterface::doLocomotor()
 {
+	if (gxProbeWanted(getObject()->getID()))
+	{
+		fprintf(stderr, "[GX-NET] probe frame %u id %u block isBlocked=%d frames=%d maxBlocked=%08X\n",
+			(unsigned)TheGameLogic->getFrame(), (unsigned)getObject()->getID(), (int)m_isBlocked, (int)m_blockedFrames,
+			*(const unsigned *)&m_curMaxBlockedSpeed);
+		fflush(stderr);
+	}
+
 	USE_PERF_TIMER(doLocomotor)
 
 	if (getObject()->isKindOf(KINDOF_IMMOBILE))
