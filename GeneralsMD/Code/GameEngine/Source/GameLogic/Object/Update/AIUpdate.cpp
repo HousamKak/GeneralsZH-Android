@@ -2313,6 +2313,14 @@ UpdateSleepTime AIUpdateInterface::doLocomotor()
 							}
 						}
 
+						if (gxProbeWanted(getObject()->getID()))
+						{
+							const Real gxExtra = getPathExtraDistance();
+							fprintf(stderr, "[GX-NET] probe frame %u id %u path goal %08X %08X dist %08X speed %08X extra %08X\n",
+								(unsigned)TheGameLogic->getFrame(), (unsigned)getObject()->getID(), *(const unsigned *)&goalPos.x,
+								*(const unsigned *)&goalPos.y, *(const unsigned *)&onPathDistToGoal, *(const unsigned *)&speed, *(const unsigned *)&gxExtra);
+							fflush(stderr);
+						}
 						m_curLocomotor->locoUpdate_moveTowardsPosition(getObject(), goalPos,
 							onPathDistToGoal+getPathExtraDistance(), speed, &blocked);
 
