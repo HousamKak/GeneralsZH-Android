@@ -270,6 +270,7 @@ inline Real tryToOrientInThisDirection3D(Object* obj, Real maxTurnRate, const Co
 }
 
 //-----------------------------------------------------------------------------
+bool gxProbeWanted(UnsignedInt id);
 static void calcDirectionToApplyThrust(
 	const Object* obj,
 	const PhysicsBehavior* physics,
@@ -2184,6 +2185,19 @@ void Locomotor::moveTowardsPositionThrust(Object* obj, PhysicsBehavior *physics,
 		//DEBUG_LOG(("accel %f (max %f) vel %f (max %f) damping %f",accelVec.Length(),maxAccel,curVel.Length(),maxForwardSpeed,damping));
 
 		Real mass = physics->getMass();
+		if (gxProbeWanted(obj->getID()))
+		{
+			const Real gxV[22] = { pos.x, pos.y, pos.z, localGoalPos.x, localGoalPos.y, localGoalPos.z,
+				forwardDir.X, forwardDir.Y, forwardDir.Z, desiredThrustDir.X, desiredThrustDir.Y, desiredThrustDir.Z,
+				thrustDir.X, thrustDir.Y, thrustDir.Z, thrustAngle, maxAccel, maxForwardSpeed, damping,
+				curVel.X, curVel.Y, curVel.Z };
+			const unsigned *gxW = (const unsigned *)gxV;
+			fprintf(stderr, "[GX-NET] probe frame %u id %u thrust", (unsigned)TheGameLogic->getFrame(), (unsigned)obj->getID());
+			for (int gxI = 0; gxI < 22; ++gxI)
+				fprintf(stderr, " %08X", gxW[gxI]);
+			fprintf(stderr, "\n");
+			fflush(stderr);
+		}
 
 		Coord3D force;
 		force.x = mass * accelVec.X;
