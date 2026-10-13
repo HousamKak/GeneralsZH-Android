@@ -878,16 +878,40 @@ WWINLINE float WWMath::Normalize_Angle(float angle)
 enum { GX_ROUND_BOTH = 0, GX_KEEP_COS = 1, GX_KEEP_SIN = 2, GX_KEEP_BOTH = 3 };
 #if defined(SAGE_RETAIL_RULES)
 #include "../../../Include/Lib/X87Real.h"
-typedef X87Real GxRotReal;
-inline X87Real gxRotSin(float angle, int keep)
+// GeneralsX @bugfix ZH Commander 14/10/2026 A value in an x87 register under 24-bit precision control:
+// each operation rounds the mantissa to 24 bits, but the exponent keeps the register's range, so a
+// product far below the smallest float stays nonzero (and keeps its sign) until the store. A bike's
+// decaying roll rate times a near-zero matrix entry gave -1e-90 there; float arithmetic gave +0, and
+// the stored element differed in the sign of zero. Rotations multiply through this type.
+struct GxX87Reg
+{
+	double v;
+	explicit GxX87Reg(double value) : v(value) {}
+	operator float() const { return (float)v; }
+	GxX87Reg operator-() const { return GxX87Reg(-v); }
+	static double round24(double x)
+	{
+		if (x == 0.0 || !(x - x == 0.0))
+			return x;
+		int e;
+		const double m = frexp(x, &e);
+		return ldexp(nearbyint(m * 16777216.0) / 16777216.0, e);
+	}
+};
+inline GxX87Reg operator*(GxX87Reg a, float b) { return GxX87Reg(GxX87Reg::round24(a.v * (double)b)); }
+inline GxX87Reg operator*(float a, GxX87Reg b) { return GxX87Reg(GxX87Reg::round24((double)a * b.v)); }
+inline GxX87Reg operator+(GxX87Reg a, GxX87Reg b) { return GxX87Reg(GxX87Reg::round24(a.v + b.v)); }
+inline GxX87Reg operator-(GxX87Reg a, GxX87Reg b) { return GxX87Reg(GxX87Reg::round24(a.v - b.v)); }
+typedef GxX87Reg GxRotReal;
+inline GxX87Reg gxRotSin(float angle, int keep)
 {
 	const double v = sin((double)angle);
-	return X87Real((keep & GX_KEEP_SIN) ? v : (double)(float)v);
+	return GxX87Reg((keep & GX_KEEP_SIN) ? v : (double)(float)v);
 }
-inline X87Real gxRotCos(float angle, int keep)
+inline GxX87Reg gxRotCos(float angle, int keep)
 {
 	const double v = cos((double)angle);
-	return X87Real((keep & GX_KEEP_COS) ? v : (double)(float)v);
+	return GxX87Reg((keep & GX_KEEP_COS) ? v : (double)(float)v);
 }
 #else
 typedef float GxRotReal;
