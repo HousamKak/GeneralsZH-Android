@@ -227,7 +227,12 @@ UpdateSleepTime MobMemberSlavedUpdate::update()
 				Coord3D goalDelta = *myAI->getGoalPosition();
 				goalDelta.sub( nuPos );
 
+#if defined(SAGE_RETAIL_RULES)
+				// GeneralsX @bugfix ZH Commander 13/10/2026 Summed (x + z) + y in the reference listing.
+				if ( sqrtf((goalDelta.x*goalDelta.x + goalDelta.z*goalDelta.z) + goalDelta.y*goalDelta.y) > 5.0f * PATHFIND_CELL_SIZE_F )// only if I am not headed there already
+#else
 				if ( goalDelta.length() > 5.0f * PATHFIND_CELL_SIZE_F )// only if I am not headed there already
+#endif
 				{
 					myAI->aiMoveToPosition( &nuPos, CMD_FROM_AI ); // Whither thou goest... THis causes the mob to reconverge
 				}

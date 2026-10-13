@@ -443,9 +443,28 @@ UpdateSleepTime SpectreGunshipUpdate::update()
         //Constrain Target Override to the targeting radius
         Coord3D overrideTargetDelta = m_initialTargetPosition;
         overrideTargetDelta.sub( m_overrideTargetDestination );
+#if defined(SAGE_RETAIL_RULES)
+        // GeneralsX @bugfix ZH Commander 13/10/2026 Summed (z + y) + x in the reference listing.
+        if ( sqrtf((overrideTargetDelta.z*overrideTargetDelta.z + overrideTargetDelta.y*overrideTargetDelta.y) + overrideTargetDelta.x*overrideTargetDelta.x) > constraintRadius )
+#else
         if ( overrideTargetDelta.length() > constraintRadius )
+#endif
         {
+#if defined(SAGE_RETAIL_RULES)
+          // GeneralsX @bugfix ZH Commander 13/10/2026 Summed (z + y) + x in the reference listing (inlined normalize).
+          {
+          	const Real gxLen = sqrtf((overrideTargetDelta.z*overrideTargetDelta.z + overrideTargetDelta.y*overrideTargetDelta.y) + overrideTargetDelta.x*overrideTargetDelta.x);
+          	if (gxLen != 0)
+          	{
+          		GX_VC6_DIVISIONS
+          		overrideTargetDelta.x /= gxLen;
+          		overrideTargetDelta.y /= gxLen;
+          		overrideTargetDelta.z /= gxLen;
+          	}
+          }
+#else
           overrideTargetDelta.normalize();
+#endif
           overrideTargetDelta.x *= constraintRadius;
           overrideTargetDelta.y *= constraintRadius;
 

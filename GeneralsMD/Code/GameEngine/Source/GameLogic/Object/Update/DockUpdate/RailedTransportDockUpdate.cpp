@@ -145,7 +145,12 @@ Bool RailedTransportDockUpdate::action( Object *docker, Object *drone )
 		v.z = dockPos->z - dockerPos->z;
 
 		// how far do we have to go
+#if defined(SAGE_RETAIL_RULES)
+		// GeneralsX @bugfix ZH Commander 13/10/2026 Summed (z + y) + x in the reference listing.
+		Real mag = sqrtf((v.z*v.z + v.y*v.y) + v.x*v.x);
+#else
 		Real mag = v.length();
+#endif
 		const RailedTransportDockUpdateModuleData *modData = getRailedTransportDockUpdateModuleData();
 
 		//Are we close enough to even be able to get sucked in?
@@ -275,7 +280,21 @@ void RailedTransportDockUpdate::doPullInDocking()
 			v.x = dockPos->x - dockerPos->x;
 			v.y = dockPos->y - dockerPos->y;
 			v.z = dockPos->z - dockerPos->z;
+#if defined(SAGE_RETAIL_RULES)
+			// GeneralsX @bugfix ZH Commander 13/10/2026 Summed (z + y) + x in the reference listing (inlined normalize).
+			{
+				const Real gxLen = sqrtf((v.z*v.z + v.y*v.y) + v.x*v.x);
+				if (gxLen != 0)
+				{
+					GX_VC6_DIVISIONS
+					v.x /= gxLen;
+					v.y /= gxLen;
+					v.z /= gxLen;
+				}
+			}
+#else
 			v.normalize();
+#endif
 
 			// apply "movement" to the vector
 			v.x *= m_pullInsideDistancePerFrame;
@@ -365,7 +384,21 @@ void RailedTransportDockUpdate::doPushOutDocking()
 			v.x = destPos.x - unloaderPos->x;
 			v.y = destPos.y - unloaderPos->y;
 			v.z = destPos.z - unloaderPos->z;
+#if defined(SAGE_RETAIL_RULES)
+			// GeneralsX @bugfix ZH Commander 13/10/2026 Summed (z + y) + x in the reference listing (inlined normalize).
+			{
+				const Real gxLen = sqrtf((v.z*v.z + v.y*v.y) + v.x*v.x);
+				if (gxLen != 0)
+				{
+					GX_VC6_DIVISIONS
+					v.x /= gxLen;
+					v.y /= gxLen;
+					v.z /= gxLen;
+				}
+			}
+#else
 			v.normalize();
+#endif
 
 			// apply "movement" to that vector
 			v.x *= m_pushOutsideDistancePerFrame;
@@ -387,7 +420,12 @@ void RailedTransportDockUpdate::doPushOutDocking()
 			unloader->setModelConditionState( MODELCONDITION_MOVING );
 
 			// if we're at the destination then stop and unload the next object if present
+#if defined(SAGE_RETAIL_RULES)
+			// GeneralsX @bugfix ZH Commander 13/10/2026 Summed (z + y) + x in the reference listing.
+			Real distSq = (sqr( destPos.z - v.z ) + sqr( destPos.y - v.y )) + sqr( destPos.x - v.x );
+#else
 			Real distSq = sqr( destPos.x - v.x ) + sqr( destPos.y - v.y ) + sqr( destPos.z - v.z );
+#endif
 			Real closeEnoughDistance = 3.0f;
 			if( distSq <= sqr( closeEnoughDistance ) )
 			{
@@ -502,7 +540,12 @@ void RailedTransportDockUpdate::unloadNext()
 		v.x = dockPosition.x - unloaderPos->x;
 		v.y = dockPosition.y - unloaderPos->y;
 		v.z = dockPosition.z - unloaderPos->z;
+#if defined(SAGE_RETAIL_RULES)
+		// GeneralsX @bugfix ZH Commander 13/10/2026 Summed (y + z) + x in the reference listing.
+		Real mag = sqrtf((v.y*v.y + v.z*v.z) + v.x*v.x);
+#else
 		Real mag = v.length();
+#endif
 
 		// now that we know how far we must go, now much distance should we travel every frame
 		const RailedTransportDockUpdateModuleData *modData = getRailedTransportDockUpdateModuleData();

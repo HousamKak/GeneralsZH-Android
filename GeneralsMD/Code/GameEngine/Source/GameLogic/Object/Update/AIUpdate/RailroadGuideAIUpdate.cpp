@@ -574,9 +574,19 @@ void RailroadBehavior::loadTrackData()
 			delta.x = myPos->x - anyWaypoint->getLocation()->x;
 			delta.y = myPos->y - anyWaypoint->getLocation()->y;
 			delta.z = myPos->z - anyWaypoint->getLocation()->z;
+#if defined(SAGE_RETAIL_RULES)
+			// GeneralsX @bugfix ZH Commander 13/10/2026 Summed (z + y) + x in the reference listing.
+			if (closestDistance > sqrtf((delta.z*delta.z + delta.y*delta.y) + delta.x*delta.x) )
+#else
 			if (closestDistance > delta.length() )
+#endif
 			{
+#if defined(SAGE_RETAIL_RULES)
+				// GeneralsX @bugfix ZH Commander 13/10/2026 Summed (z + y) + x in the reference listing.
+				closestDistance = sqrtf((delta.z*delta.z + delta.y*delta.y) + delta.x*delta.x);
+#else
 				closestDistance = delta.length();
+#endif
 				anchorWaypoint = anyWaypoint;
 				m_anchorWaypointID = anchorWaypoint->getID();// save for XFER, later
 			}
@@ -651,7 +661,12 @@ void RailroadBehavior::loadTrackData()
 				fromToDelta.x = fromPos.x - toPos.x;
 				fromToDelta.y = fromPos.y - toPos.y;
 				fromToDelta.z = fromPos.z - toPos.z;
+#if defined(SAGE_RETAIL_RULES)
+				// GeneralsX @bugfix ZH Commander 13/10/2026 Summed (z + y) + x in the reference listing.
+				distFromTo = sqrtf((fromToDelta.z*fromToDelta.z + fromToDelta.y*fromToDelta.y) + fromToDelta.x*fromToDelta.x);
+#else
 				distFromTo = fromToDelta.length();
+#endif
 				m_track->m_length += distFromTo;
 
 				trackPoint.m_distanceFromPrev = distFromTo;
@@ -1287,7 +1302,21 @@ void alignToTerrain( Real angle, const Coord3D& pos, const Coord3D& normal, Matr
 	if (z.z != 0.0f)
 	{
 		x.z = -(x.x*z.x + x.y*z.y) / z.z;
+#if defined(SAGE_RETAIL_RULES)
+		// GeneralsX @bugfix ZH Commander 13/10/2026 Summed (z + y) + x in the reference listing (inlined normalize).
+		{
+			const Real gxLen = sqrtf((x.z*x.z + x.y*x.y) + x.x*x.x);
+			if (gxLen != 0)
+			{
+				GX_VC6_DIVISIONS
+				x.x /= gxLen;
+				x.y /= gxLen;
+				x.z /= gxLen;
+			}
+		}
+#else
 		x.normalize();
+#endif
 	}
 
 	DEBUG_ASSERTCRASH(fabs(x.x*z.x + x.y*z.y + x.z*z.z)<0.0001,("dot is not zero"));
@@ -1557,7 +1586,21 @@ void RailroadBehavior::FindPosByPathDistance( Coord3D *pos, const Real dist, con
 				Coord3D delta        = nextPoint->m_position;
 
 				delta.sub( thisPointPos );
+#if defined(SAGE_RETAIL_RULES)
+				// GeneralsX @bugfix ZH Commander 13/10/2026 Summed (z + y) + x in the reference listing (inlined normalize).
+				{
+					const Real gxLen = sqrtf((delta.z*delta.z + delta.y*delta.y) + delta.x*delta.x);
+					if (gxLen != 0)
+					{
+						GX_VC6_DIVISIONS
+						delta.x /= gxLen;
+						delta.y /= gxLen;
+						delta.z /= gxLen;
+					}
+				}
+#else
 				delta.normalize();
+#endif
 				delta.scale( difference );
 				thisPointPos.add( delta );
 

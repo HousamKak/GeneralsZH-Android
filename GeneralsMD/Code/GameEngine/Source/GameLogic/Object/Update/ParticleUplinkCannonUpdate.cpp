@@ -544,7 +544,12 @@ UpdateSleepTime ParticleUplinkCannonUpdate::update()
 				Coord3D buildingToInitialTargetVector;
 				buildingToInitialTargetVector.set( m_initialTargetPosition );
 				buildingToInitialTargetVector.sub( *me->getPosition() );
+#if defined(SAGE_RETAIL_RULES)
+				// GeneralsX @bugfix ZH Commander 13/10/2026 Summed (z + y) + x in the reference listing.
+				Real targetDistance = sqrtf((buildingToInitialTargetVector.z*buildingToInitialTargetVector.z + buildingToInitialTargetVector.y*buildingToInitialTargetVector.y) + buildingToInitialTargetVector.x*buildingToInitialTargetVector.x);
+#else
 				Real targetDistance = buildingToInitialTargetVector.length();
+#endif
 
 				//Calculate the point position assuming the target position is on the x axis relative to the building.
 				m_currentTargetPosition.x = cxDistance + targetDistance;

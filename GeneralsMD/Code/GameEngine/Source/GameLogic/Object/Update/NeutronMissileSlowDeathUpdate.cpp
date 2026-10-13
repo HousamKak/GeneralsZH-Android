@@ -344,7 +344,12 @@ void NeutronMissileSlowDeathBehavior::doBlast( const BlastInfo *blastInfo )
 			// we do a percentage based on how far away from the inner radius it is, but we
 			// will always do at least blastInfo->minDamage amount of damage
 			//
+#if defined(SAGE_RETAIL_RULES)
+			// GeneralsX @bugfix ZH Commander 13/10/2026 Summed (y + z) + x in the reference listing.
+			dist = sqrtf((forceVector.y*forceVector.y + forceVector.z*forceVector.z) + forceVector.x*forceVector.x);
+#else
 			dist = forceVector.length();
+#endif
 			if( dist <= blastInfo->innerRadius )
 				damageInfo.in.m_amount = blastInfo->maxDamage;
 			else

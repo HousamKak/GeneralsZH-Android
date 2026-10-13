@@ -130,9 +130,24 @@ void BezierSegment::evaluateBezSegmentAtT(Real tValue, Coord3D *outResult) const
 
 	glm::vec4 tResult = BezierSegment::s_bezBasisMatrix * tVec;
 	
+#if defined(SAGE_RETAIL_RULES)
+	// GeneralsX @bugfix ZH Commander 13/10/2026 Summed ((w + z) + y) + x in the reference listing (inlined D3DXVec4Dot).
+	outResult->x = ((xCoords.w*tResult.w + xCoords.z*tResult.z) + xCoords.y*tResult.y) + xCoords.x*tResult.x;
+#else
 	outResult->x = glm::dot(xCoords, tResult);
+#endif
+#if defined(SAGE_RETAIL_RULES)
+	// GeneralsX @bugfix ZH Commander 13/10/2026 Summed ((w + z) + y) + x in the reference listing (inlined D3DXVec4Dot).
+	outResult->y = ((yCoords.w*tResult.w + yCoords.z*tResult.z) + yCoords.y*tResult.y) + yCoords.x*tResult.x;
+#else
 	outResult->y = glm::dot(yCoords, tResult);
+#endif
+#if defined(SAGE_RETAIL_RULES)
+	// GeneralsX @bugfix ZH Commander 13/10/2026 Summed ((w + z) + y) + x in the reference listing (inlined D3DXVec4Dot).
+	outResult->z = ((zCoords.w*tResult.w + zCoords.z*tResult.z) + zCoords.y*tResult.y) + zCoords.x*tResult.x;
+#else
 	outResult->z = glm::dot(zCoords, tResult);
+#endif
 #endif
 }
 
@@ -194,8 +209,18 @@ Real BezierSegment::getApproximateLength(Real withinTolerance) const
 									 m_controlPoints[3].y - m_controlPoints[0].y,
 									 m_controlPoints[3].z - m_controlPoints[0].z, };
 
+#if defined(SAGE_RETAIL_RULES)
+	// GeneralsX @bugfix ZH Commander 13/10/2026 Summed (z + y) + x in the reference listing.
+	Real length0 = sqrtf((p0p3.z*p0p3.z + p0p3.y*p0p3.y) + p0p3.x*p0p3.x);
+#else
 	Real length0 = p0p3.length();
+#endif
+#if defined(SAGE_RETAIL_RULES)
+	// GeneralsX @bugfix ZH Commander 13/10/2026 Each length summed (y + z) + x in the reference listing.
+	Real length1 = sqrtf((p0p1.y*p0p1.y + p0p1.z*p0p1.z) + p0p1.x*p0p1.x) + sqrtf((p1p2.y*p1p2.y + p1p2.z*p1p2.z) + p1p2.x*p1p2.x) + sqrtf((p2p3.y*p2p3.y + p2p3.z*p2p3.z) + p2p3.x*p2p3.x);
+#else
 	Real length1 = p0p1.length() + p1p2.length() + p2p3.length();
+#endif
 
 	if ((length1 - length0) > withinTolerance) {
 		BezierSegment seg1, seg2;

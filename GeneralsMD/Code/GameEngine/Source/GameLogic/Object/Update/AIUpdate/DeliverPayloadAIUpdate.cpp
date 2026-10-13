@@ -1192,9 +1192,15 @@ StateReturnType HeadOffMapState::update()
   {
     Coord3D currentDirection;
     owner->getUnitDirectionVector3D( currentDirection );
+#if defined(SAGE_RETAIL_RULES)
+  	// GeneralsX @bugfix ZH Commander 13/10/2026 Summed (z + y) + x in the reference listing.
+  	Real dot = (facingDirectionUponDelivery.z * currentDirection.z + facingDirectionUponDelivery.y * currentDirection.y)
+  	           + facingDirectionUponDelivery.x * currentDirection.x;
+#else
   	Real dot = facingDirectionUponDelivery.x * currentDirection.x
              + facingDirectionUponDelivery.y * currentDirection.y
              + facingDirectionUponDelivery.z * currentDirection.z;
+#endif
 
     if ( dot < 0.3f )
       owner->kill();

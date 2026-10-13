@@ -305,7 +305,21 @@ void SlavedUpdate::doAttackLogic( const Object *target )
 		Coord3D vector;
 		vector.set( *targetPos );
 		vector.sub( *master->getPosition() );
+#if defined(SAGE_RETAIL_RULES)
+		// GeneralsX @bugfix ZH Commander 13/10/2026 Summed (z + y) + x in the reference listing (inlined normalize).
+		{
+			const Real gxLen = sqrtf((vector.z*vector.z + vector.y*vector.y) + vector.x*vector.x);
+			if (gxLen != 0)
+			{
+				GX_VC6_DIVISIONS
+				vector.x /= gxLen;
+				vector.y /= gxLen;
+				vector.z /= gxLen;
+			}
+		}
+#else
 		vector.normalize();
+#endif
 		vector.scale( data->m_attackRange );
 
 		//Now that we have calculated the vector relative to me, add it to my position to get my goal.
@@ -368,7 +382,21 @@ void SlavedUpdate::doScoutLogic( const Coord3D *mastersDestination )
 		Coord3D vector;
 		vector.set( *mastersDestination );
 		vector.sub( *master->getPosition() );
+#if defined(SAGE_RETAIL_RULES)
+		// GeneralsX @bugfix ZH Commander 13/10/2026 Summed (z + y) + x in the reference listing (inlined normalize).
+		{
+			const Real gxLen = sqrtf((vector.z*vector.z + vector.y*vector.y) + vector.x*vector.x);
+			if (gxLen != 0)
+			{
+				GX_VC6_DIVISIONS
+				vector.x /= gxLen;
+				vector.y /= gxLen;
+				vector.z /= gxLen;
+			}
+		}
+#else
 		vector.normalize();
+#endif
 		vector.scale( data->m_scoutRange );
 
 		//Now that we have calculated the vector relative to me, add it to my position to get my goal.

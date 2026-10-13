@@ -855,7 +855,12 @@ void setWakeupIfInRange( Object *obj, void *userData)
 	Coord3D dstpos = *victim->getPosition();
 
 	srcpos.sub(dstpos);
+#if defined(SAGE_RETAIL_RULES)
+	// GeneralsX @bugfix ZH Commander 13/10/2026 Summed (z + y) + x in the reference listing.
+	if (sqrtf((srcpos.z*srcpos.z + srcpos.y*srcpos.y) + srcpos.x*srcpos.x) > vision)
+#else
 	if (srcpos.length() > vision)
+#endif
 		return;
 
 	ai->wakeUpAndAttemptToTarget();

@@ -110,13 +110,23 @@ void GeometryInfo::set(GeometryType type, Bool isSmall, Real height, Real majorR
 //-----------------------------------------------------------------------------
 static Real calcDotProduct(const Coord3D& a, const Coord3D& b)
 {
+#if defined(SAGE_RETAIL_RULES)
+	// GeneralsX @bugfix ZH Commander 13/10/2026 Summed (z + y) + x where the reference listing inlines it.
+	return (a.z*b.z + a.y*b.y) + a.x*b.x;
+#else
 	return a.x*b.x + a.y*b.y + a.z*b.z;
+#endif
 }
 
 //-----------------------------------------------------------------------------
 static Real calcDistSquared(const Coord3D& a, const Coord3D& b)
 {
+#if defined(SAGE_RETAIL_RULES)
+	// GeneralsX @bugfix ZH Commander 13/10/2026 Summed (dz*dz + dy*dy) + dx*dx inlined and in the linked copy in the reference listing.
+	return (sqr(a.z - b.z) + sqr(a.y - b.y)) + sqr(a.x - b.x);
+#else
 	return sqr(a.x - b.x) + sqr(a.y - b.y) + sqr(a.z - b.z);
+#endif
 }
 
 //-----------------------------------------------------------------------------

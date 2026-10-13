@@ -128,7 +128,21 @@ void Thing::getUnitDirectionVector2D(Coord3D& dir) const
 void Thing::getUnitDirectionVector3D(Coord3D& dir) const
 {
 	Vector3 vdir = m_transform.Get_X_Vector();
+#if defined(SAGE_RETAIL_RULES)
+	// GeneralsX @bugfix ZH Commander 13/10/2026 Summed (z + y) + x in the reference listing (inlined Normalize).
+	{
+		const float gxLen2 = (vdir.Z*vdir.Z + vdir.Y*vdir.Y) + vdir.X*vdir.X;
+		if (gxLen2 != 0.0f)
+		{
+			const float gxOolen = WWMath::Inv_Sqrt(gxLen2);
+			vdir.X *= gxOolen;
+			vdir.Y *= gxOolen;
+			vdir.Z *= gxOolen;
+		}
+	}
+#else
 	vdir.Normalize();
+#endif
 	dir.x = vdir.X;
 	dir.y = vdir.Y;
 	dir.z = vdir.Z;

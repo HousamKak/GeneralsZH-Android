@@ -495,7 +495,21 @@ Coord3D DockUpdate::computeApproachPosition( Int positionIndex, Object *forWhom 
 		Coord3D theirPosition = *forWhom->getPosition();
 		// A Boneless building wants to bias towards the caller for the arbitrary position
 		Vector3 offset( theirPosition.x - ourPosition.x, theirPosition.y - ourPosition.y, theirPosition.z - ourPosition.z );
+#if defined(SAGE_RETAIL_RULES)
+		// GeneralsX @bugfix ZH Commander 13/10/2026 Summed (z + y) + x in the reference listing (inlined Normalize).
+		{
+			const float gxLen2 = (offset.Z*offset.Z + offset.Y*offset.Y) + offset.X*offset.X;
+			if (gxLen2 != 0.0f)
+			{
+				const float gxOolen = WWMath::Inv_Sqrt(gxLen2);
+				offset.X *= gxOolen;
+				offset.Y *= gxOolen;
+				offset.Z *= gxOolen;
+			}
+		}
+#else
 		offset.Normalize();
+#endif
 		offset = offset * (us->getGeometryInfo().getMajorRadius() / 2);
 
 		workingPosition.x += offset.X;

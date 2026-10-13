@@ -206,8 +206,27 @@ Bool SpectreGunshipDeploymentUpdate::initiateIntentToDoSpecialPower(const Specia
       // HERE WE NEED TO CREATE THE POINT FURTHER OFF THE MAP SO WE CANT SEE THE LAME HOVER AND ACCELERATE BEHAVIOR
     Coord3D deltaToCreationPoint = m_initialTargetPosition;
     deltaToCreationPoint.sub( creationCoord );
+#if defined(SAGE_RETAIL_RULES)
+    // GeneralsX @bugfix ZH Commander 13/10/2026 Summed (z + y) + x in the reference listing.
+    Real distanceFromTarget = sqrtf((deltaToCreationPoint.z*deltaToCreationPoint.z + deltaToCreationPoint.y*deltaToCreationPoint.y) + deltaToCreationPoint.x*deltaToCreationPoint.x);
+#else
     Real distanceFromTarget = deltaToCreationPoint.length();
+#endif
+#if defined(SAGE_RETAIL_RULES)
+    // GeneralsX @bugfix ZH Commander 13/10/2026 Summed (z + y) + x in the reference listing (inlined normalize).
+    {
+    	const Real gxLen = sqrtf((deltaToCreationPoint.z*deltaToCreationPoint.z + deltaToCreationPoint.y*deltaToCreationPoint.y) + deltaToCreationPoint.x*deltaToCreationPoint.x);
+    	if (gxLen != 0)
+    	{
+    		GX_VC6_DIVISIONS
+    		deltaToCreationPoint.x /= gxLen;
+    		deltaToCreationPoint.y /= gxLen;
+    		deltaToCreationPoint.z /= gxLen;
+    	}
+    }
+#else
     deltaToCreationPoint.normalize();
+#endif
     deltaToCreationPoint.x *= ( distanceFromTarget + data->m_gunshipOrbitRadius );
     deltaToCreationPoint.y *= ( distanceFromTarget + data->m_gunshipOrbitRadius );
     creationCoord.x = m_initialTargetPosition.x - deltaToCreationPoint.x;

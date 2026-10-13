@@ -382,7 +382,12 @@ void EMPUpdate::doDisableAttack()
 			//Subtract this object (distance from missile to victim's previous position)
 			coord.sub( *pos );
 
+#if defined(SAGE_RETAIL_RULES)
+			// GeneralsX @bugfix ZH Commander 13/10/2026 Summed (z + y) + x in the reference listing.
+			Real lengthSqr = (coord.z*coord.z + coord.y*coord.y) + coord.x*coord.x;
+#else
 			Real lengthSqr = coord.lengthSqr();
+#endif
 			if( lengthSqr <= radius * 2.0f || lengthSqr <= 40.0f * 40.0f )
 			{
 				//Disable the target for a specified amount of time.

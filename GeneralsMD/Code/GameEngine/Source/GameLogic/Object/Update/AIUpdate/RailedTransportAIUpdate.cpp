@@ -153,7 +153,12 @@ void RailedTransportAIUpdate::pickAndMoveToInitialLocation()
 			v.z = waypoint->getLocation()->z - ourPos->z;
 
 			// what is the distance
+#if defined(SAGE_RETAIL_RULES)
+			// GeneralsX @bugfix ZH Commander 13/10/2026 Summed (z + y) + x in the reference listing.
+			Real dist = sqrtf((v.z*v.z + v.y*v.y) + v.x*v.x);
+#else
 			Real dist = v.length();
+#endif
 
 			// if this distance is smaller, use this one
 			if( dist < closestDist )
@@ -238,7 +243,12 @@ UpdateSleepTime RailedTransportAIUpdate::update()
 			v.x = end->x - start->x;
 			v.y = end->y - start->y;
 			v.z = end->z - start->z;
+#if defined(SAGE_RETAIL_RULES)
+			// GeneralsX @bugfix ZH Commander 13/10/2026 Summed (y + z) + x in the reference listing.
+			Real dist = sqrtf((v.y*v.y + v.z*v.z) + v.x*v.x);
+#else
 			Real dist = v.length();
+#endif
 			if( dist <= 5.0f || isIdle() )
 			{
 

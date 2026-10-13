@@ -305,7 +305,12 @@ static Real calcTransform(const Object* obj, const Coord3D *pos, Real maxTurnRat
 	otherDir.Normalize();
 
 	// dot of two unit vectors is cos of angle between them
+#if defined(SAGE_RETAIL_RULES)
+	// GeneralsX @bugfix ZH Commander 13/10/2026 Summed (x + z) + y in the reference listing.
+	Real c = (objDir.X*otherDir.X + objDir.Z*otherDir.Z) + objDir.Y*otherDir.Y;
+#else
 	Real c = Vector3::Dot_Product(objDir, otherDir);
+#endif
 	// bound it in case of numerical error
 	if (c < -1.0)
 		c = -1.0;
@@ -398,7 +403,21 @@ void NeutronMissileUpdate::doAttack()
 
 	// get true forward direction of missile
 	Vector3 trueDir = mx.Get_X_Vector();
+#if defined(SAGE_RETAIL_RULES)
+	// GeneralsX @bugfix ZH Commander 13/10/2026 Summed (z + y) + x in the reference listing (inlined Normalize).
+	{
+		const float gxLen2 = (trueDir.Z*trueDir.Z + trueDir.Y*trueDir.Y) + trueDir.X*trueDir.X;
+		if (gxLen2 != 0.0f)
+		{
+			const float gxOolen = WWMath::Inv_Sqrt(gxLen2);
+			trueDir.X *= gxOolen;
+			trueDir.Y *= gxOolen;
+			trueDir.Z *= gxOolen;
+		}
+	}
+#else
 	trueDir.Normalize();
+#endif
 
 	//
 	// Move forward along forward direction
@@ -526,7 +545,12 @@ UpdateSleepTime NeutronMissileUpdate::update()
 		{
 			m_reachedIntermediatePos = true;
 			getObject()->setPosition(&m_intermedPos);
+#if defined(SAGE_RETAIL_RULES)
+			// GeneralsX @bugfix ZH Commander 13/10/2026 Summed (z + x) + y in the reference listing.
+			Real vel = sqrtf((m_vel.z*m_vel.z + m_vel.x*m_vel.x) + m_vel.y*m_vel.y);
+#else
 			Real vel = m_vel.length();
+#endif
 			m_vel.x = 0;
 			m_vel.y = 0;
 			m_vel.z = -vel * STRAIGHT_DOWN_SLOW_FACTOR;
@@ -557,7 +581,12 @@ UpdateSleepTime NeutronMissileUpdate::update()
 	if (m_noTurnDistLeft > 0.0f && oldPosValid)
 	{
 		Coord3D newPos = *getObject()->getPosition();
+#if defined(SAGE_RETAIL_RULES)
+		// GeneralsX @bugfix ZH Commander 13/10/2026 Summed (z + y) + x in the reference listing.
+		Real distThisTurn = sqrtf((sqr(newPos.z-oldPos.z) + sqr(newPos.y-oldPos.y)) + sqr(newPos.x-oldPos.x));
+#else
 		Real distThisTurn = sqrt(sqr(newPos.x-oldPos.x) + sqr(newPos.y-oldPos.y) + sqr(newPos.z-oldPos.z));
+#endif
 		//DEBUG_LOG(("noTurnDist goes from %f to %f",m_noTurnDistLeft,m_noTurnDistLeft-distThisTurn));
 		m_noTurnDistLeft -= distThisTurn;
 	}

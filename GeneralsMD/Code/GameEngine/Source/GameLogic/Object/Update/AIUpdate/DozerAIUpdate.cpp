@@ -1895,7 +1895,21 @@ void DozerAIUpdate::privateResumeConstruction( Object *obj, CommandSourceType cm
 	Vector3 offset( ourPosition.x - theirPosition.x,
 									ourPosition.y - theirPosition.y,
 									ourPosition.z - theirPosition.z );
+#if defined(SAGE_RETAIL_RULES)
+	// GeneralsX @bugfix ZH Commander 13/10/2026 Summed (z + y) + x in the reference listing (inlined Normalize).
+	{
+		const float gxLen2 = (offset.Z*offset.Z + offset.Y*offset.Y) + offset.X*offset.X;
+		if (gxLen2 != 0.0f)
+		{
+			const float gxOolen = WWMath::Inv_Sqrt(gxLen2);
+			offset.X *= gxOolen;
+			offset.Y *= gxOolen;
+			offset.Z *= gxOolen;
+		}
+	}
+#else
 	offset.Normalize();
+#endif
 	// This scaler makes FindPositionAround bias towards our side
 	offset = offset * (target->getGeometryInfo().getMajorRadius() / 2);
 

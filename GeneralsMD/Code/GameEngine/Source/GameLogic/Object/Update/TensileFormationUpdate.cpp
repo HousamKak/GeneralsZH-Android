@@ -184,7 +184,12 @@ void TensileFormationUpdate::initLinks()
 		const Coord3D *theirPos = other->getPosition();
 		Coord3D delta = { theirPos->x - myPos->x, theirPos->y - myPos->y, theirPos->z - myPos->z };
 
+#if defined(SAGE_RETAIL_RULES)
+		// GeneralsX @bugfix ZH Commander 13/10/2026 Summed (z + y) + x in the reference listing.
+		thisDistance = sqrtf((delta.z*delta.z + delta.y*delta.y) + delta.x*delta.x);
+#else
 		thisDistance = delta.length();
+#endif
 		if ( closestDistance > thisDistance )
 		{
 			closestDistance = thisDistance;
@@ -321,7 +326,21 @@ UpdateSleepTime TensileFormationUpdate::update()
 			newPos.y = newPos.y*0.93f + desiredPos.y*0.07f;
 			newPos.z = MIN( m_lowestSlideElevation, TheTerrainLogic->getGroundHeight(newPos.x, newPos.y) );//rest on surface here
 
+#if defined(SAGE_RETAIL_RULES)
+			// GeneralsX @bugfix ZH Commander 13/10/2026 Summed (z + y) + x in the reference listing (inlined normalize).
+			{
+				const Real gxLen = sqrtf((tensor.z*tensor.z + tensor.y*tensor.y) + tensor.x*tensor.x);
+				if (gxLen != 0)
+				{
+					GX_VC6_DIVISIONS
+					tensor.x /= gxLen;
+					tensor.y /= gxLen;
+					tensor.z /= gxLen;
+				}
+			}
+#else
 			tensor.normalize();
+#endif
 			tensorSum.add( tensor );
 
 		}

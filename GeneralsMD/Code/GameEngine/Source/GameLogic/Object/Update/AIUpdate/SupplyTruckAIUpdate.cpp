@@ -167,7 +167,12 @@ Bool SupplyTruckAIUpdate::gainOneBox( Int remainingStock )
 			//figure out whether the best one is considerably far from the previous one (current position)
 			Coord3D delta = *getObject()->getPosition();
 			delta.sub( *bestWarehouse->getPosition() );
+#if defined(SAGE_RETAIL_RULES)
+			// GeneralsX @bugfix ZH Commander 13/10/2026 Summed (z + y) + x in the reference listing.
+			if ( sqrtf((delta.z*delta.z + delta.y*delta.y) + delta.x*delta.x) > getWarehouseScanDistance()/4)
+#else
 			if ( delta.length() > getWarehouseScanDistance()/4)
+#endif
 			playDepleted = TRUE;
 		}
 		else
