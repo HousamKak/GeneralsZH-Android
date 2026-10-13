@@ -4967,6 +4967,13 @@ UnsignedInt GameLogic::getCRC( Int mode, AsciiString deepCRCFileName )
 	{
 		GX_NET_TRACE("crc parts frame %u: afterPlayerList=%08X\n",
 			(unsigned)m_frame, (unsigned)xferCRC->getCRC());
+		for (Int gxI = 0; gxI < ThePlayerList->getPlayerCount(); ++gxI)
+		{
+			const Player *gxP = ThePlayerList->getNthPlayer(gxI);
+			if (gxP != nullptr && (gxP->getSkillPoints() != 0 || gxP->getSciencePurchasePoints() != 0))
+				GX_NET_TRACE("crc player frame %u: %d skill=%d purchase=%d\n", (unsigned)m_frame, (int)gxI,
+					(int)gxP->getSkillPoints(), (int)gxP->getSciencePurchasePoints());
+		}
 	}
 
 	GXCrcStream::mark("TheAI");
