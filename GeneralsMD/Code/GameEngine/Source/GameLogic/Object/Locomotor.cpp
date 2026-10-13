@@ -1354,6 +1354,16 @@ void Locomotor::moveTowardsPositionTreads(Object* obj, PhysicsBehavior *physics,
 	// Maintain goal speed
 	//
 	Real speedDelta = goalSpeed - actualSpeed;
+	if (gxProbeWanted(obj->getID()))
+	{
+		const Real gxV[9] = { onPathDistToGoal, desiredSpeed, goalSpeed, actualSpeed, slowDownDist, angleCoeff, relAngle, speedDelta, m_brakingFactor };
+		const unsigned *gxW = (const unsigned *)gxV;
+		fprintf(stderr, "[GX-NET] probe frame %u id %u treads braking=%d", (unsigned)TheGameLogic->getFrame(), (unsigned)obj->getID(), (int)getFlag(IS_BRAKING));
+		for (int gxI = 0; gxI < 9; ++gxI)
+			fprintf(stderr, " %08X", gxW[gxI]);
+		fprintf(stderr, "\n");
+		fflush(stderr);
+	}
 	if (speedDelta != 0.0f)
 	{
 		Real mass = physics->getMass();
