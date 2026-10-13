@@ -193,7 +193,12 @@ void FireOCLAfterWeaponCooldownUpdate::fireOCL()
 	//Calculate the lifetime of the OCL.
 	UnsignedInt now = TheGameLogic->getFrame();
 	Real seconds = (now - m_startFrame) * SECONDS_PER_LOGICFRAME_REAL;
+#if defined(SAGE_RETAIL_RULES)
+	// GeneralsX @bugfix ZH Commander 13/10/2026 Multiplied (seconds * lifetime) * 0.001 in the reference listing.
+	seconds = (seconds * (Real)data->m_oclLifetimePerSecond) * 0.001f;
+#else
 	seconds *= data->m_oclLifetimePerSecond * 0.001f;
+#endif
 	UnsignedInt oclFrames = (UnsignedInt)(seconds * static_cast<float>(LOGICFRAMES_PER_SECOND));
 	oclFrames = MIN( oclFrames, data->m_oclMaxFrames );
 
