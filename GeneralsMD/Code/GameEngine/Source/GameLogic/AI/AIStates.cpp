@@ -68,6 +68,7 @@
 #include "GameLogic/Module/JetAIUpdate.h"
 #include "GameLogic/Module/PhysicsUpdate.h"
 #include "GameLogic/Module/StealthUpdate.h"
+#include "Lib/X87Real.h"
 
 
 static Bool cannotPossiblyAttackObject( State *thisState, void* userData );
@@ -2117,8 +2118,9 @@ StateReturnType AIMoveToState::update()
 			Real goalSpeed = goalObj->getPhysics()->getVelocityMagnitude();
 			if (mySpeed<5.0f) mySpeed = 5.0f; // avoid divide by 0.
 #if defined(SAGE_RETAIL_RULES)
-			// GeneralsX @bugfix ZH Commander 13/10/2026 Summed (y + z) + x in the reference listing.
-			Real leadDistance = (0.5*sqrtf((delta.y*delta.y + delta.z*delta.z) + delta.x*delta.x)) * goalSpeed / mySpeed;
+			// GeneralsX @bugfix ZH Commander 13/10/2026 Summed (y + z) + x in the reference listing, and
+			// each step rounds to float there (24-bit x87): the double 0.5 kept the whole line in double here.
+			Real leadDistance = gxVc6Div((sqrtf((delta.y*delta.y + delta.z*delta.z) + delta.x*delta.x) * 0.5f) * goalSpeed, mySpeed);
 #else
 			Real leadDistance = (0.5*delta.length()) * goalSpeed / mySpeed;
 #endif
