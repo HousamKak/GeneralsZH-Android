@@ -7504,10 +7504,21 @@ StateReturnType AIFaceState::update()
 		}
 		pos = target->getPosition();
 	}
+#if defined(SAGE_RETAIL_RULES)
+	// GeneralsX @bugfix ZH Commander 13/10/2026 The reference listing stores a rounded copy but
+	// compares the unrounded angle still in the register.
+	const double gxRelAngleX87 = ThePartitionManager->gxRelativeAngle2DUnrounded( obj, pos );
+	Real relAngle = (Real)gxRelAngleX87;
+#else
 	Real relAngle = ThePartitionManager->getRelativeAngle2D( obj, pos );
+#endif
 
 	const Real REL_THRESH = 0.035f;	// about 2 degrees. (getRelativeAngle2D is current only accurate to about 1.25 degrees)
+#if defined(SAGE_RETAIL_RULES)
+	if( fabs( gxRelAngleX87 ) < REL_THRESH )
+#else
 	if( fabs( relAngle ) < REL_THRESH )
+#endif
 	{
 		return STATE_SUCCESS;
 	}

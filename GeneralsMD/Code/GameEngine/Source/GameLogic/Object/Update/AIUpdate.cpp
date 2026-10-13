@@ -1439,13 +1439,22 @@ Bool AIUpdateInterface::needToRotate()
 	if (this->getCurLocomotor() && this->getCurLocomotor()->getWanderWidthFactor()>0.0f)
 		return FALSE; // wanderers don't need to rotate.
 
+#if defined(SAGE_RETAIL_RULES)
+	// GeneralsX @bugfix ZH Commander 13/10/2026 The reference listing compares the angle unrounded, from the register.
+	double deltaAngle = 0;
+#else
 	Real deltaAngle = 0;
+#endif
 	if (getPath())
 	{
 		ClosestPointOnPathInfo info;
 		CRCDEBUG_LOG(("AIUpdateInterface::needToRotate() - calling computePointOnPath() for object %d", getObject()->getID()));
 		getPath()->computePointOnPath(getObject(), m_locomotorSet, *getObject()->getPosition(), info);
+#if defined(SAGE_RETAIL_RULES)
+		deltaAngle = ThePartitionManager->gxRelativeAngle2DUnrounded( getObject(), &info.posOnPath );
+#else
 		deltaAngle = ThePartitionManager->getRelativeAngle2D( getObject(), &info.posOnPath );
+#endif
 	}
 
 	if (fabs(deltaAngle)>PI/30)

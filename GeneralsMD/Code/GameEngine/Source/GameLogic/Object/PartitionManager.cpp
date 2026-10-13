@@ -3691,6 +3691,14 @@ Real PartitionManager::getRelativeAngle2D( const Object *obj, const Object *othe
 //-----------------------------------------------------------------------------
 Real PartitionManager::getRelativeAngle2D( const Object *obj, const Coord3D *pos )
 {
+#if defined(SAGE_RETAIL_RULES)
+	return (Real)gxRelativeAngle2DUnrounded(obj, pos);
+}
+
+//-----------------------------------------------------------------------------
+double PartitionManager::gxRelativeAngle2DUnrounded( const Object *obj, const Coord3D *pos )
+{
+#endif
 	Coord3D v;
 
 	// compute vector to given position
@@ -3722,7 +3730,11 @@ Real PartitionManager::getRelativeAngle2D( const Object *obj, const Coord3D *pos
 	else if (c > 1.0)
 		c = 1.0;
 
+#if defined(SAGE_RETAIL_RULES)
+	double value = ACos( c ).v;
+#else
 	Real value = (Real)ACos( c );
+#endif
 
 	// Determine sign by checking Z component of dir cross v
 	// Note this is assumes 2D, and is identical to dotting the perpendicular of v with dir

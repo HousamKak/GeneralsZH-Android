@@ -1387,6 +1387,11 @@ public:
 
 	Real getRelativeAngle2D( const Object *obj, const Object *otherObj );
 	Real getRelativeAngle2D( const Object *obj, const Coord3D *pos );
+#if defined(SAGE_RETAIL_RULES)
+	// GeneralsX @bugfix ZH Commander 13/10/2026 Retail returns the angle unrounded in ST0; callers that
+	// compare it straight from the register use this.
+	double gxRelativeAngle2DUnrounded( const Object *obj, const Coord3D *pos );
+#endif
 
 	void getVectorTo(const Object *obj, const Object *otherObj, DistanceCalculationType dc, Coord3D& vec);
 	void getVectorTo(const Object *obj, const Coord3D *pos, DistanceCalculationType dc, Coord3D& vec);
