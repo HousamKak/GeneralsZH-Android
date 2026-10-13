@@ -1644,8 +1644,14 @@ Bool Locomotor::fixInvalidPosition(Object* obj, PhysicsBehavior *physics)
 
 		if (dot<0) {
 			dot = sqrt(-dot);
+#if defined(SAGE_RETAIL_RULES)
+			// GeneralsX @bugfix ZH Commander 13/10/2026 Multiplied (mass * x) * dot in the reference listing.
+			correctionNormalized.x = (physics->getMass() * correctionNormalized.x) * dot;
+			correctionNormalized.y = (physics->getMass() * correctionNormalized.y) * dot;
+#else
 			correctionNormalized.x *= dot*physics->getMass();
 			correctionNormalized.y *= dot*physics->getMass();
+#endif
 			physics->applyMotiveForce(&correctionNormalized);
 		}
 
