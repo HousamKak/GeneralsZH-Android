@@ -70,6 +70,7 @@
 #include "GameLogic/TurretAI.h"
 #include "GameLogic/Weapon.h"
 #include "Common/Radar.h"									// For TheRadar
+bool gxProbeWanted(UnsignedInt id);
 
 #define SLEEPY_AI
 
@@ -2180,7 +2181,6 @@ Bool AIUpdateInterface::isValidLocomotorPosition(const Coord3D* pos) const
 	return TheAI->pathfinder()->validMovementPosition( getObject()->getCrusherLevel()>0, getObject()->getLayer(), m_locomotorSet, pos );
 }
 
-bool gxProbeWanted(UnsignedInt id);
 //-------------------------------------------------------------------------------------------------
 DECLARE_PERF_TIMER(doLocomotor)
 /**
