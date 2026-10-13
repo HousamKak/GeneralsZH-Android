@@ -56,6 +56,10 @@ stream with section marks). Then a mismatch is a word-by-word diff, not a hunt.
 | STL algorithm | `PartitionSolver` | STLport 4.5.3 `std::sort` (`Common/RetailSort.h`), unstable above 16 elements; checked identical to VC6 + STLport |
 | Division by a compile-time constant | everywhere (`-freciprocal-math` on the retail engine) | VC6 `/O2` multiplies by the rounded reciprocal: INI `"120%"` is 1.19999993. clang matches bit for bit, but also merges 3+ divisions by one variable and hoists loop-invariant divisors, which VC6 never did: those sites use `GX_VC6_DIVISIONS` / `gxVc6Div` (`Lib/X87Real.h`), found by diffing reciprocal `fdiv`s per function in the disassembly. Moved five replays 100 to 2100 frames further |
 | Uninitialised variables | `AIPlayer::onUnitProduced` `supplyTruck` | VC6 left it `true`; TheSuperHackers keep `true` only `#if _MSC_VER < 1300`. With `false` the AI chose its next building the frame its dozer appeared. Grep the reference for `_MSC_VER < 1300` in simulation code: each is a retail behaviour the retail engine must also take |
+| Reassociated products | invalid-position push (`(mass * x) * dot`), OCL lifetime, build cost with handicap, heal rates, wheel turn amount, and more (listing audit) | VC6 regroups `a * b * c` and `x *= a * b` per site like it does sums |
+| Inlined helpers regrouped per call site | `Coord3D::length`/`lengthSqr`/`normalize`, `Vector3::Length2`/`Normalize`, dot products (73 sites) | each inlined copy has its own order; the out-of-line copies sum in source order. Found by simulating the x87 stack over every listing |
+| Double promotion | missile lead distance `(0.5*len) * goalSpeed / mySpeed`, cell snapping `cellX + 0.05`, `pos.z - 0.1`, `double` locals in PartitionManager | a double literal or local keeps the phone's whole expression in double with one rounding; retail rounds every step to 24 bits. Write the retail form in float, keeping a double constant only where VC6 loads it as a QWORD for one operation. The missile lead fix alone moved four replays 3000 to 16000 frames |
+| Trig results kept in a register, per site | box corner collision tests (`rectToFourPoints`, `testRotatedPointsAgainstRect`: cosine stored, sine kept), wall and fence cell tests, formation offsets, `toAngle` users | a `(Real)` cast does not round in VC6; only a store does. Read each site. The box test fix moved babai from 9600 to 79400 |
 | Pointer size in the checksum | `BitFlags::xfer` (`BitFlagsIO.h`) | in CRC mode retail hashes `sizeof( this )` bytes of the mask: 4 on every PC client, 8 on a 64-bit build. Invisible until a mask enters the checksum (a player's battle plan bonuses); then the player-list part differs the frame the plan starts. Hash 4 bytes. Grep for `sizeof( this )` and other pointer-sized hashing when a non-object checksum part differs |
 | Float to int | `fast_float2long_round`, `realToIntTruncRef` | `fistp` rounds halves to even; `__ftol` converts to 64 bits and keeps the low dword, so NaN gives 0 (the GeneralsOnline client gives `0x80000000`) |
 | Rotations | `Matrix3D::Rotate_*`, `Pre_Rotate_*`, `In_Place_Pre_Rotate_*`, `Vector3::Rotate_Z` (`gxRotSin/Cos` in `wwmath.h`) | inlined `fsin`/`fcos` stay in registers. Whether VC6 spills them depends on the function: compile the reference header with the reference flags (`/O2 /Ob2`, `/FAs`) and read each site. `Matrix3x3::Set(axis, angle)` rounds the sine but not the cosine and reorders `x*y*(1-c)` to `((1-c)*x)*y`; the simulation does not call it |
@@ -80,5 +84,12 @@ Ruled out by measurement: INI number parsing (VC6 `sscanf("%f")` is correctly ro
   being retail. Trace from another translation unit (the `crc mtx` line in `GameLogic.cpp`, the
   transform probe in `Thing.cpp`) or from the caller, and map the phone's return addresses to
   function names to find which caller set a wrong matrix.
+- When a value differs and its own arithmetic matches the listing, the input differs: fit the
+  inputs offline (perturb each by a few ulps until the retail output appears), then trace where that
+  input comes from. A missile's thrust direction was right; its goal was 1 ulp off, from the lead
+  distance computed in another file.
+- A unit that brakes or stops one frame early or late is a decision, not arithmetic: log the
+  decision's inputs on both sides (blocked state, collisions, path distance) from the AI's translation
+  unit, never from inside the function being compared.
 - Test builds go out with `release=false`. `release=true` publishes the APK as the site's
   download and announces it to installed apps.
