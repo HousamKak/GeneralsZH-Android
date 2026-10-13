@@ -1622,6 +1622,19 @@ void Locomotor::moveTowardsPositionWheels(Object* obj, PhysicsBehavior *physics,
 	if (moveBackwards) {
 		speedDelta = -goalSpeed+actualSpeed;
 	}
+	if (gxProbeWanted(obj->getID()))
+	{
+		const Real gxV[10] = { onPathDistToGoal, actualSpeed, slowDownDist, effectiveSlowDownDist, goalSpeed, desiredSpeed,
+			relAngle, turnSpeed, speedDelta, m_brakingFactor };
+		const unsigned *gxW = (const unsigned *)gxV;
+		fprintf(stderr, "[GX-NET] probe frame %u id %u wheels braking=%d donut=%u back=%d",
+			(unsigned)TheGameLogic->getFrame(), (unsigned)obj->getID(), (int)getFlag(IS_BRAKING), (unsigned)m_donutTimer, (int)moveBackwards);
+		for (int gxI = 0; gxI < 10; ++gxI)
+			fprintf(stderr, " %08X", gxW[gxI]);
+		fprintf(stderr, " goal %08X %08X pos %08X %08X\n", *(const unsigned *)&goalPos.x, *(const unsigned *)&goalPos.y,
+			*(const unsigned *)&obj->getPosition()->x, *(const unsigned *)&obj->getPosition()->y);
+		fflush(stderr);
+	}
 	if (speedDelta != 0.0f)
 	{
 		Real mass = physics->getMass();
