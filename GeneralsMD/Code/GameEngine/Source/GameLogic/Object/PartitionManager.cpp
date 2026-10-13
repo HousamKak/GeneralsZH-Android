@@ -409,7 +409,12 @@ static void testRotatedPointsAgainstRect(
 	Real minor = (a->geom.getGeomType() == GEOMETRY_SPHERE) ? a->geom.getMajorRadius() : a->geom.getMinorRadius();
 
 	Real c = (Real)Cos(-a->angle);
+#if defined(SAGE_RETAIL_RULES)
+	// GeneralsX @bugfix ZH Commander 13/10/2026 The reference listing stores the cosine and keeps the sine in a register.
+	const X87Real s = Sin(-a->angle);
+#else
 	Real s = (Real)Sin(-a->angle);
+#endif
 
 	for (Int i = 0; i < 4; ++i, ++pts)
 	{
@@ -443,7 +448,12 @@ static void rectToFourPoints(
 )
 {
 	Real c = (Real)Cos(a->angle);
+#if defined(SAGE_RETAIL_RULES)
+	// GeneralsX @bugfix ZH Commander 13/10/2026 The reference listing stores the cosine and keeps the sine in a register.
+	const X87Real s = Sin(a->angle);
+#else
 	Real s = (Real)Sin(a->angle);
+#endif
 
 	Real exc = a->geom.getMajorRadius()*c;
 	Real eyc = a->geom.getMinorRadius()*c;
@@ -456,14 +466,24 @@ static void rectToFourPoints(
 
 	// tr
 	pts[1].x = a->position.x + exc - eys;
+#if defined(SAGE_RETAIL_RULES)
+	// GeneralsX @bugfix ZH Commander 13/10/2026 Summed (exs + eyc) + y in the reference listing.
+	pts[1].y = (exs + eyc) + a->position.y;
+#else
 	pts[1].y = a->position.y + eyc + exs;
+#endif
 
 	// bl
 	pts[2].x = a->position.x - exc + eys;
 	pts[2].y = a->position.y - eyc - exs;
 
 	// br
+#if defined(SAGE_RETAIL_RULES)
+	// GeneralsX @bugfix ZH Commander 13/10/2026 Summed (eys + x) + exc in the reference listing.
+	pts[3].x = (eys + a->position.x) + exc;
+#else
 	pts[3].x = a->position.x + exc + eys;
+#endif
 	pts[3].y = a->position.y - eyc + exs;
 }
 
