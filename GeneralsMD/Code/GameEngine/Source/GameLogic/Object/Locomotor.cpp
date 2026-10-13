@@ -70,6 +70,16 @@ static Real gxRetailAtan2Turn(Real dy, Real dx, Real angle, Real *desiredAngle)
 #include "Lib/X87Real.h"
 
 
+#if defined(SAGE_RETAIL_RULES)
+// GeneralsX @bugfix ZH Commander 13/10/2026 VC6 compiled "fabs(a) > fabs(b)" here as fcompp of |b| against
+// |a| testing only C0, which an unordered compare also sets: with a NaN (a braking factor of 0/0) the
+// test is true and the force becomes maxForceNeeded. IEEE says false, and the NaN force was then dropped.
+static inline Bool gxVc6AbsGreater(Real a, Real b)
+{
+	return !(fabs(b) >= fabs(a));
+}
+#endif
+
 static const Real DONUT_TIME_DELAY_SECONDS=2.5f;
 static const Real DONUT_DISTANCE=4.0*PATHFIND_CELL_SIZE_F;
 
@@ -1328,7 +1338,11 @@ void Locomotor::moveTowardsPositionTreads(Object* obj, PhysicsBehavior *physics,
 			see how much force we really need to achieve our goal speed...
 		*/
 		Real maxForceNeeded = mass * speedDelta;
+#if defined(SAGE_RETAIL_RULES)
+		if (gxVc6AbsGreater(accelForce, maxForceNeeded))
+#else
 		if (fabs(accelForce) > fabs(maxForceNeeded))
+#endif
 			accelForce = maxForceNeeded;
 
 		const Coord3D *dir = obj->getUnitDirectionVector2D();
@@ -1577,7 +1591,11 @@ void Locomotor::moveTowardsPositionWheels(Object* obj, PhysicsBehavior *physics,
 			see how much force we really need to achieve our goal speed...
 		*/
 		Real maxForceNeeded = mass * speedDelta;
+#if defined(SAGE_RETAIL_RULES)
+		if (gxVc6AbsGreater(accelForce, maxForceNeeded))
+#else
 		if (fabs(accelForce) > fabs(maxForceNeeded))
+#endif
 			accelForce = maxForceNeeded;
 
 		//DEBUG_LOG(("Braking %d, actualSpeed %f, goalSpeed %f, delta %f, accel %f", getFlag(IS_BRAKING),
@@ -1774,7 +1792,11 @@ void Locomotor::moveTowardsPositionLegs(Object* obj, PhysicsBehavior *physics, c
 			see how much force we really need to achieve our goal speed...
 		*/
 		Real maxForceNeeded = mass * speedDelta;
+#if defined(SAGE_RETAIL_RULES)
+		if (gxVc6AbsGreater(accelForce, maxForceNeeded))
+#else
 		if (fabs(accelForce) > fabs(maxForceNeeded))
+#endif
 			accelForce = maxForceNeeded;
 
 		const Coord3D *dir = obj->getUnitDirectionVector2D();
@@ -1917,7 +1939,11 @@ void Locomotor::moveTowardsPositionClimb(Object* obj, PhysicsBehavior *physics, 
 			see how much force we really need to achieve our goal speed...
 		*/
 		Real maxForceNeeded = mass * speedDelta;
+#if defined(SAGE_RETAIL_RULES)
+		if (gxVc6AbsGreater(accelForce, maxForceNeeded))
+#else
 		if (fabs(accelForce) > fabs(maxForceNeeded))
+#endif
 			accelForce = maxForceNeeded;
 
 		const Coord3D *dir = obj->getUnitDirectionVector2D();
@@ -2565,7 +2591,11 @@ void Locomotor::moveTowardsPositionOther(Object* obj, PhysicsBehavior *physics, 
 			see how much force we really need to achieve our goal speed...
 		*/
 		Real maxForceNeeded = mass * speedDelta;
+#if defined(SAGE_RETAIL_RULES)
+		if (gxVc6AbsGreater(accelForce, maxForceNeeded))
+#else
 		if (fabs(accelForce) > fabs(maxForceNeeded))
+#endif
 			accelForce = maxForceNeeded;
 
 		Coord3D force;
@@ -2739,7 +2769,11 @@ void Locomotor::maintainCurrentPositionHover(Object* obj, PhysicsBehavior *physi
 				see how much force we really need to achieve our goal speed...
 			*/
 			Real maxForceNeeded = mass * speedDelta;
+#if defined(SAGE_RETAIL_RULES)
+			if (gxVc6AbsGreater(accelForce, maxForceNeeded))
+#else
 			if (fabs(accelForce) > fabs(maxForceNeeded))
+#endif
 				accelForce = maxForceNeeded;
 
 			const Coord3D *dir = obj->getUnitDirectionVector2D();
