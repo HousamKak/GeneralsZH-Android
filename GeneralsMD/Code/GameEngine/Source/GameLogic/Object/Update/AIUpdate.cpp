@@ -2191,6 +2191,12 @@ UpdateSleepTime AIUpdateInterface::doLocomotor()
 	if (gxProbeWanted(getObject()->getID()))
 	{
 		fprintf(stderr, "[GX-NET] probe frame %u id %u block isBlocked=%d frames=%d maxBlocked=%08X\n",
+			(unsigned)TheGameLogic->getFrame(), (unsigned)getObject()->getID(), 200 + (int)m_locomotorGoalType,
+			(int)getStateMachine()->getCurrentStateID(), *(const unsigned *)&m_locomotorGoalData.x);
+		fprintf(stderr, "[GX-NET] probe frame %u id %u block isBlocked=%d frames=%d maxBlocked=%08X\n",
+			(unsigned)TheGameLogic->getFrame(), (unsigned)getObject()->getID(), 300 + (int)isMoving(),
+			(int)m_isAttemptingToMove, *(const unsigned *)&m_locomotorGoalData.y);
+		fprintf(stderr, "[GX-NET] probe frame %u id %u block isBlocked=%d frames=%d maxBlocked=%08X\n",
 			(unsigned)TheGameLogic->getFrame(), (unsigned)getObject()->getID(), (int)m_isBlocked, (int)m_blockedFrames,
 			*(const unsigned *)&m_curMaxBlockedSpeed);
 		fflush(stderr);
