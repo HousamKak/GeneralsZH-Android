@@ -322,7 +322,12 @@ void PropagandaTowerBehavior::effectLogic( Object *obj, Bool giving,
 			else
 				healthPercent = modData->m_autoHealPercentPerSecond;
 
+#if defined(SAGE_RETAIL_RULES)
+			// GeneralsX @bugfix ZH Commander 14/10/2026 Multiplied (maxHealth * percent) * (1/30) in the reference listing.
+			Real amount = (body->getMaxHealth() * healthPercent) * (1.0f / static_cast<float>(LOGICFRAMES_PER_SECOND));
+#else
 			Real amount = healthPercent / static_cast<float>(LOGICFRAMES_PER_SECOND) * body->getMaxHealth();
+#endif
 
 	// Dustin wants the healing effect not to stack from multiple propaganda towers...
 	// To accomplish this, I'll give every object a single healing-sender (ID)
