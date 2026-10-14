@@ -6003,7 +6003,12 @@ void ScriptActions::doTeamPartialUseCommandButton( Real percentage, const AsciiS
 		}
 	}
 
+#if defined(SAGE_RETAIL_RULES)
+	// GeneralsX @bugfix ZH Commander 14/10/2026 Multiplied (size * percentage) * 0.01f in the reference listing (the 1/100 reciprocal last).
+	Int numObjs = /*REAL_TO_INT_CEIL*/(((Real)objList.size() * percentage) * (1.0f / 100.0f));
+#else
 	Int numObjs = /*REAL_TO_INT_CEIL*/(percentage / 100.0f * objList.size());
+#endif
 	Int count = 0;
 	for (std::vector<Object*>::const_iterator it = objList.begin(); it != objList.end(); ++it)
 	{

@@ -507,7 +507,12 @@ UpdateSleepTime TransportContain::update()
 					if( body->getHealth() < body->getMaxHealth() )
 					{
 						//Calculate the health to be regenerated on each unit.
+#if defined(SAGE_RETAIL_RULES)
+						// GeneralsX @bugfix ZH Commander 14/10/2026 Multiplied ((maxHealth * healthRegen) * SECONDS_PER_LOGICFRAME_REAL) * 0.01f in the reference listing (the 1/100 reciprocal last).
+						Real regen = ((body->getMaxHealth() * moduleData->m_healthRegen) * SECONDS_PER_LOGICFRAME_REAL) * (1.0f / 100.0f);
+#else
 						Real regen = body->getMaxHealth() * moduleData->m_healthRegen / 100.0f * SECONDS_PER_LOGICFRAME_REAL;
+#endif
 
 						//Perform the actual healing for this frame.
 //						DamageInfo damageInfo;
