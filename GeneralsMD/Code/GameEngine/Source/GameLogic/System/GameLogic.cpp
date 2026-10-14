@@ -4096,6 +4096,8 @@ void gxObjTraceDump()
 // PhysicsBehavior::update ('P': height before, acceleration, velocity before and after the
 // clamp, height after, motive) and from Locomotor::handleBehaviorZ ('L': the lift
 // calculation's inputs and output), with the raw float bits, so each rule the PC could be
+#include "GameLogic/ExperienceTracker.h"
+#include "GameLogic/Weapon.h"
 static void gxObjPartsLine(char *buf, size_t n, Object *obj)
 {
 	XferCRC x;
