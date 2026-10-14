@@ -335,6 +335,10 @@ void ActiveBody::doDamageFX( const DamageInfo *damageInfo )
 	}
 }
 
+bool gxProbeWanted(UnsignedInt id);
+#define GX_DMG_OUT(id) if (gxProbeWanted(id))
+#define GX_DMG_PRINTF fprintf(stderr, "[GX-NET] "
+#define GX_DMG_END fflush(stderr);
 //-------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------
 void ActiveBody::attemptDamage( DamageInfo *damageInfo )
@@ -368,6 +372,15 @@ void ActiveBody::attemptDamage( DamageInfo *damageInfo )
 	Bool alreadyHandled = FALSE;
 	Bool allowModifier = TRUE;
 	Real amount = m_curArmor.adjustDamage(damageInfo->in.m_damageType, damageInfo->in.m_amount);
+	{
+		GX_DMG_OUT(obj->getID())
+		{
+			GX_DMG_PRINTF "dmg frame %u id %u in %08X type %d src %u srcTmpl %s out %08X\n", (unsigned)TheGameLogic->getFrame(), (unsigned)obj->getID(),
+				*(const unsigned *)&damageInfo->in.m_amount, (int)damageInfo->in.m_damageType, (unsigned)damageInfo->in.m_sourceID,
+				damager ? damager->getTemplate()->getName().str() : "-", *(const unsigned *)&amount);
+			GX_DMG_END
+		}
+	}
 
 	switch( damageInfo->in.m_damageType )
 	{
@@ -1216,6 +1229,14 @@ void ActiveBody::updateBodyParticleSystems()
 //-------------------------------------------------------------------------------------------------
 void ActiveBody::internalChangeHealth( Real delta )
 {
+	{
+		GX_DMG_OUT(getObject()->getID())
+		{
+			GX_DMG_PRINTF "health frame %u id %u cur %08X delta %08X\n", (unsigned)TheGameLogic->getFrame(), (unsigned)getObject()->getID(),
+				*(const unsigned *)&m_currentHealth, *(const unsigned *)&delta);
+			GX_DMG_END
+		}
+	}
 	// save the current health as the previous health
 	m_prevHealth = m_currentHealth;
 
