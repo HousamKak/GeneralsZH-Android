@@ -10,9 +10,7 @@
 		buy_lede: "كل مفتاح يفعّل هاتفًا واحدًا، وبشكل دائم. تخفيض: <span class=\"sale-price\"><del><bdi>$15</bdi></del> <strong><bdi>$10</bdi></strong></span>.",
 		pp_title: "ادفع عبر PayPal أو البطاقة",
 		pp_body: "يظهر مفتاحك هنا فور إتمام الدفع.",
-		pp_soon: "الدفع عبر البطاقة وPayPal سيتوفر قريبًا. استخدم Whish حتى ذلك الحين.",
-		wh_title: "ادفع عبر Whish",
-		wh_body: "أرسل سعر التخفيض <bdi>$10</bdi> عبر Whish ورسالة إلى <bdi class=\"phone\" dir=\"ltr\">+961 71 406 981</bdi>. ستصلك رسالة فيها مفتاحك.",
+		pp_soon: "الدفع عبر البطاقة وPayPal سيتوفر قريبًا.",
 		key_label: "مفتاح التفعيل الخاص بك",
 		key_copy: "نسخ المفتاح",
 		key_help: "افتح ZH Commander وأدخل هذا المفتاح. احتفظ به في مكان آمن؛ ويمكنك استرجاعه أيضًا برقم المعاملة من إيصال PayPal.",
@@ -43,7 +41,7 @@
 		s1_t: "حمّل وثبّت",
 		s1_b: "حمّل ملف APK على هاتفك وافتحه. سيطلب أندرويد السماح بالتثبيت من المتصفح؛ اسمح بذلك مرة واحدة.",
 		s2_t: "احصل على مفتاحك",
-		s2_b: "سعر المفتاح المخفّض 10 دولارات بدلًا من 15. <a href=\"#buy\">ادفع عبر PayPal أو البطاقة</a> واحصل عليه فورًا، أو ادفع عبر Whish. شكل المفتاح مثل <code dir=\"ltr\">GZH-7K3P-Q9XM-A2BC</code>، وكل مفتاح يفعّل هاتفًا واحدًا، وبشكل دائم.",
+		s2_b: "سعر المفتاح المخفّض 10 دولارات بدلًا من 15. <a href=\"#buy\">ادفع عبر PayPal أو البطاقة</a> واحصل عليه فورًا. شكل المفتاح مثل <code dir=\"ltr\">GZH-7K3P-Q9XM-A2BC</code>، وكل مفتاح يفعّل هاتفًا واحدًا، وبشكل دائم.",
 		s3_t: "أضف ملفات اللعبة",
 		s3_b: "اللعبة نفسها غير مضمّنة. اشترِ <a href=\"https://store.steampowered.com/app/2732960/\" rel=\"noopener\">Command &amp; Conquer Generals Zero Hour من Steam</a>، ثم انسخ مجلد اللعبة إلى هاتفك واختره من التطبيق.",
 		s4_t: "العب",
@@ -100,24 +98,24 @@
 
 	var MSG = {
 		en: {
-			pp_soon: "Card and PayPal checkout opens soon. Until then, use Whish.",
+			pp_soon: "Card and PayPal checkout opens soon.",
 			pp_ready: "",
 			pp_working: "Confirming your payment…",
 			pp_pending: "PayPal is still processing your payment. Once it clears, find your key below with your transaction ID.",
-			pp_failed: "The payment didn't go through, and you weren't charged. Try again, or pay with Whish.",
-			pp_error: "Checkout couldn't load. Refresh the page, or pay with Whish.",
+			pp_failed: "The payment didn't go through, and you weren't charged. Try again.",
+			pp_error: "Checkout couldn't load. Refresh the page.",
 			copied: "Copied",
 			lookup_working: "Looking it up…",
 			lookup_missing: "No key found for that ID. Check the transaction ID on your PayPal receipt.",
 			lookup_error: "Couldn't check right now. Try again in a minute."
 		},
 		ar: {
-			pp_soon: "الدفع عبر البطاقة وPayPal سيتوفر قريبًا. استخدم Whish حتى ذلك الحين.",
+			pp_soon: "الدفع عبر البطاقة وPayPal سيتوفر قريبًا.",
 			pp_ready: "",
 			pp_working: "جارٍ تأكيد الدفع…",
 			pp_pending: "ما زال PayPal يعالج دفعتك. عند اكتمالها، ابحث عن مفتاحك في الأسفل برقم المعاملة.",
-			pp_failed: "لم تتم عملية الدفع، ولم يُخصم منك أي مبلغ. حاول مجددًا أو ادفع عبر Whish.",
-			pp_error: "تعذّر تحميل صفحة الدفع. حدّث الصفحة أو ادفع عبر Whish.",
+			pp_failed: "لم تتم عملية الدفع، ولم يُخصم منك أي مبلغ. حاول مجددًا.",
+			pp_error: "تعذّر تحميل صفحة الدفع. حدّث الصفحة.",
 			copied: "تم النسخ",
 			lookup_working: "جارٍ البحث…",
 			lookup_missing: "لا يوجد مفتاح بهذا الرقم. تحقّق من رقم المعاملة في إيصال PayPal.",
@@ -213,24 +211,6 @@
 				});
 		})
 		.catch(function () { setStatus("paypal-status", "pp_error", true); });
-
-	// GeneralsX @feature ZH Commander 10/10/2026 Whish has no button: a tap on or a copy of its
-	// number counts as its buy click, once per page view. The language switch rewrites the number's
-	// paragraph, so listen on its card.
-	var whish = document.querySelector(".buy-card .phone");
-	var whishCard = whish ? whish.closest(".buy-card") : null;
-	var whishCounted = false;
-	function countWhish() {
-		if (whishCounted || !window.zhHit) return;
-		whishCounted = true;
-		window.zhHit("site_buy_click", { method: "whish" });
-	}
-	if (whishCard) {
-		whishCard.addEventListener("copy", countWhish);
-		whishCard.addEventListener("click", function (e) {
-			if (e.target.closest && e.target.closest(".phone")) countWhish();
-		});
-	}
 
 	document.getElementById("lookup-form").addEventListener("submit", function (e) {
 		e.preventDefault();

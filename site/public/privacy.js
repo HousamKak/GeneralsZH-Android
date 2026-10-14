@@ -3,7 +3,7 @@
 (function () {
 	"use strict";
 
-	var PHONE = "<bdi class=\"phone\" dir=\"ltr\">+961 71 406 981</bdi>";
+	var DISCORD = "<a href=\"https://discord.gg/3yZVh969x\">Discord</a>";
 
 	var TEXT = {
 		en: {
@@ -36,7 +36,7 @@
 			s_apart: "<h2>Kept apart</h2><p>License records, support reports and usage data share the app's anonymous install identifier, so a support request about one phone can be looked up. They are never combined into profiles of players or reports about people.</p>",
 			s_keep: "<h2>How long</h2><p>Raw usage events are deleted after 90 days. Only daily totals (counts with no identifiers) are kept after that.</p>",
 			s_off: "<h2>Turning it off</h2><p>Turn off <strong>Telemetry</strong> on the ZH COMMANDER screen in the app. Nothing is sent while it is off, including match statistics and settings, and data waiting to be sent is deleted.</p>",
-			s_contact: "<h2>Questions</h2><p>Message " + PHONE + " on WhatsApp.</p>",
+			s_contact: "<h2>Questions</h2><p>Ask on our " + DISCORD + ".</p>",
 			back: "Back to ZH Commander",
 			disclaimer: "ZH Commander is an unofficial fan project, not affiliated with or endorsed by Electronic Arts. Command &amp; Conquer and Generals are trademarks of Electronic Arts.",
 			doc_title: "ZH Commander: Privacy",
@@ -72,7 +72,7 @@
 			s_apart: "<h2>منفصلة دائمًا</h2><p>تشترك سجلات التراخيص وتقارير الدعم وبيانات الاستخدام في معرّف التثبيت المجهول للتطبيق، كي يمكن البحث عن طلب دعم يخص هاتفًا واحدًا. ولا تُجمع أبدًا في ملفات تعريف للاعبين أو تقارير عن أشخاص.</p>",
 			s_keep: "<h2>مدة الاحتفاظ</h2><p>تُحذف أحداث الاستخدام الخام بعد 90 يومًا. بعد ذلك لا يُحتفظ إلا بالمجاميع اليومية (أعداد بلا معرّفات).</p>",
 			s_off: "<h2>الإيقاف</h2><p>أوقف خيار <strong>Telemetry</strong> في شاشة ZH COMMANDER داخل التطبيق. لا يُرسل أي شيء ما دام متوقفًا، بما في ذلك إحصاءات المباريات والإعدادات، وتُحذف البيانات التي تنتظر الإرسال.</p>",
-			s_contact: "<h2>أسئلة</h2><p>راسلنا عبر واتساب على " + PHONE + ".</p>",
+			s_contact: "<h2>أسئلة</h2><p>اسألنا على " + DISCORD + ".</p>",
 			back: "العودة إلى ZH Commander",
 			disclaimer: "ZH Commander مشروع غير رسمي من المعجبين، غير تابع لشركة Electronic Arts ولا معتمد منها. Command &amp; Conquer وGenerals علامتان تجاريتان لشركة Electronic Arts.",
 			doc_title: "ZH Commander: الخصوصية",

@@ -4,7 +4,7 @@
 (function () {
 	"use strict";
 
-	var PHONE = "<bdi class=\"phone\" dir=\"ltr\">+961 71 406 981</bdi>";
+	var DISCORD = "<a href=\"https://discord.gg/3yZVh969x\">Discord</a>";
 	var GO = "<a href=\"https://www.playgenerals.online/\" rel=\"noopener\">playgenerals.online</a>";
 	var EA = "<a href=\"https://www.ea.com/ea-app\" rel=\"noopener\">EA app</a>";
 	var STEAM = "<a href=\"https://store.steampowered.com/search/?term=command+and+conquer+generals\" rel=\"noopener\">Steam</a>";
@@ -38,7 +38,7 @@
 				"<li><strong>It says the host's game files are different:</strong> on the PC, do step 3, then restart the game and host again.</li>" +
 				"<li><strong>Signing in stops on the other device:</strong> the same GeneralsOnline account is in use on both. Use separate accounts.</li>" +
 				"<li><strong>Could not connect to all players:</strong> try again on Wi-Fi, or switch between Wi-Fi and mobile data.</li>" +
-				"<li>Still stuck? Send a report from the app's Support button and message " + PHONE + " on WhatsApp.</li></ul>",
+				"<li>Still stuck? Send a report from the app's Support button and ask on our " + DISCORD + ".</li></ul>",
 			back: "Back to ZH Commander",
 			disclaimer: "ZH Commander is an unofficial fan project, not affiliated with or endorsed by Electronic Arts. Command &amp; Conquer and Generals are trademarks of Electronic Arts.",
 			privacy_link: "Privacy",
@@ -61,7 +61,7 @@
 				"<li><strong>تظهر رسالة بأن ملفات لعبة المضيف مختلفة:</strong> على الكمبيوتر، نفّذ الخطوة 3، ثم أعد تشغيل اللعبة واستضف من جديد.</li>" +
 				"<li><strong>يتوقف تسجيل الدخول على الجهاز الآخر:</strong> حساب GeneralsOnline نفسه مستخدم على الجهازين. استخدم حسابين منفصلين.</li>" +
 				"<li><strong>تعذّر الاتصال بجميع اللاعبين:</strong> حاول مجددًا على الواي فاي، أو بدّل بين الواي فاي وبيانات الهاتف.</li>" +
-				"<li>ما زالت المشكلة قائمة؟ أرسل تقريرًا من زر الدعم في التطبيق وراسل " + PHONE + " على واتساب.</li></ul>",
+				"<li>ما زالت المشكلة قائمة؟ أرسل تقريرًا من زر الدعم في التطبيق واسأل على " + DISCORD + ".</li></ul>",
 			back: "العودة إلى ZH Commander",
 			disclaimer: "ZH Commander مشروع غير رسمي من المعجبين، غير تابع لشركة Electronic Arts ولا معتمد منها. Command &amp; Conquer وGenerals علامتان تجاريتان لشركة Electronic Arts.",
 			privacy_link: "الخصوصية",
