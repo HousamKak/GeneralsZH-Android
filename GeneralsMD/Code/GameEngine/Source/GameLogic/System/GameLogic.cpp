@@ -4096,6 +4096,39 @@ void gxObjTraceDump()
 // PhysicsBehavior::update ('P': height before, acceleration, velocity before and after the
 // clamp, height after, motive) and from Locomotor::handleBehaviorZ ('L': the lift
 // calculation's inputs and output), with the raw float bits, so each rule the PC could be
+static void gxObjPartsLine(char *buf, size_t n, Object *obj)
+{
+	XferCRC x;
+	unsigned w[WEAPONSLOT_COUNT + 2];
+	int k = 0;
+	if (obj->getExperienceTracker() != nullptr)
+	{
+		x.open("e"); x.xferSnapshot(obj->getExperienceTracker()); x.close(); w[k++] = x.getCRC();
+	}
+	else
+		w[k++] = 0;
+	for (Int i = 0; i < WEAPONSLOT_COUNT; ++i)
+	{
+		Weapon *wp = obj->getWeaponInWeaponSlot((WeaponSlotType)i);
+		if (wp != nullptr) { XferCRC y; y.open("w"); y.xferSnapshot(wp); y.close(); w[k++] = y.getCRC(); }
+		else w[k++] = 0;
+	}
+	const Real health = obj->getBodyModule()->getHealth();
+	const Real scalar = obj->getBodyModule()->getDamageScalar();
+	snprintf(buf, n, "health %08X scalar %08X bonus %08X exp %08X w0 %08X w1 %08X w2 %08X",
+		*(const unsigned *)&health, *(const unsigned *)&scalar, (unsigned)obj->getWeaponBonusCondition(),
+		w[0], w[1], w[2], w[3]);
+}
+
+bool gxProbeWanted(UnsignedInt id);
+static void gxObjPartsProbe(Object *obj, unsigned frame)
+{
+	if (!gxProbeWanted(obj->getID())) return;
+	char buf[256];
+	gxObjPartsLine(buf, sizeof(buf), obj);
+	fprintf(stderr, "[GX-NET] parts frame %u id %u %s\n", frame, (unsigned)obj->getID(), buf);
+	fflush(stderr);
+}
 // running differently can be replayed offline against the recorded checksum.
 void gxPhysNote(Char kind, UnsignedInt id, const Real *values, Int count)
 {
@@ -4832,6 +4865,7 @@ UnsignedInt GameLogic::getCRC( Int mode, AsciiString deepCRCFileName )
 		&& m_frame >= (UnsignedInt)s_objTraceFirstFrame;
 	for( obj = m_objList; obj; obj=obj->getNextObject() )
 	{
+		if (isInGameLogicUpdate()) gxObjPartsProbe(obj, (unsigned)m_frame);
 		if (GXCrcStream::isCapturing())
 			GXCrcStream::markObject( (UnsignedInt)obj->getID(),
 				obj->getTemplate() ? obj->getTemplate()->getName().str() : nullptr );
