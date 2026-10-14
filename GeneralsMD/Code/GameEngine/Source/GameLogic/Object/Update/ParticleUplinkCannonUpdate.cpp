@@ -729,7 +729,13 @@ UpdateSleepTime ParticleUplinkCannonUpdate::update()
 
 				DamageInfo damageInfo;
 
+#if defined(SAGE_RETAIL_RULES)
+				// GeneralsX @bugfix ZH Commander 14/10/2026 Retail divides the frame count by 30 as integers
+				// (whole seconds); the float division gave a damage per pulse a hair off.
+				Real totalFiringSeconds = (Real)(data->m_totalFiringFrames / LOGICFRAMES_PER_SECOND);
+#else
 				Real totalFiringSeconds = data->m_totalFiringFrames / static_cast<float>(LOGICFRAMES_PER_SECOND);
+#endif
 				Real damagePerPulse = (Real)(totalFiringSeconds * data->m_damagePerSecond) / (Real)data->m_totalDamagePulses;
 
 				damageInfo.in.m_amount = damagePerPulse;
