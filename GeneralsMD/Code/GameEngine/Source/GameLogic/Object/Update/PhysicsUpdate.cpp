@@ -619,9 +619,18 @@ void PhysicsBehavior::setYawRate(Real yaw)
 //-------------------------------------------------------------------------------------------------
 void PhysicsBehavior::applyYPRDamping(Real factor)
 {
+#if defined(SAGE_RETAIL_RULES)
+	// GeneralsX @bugfix ZH Commander 14/10/2026 The rates decay into denormals. x87 rounds the product
+	// to 24 bits in the register, then again into the denormal on the store; a float multiply rounds
+	// once, so the phone's decaying rates drifted from retail's.
+	m_pitchRate = (Real)(GxX87Reg((double)m_pitchRate) * factor);
+	m_rollRate = (Real)(GxX87Reg((double)m_rollRate) * factor);
+	m_yawRate = (Real)(GxX87Reg((double)m_yawRate) * factor);
+#else
 	m_pitchRate *= factor;
 	m_rollRate *= factor;
 	m_yawRate *= factor;
+#endif
 	setFlag(HAS_PITCHROLLYAW, (m_pitchRate != 0.0f || m_rollRate != 0.0f || m_yawRate != 0.0f));
 }
 
@@ -805,9 +814,16 @@ UpdateSleepTime PhysicsBehavior::update()
 
 			// only update the position if we are not HELD
 			// (otherwise, slowdeath sinking into ground won't work)
+#if defined(SAGE_RETAIL_RULES)
+			// GeneralsX @bugfix ZH Commander 14/10/2026 Rounded as x87 does for denormal rates (see applyYPRDamping).
+			Real yawRateToUse = (Real)(GxX87Reg((double)m_yawRate) * d->m_pitchRollYawFactor);
+			Real pitchRateToUse = (Real)(GxX87Reg((double)m_pitchRate) * d->m_pitchRollYawFactor);
+			Real rollRateToUse = (Real)(GxX87Reg((double)m_rollRate) * d->m_pitchRollYawFactor);
+#else
 			Real yawRateToUse = m_yawRate * d->m_pitchRollYawFactor;
 			Real pitchRateToUse = m_pitchRate * d->m_pitchRollYawFactor;
 			Real rollRateToUse = m_rollRate * d->m_pitchRollYawFactor;
+#endif
 
 			// With a center of mass listing, pitchRate needs to dampen towards straight down/straight up
 			Real offset = getCenterOfMassOffset();
