@@ -90,6 +90,13 @@ void Shell::construct()
 //-------------------------------------------------------------------------------------------------
 void Shell::deconstruct()
 {
+	// GeneralsX @bugfix ZH Commander 14/10/2026 A screen push still pending when the engine shuts down
+	// (the score screen after a game that ended, e.g. a replay check quitting on its own) ran from
+	// the main menu's shutdown below, after the subsystems it reads were gone: a null dereference
+	// in ScoreScreenInit on every such exit. Nothing should be pushed while the shell is torn down.
+	m_pendingPush = FALSE;
+	m_pendingPushName.set( "" );
+
 	WindowLayout *newTop = top();
 	while(newTop)
 	{
